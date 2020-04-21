@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest package="com.frybits.harmonyprefs.library"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+    <instrumentation
+        android:name="androidx.test.runner.AndroidJUnitRunner"
+        android:targetPackage="com.frybits.harmonyprefs.library"
+        android:targetProcesses="*">
+        <meta-data
+            android:name="remoteMethod"
+            android:value="androidx.test.espresso.remote.EspressoRemote#remoteInit" />
+    </instrumentation>
+</manifest>
