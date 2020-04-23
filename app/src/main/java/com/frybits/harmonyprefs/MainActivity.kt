@@ -28,12 +28,12 @@ class MainActivity : AppCompatActivity() {
             delay(5000)
             Log.d("Trial", "Start MainActivity loop...")
             val measuredTime = measureTimeMillis {
-                repeat(100) {
+                repeat(1000) {
                     if (it == 0) Log.d("Trial", "Sending first event!")
-                    if (it == 99) Log.d("Trial", "Sending last event!")
+                    if (it == 999) Log.d("Trial", "Sending last event!")
 //                    Log.d("Trial", "Sending $it")
                     harmonyPrefs1.edit().putLong("test", it.toLong()).apply()
-                    if (it == 99) delay(5)
+                    if (it < 999) delay(1)
                 }
             }
             Log.d("Trial", "End MainActivity loop: Duration=$measuredTime")

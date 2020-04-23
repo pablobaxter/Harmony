@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import com.frybits.harmonyprefs.library.Harmony.Companion.getHarmonyPrefs
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 
 /**
  * Created by Pablo Baxter (Github: pablobaxter)
@@ -13,6 +15,7 @@ import com.frybits.harmonyprefs.library.Harmony.Companion.getHarmonyPrefs
 class CountReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
+        runBlocking { delay(1000) }
         val blah = context.getHarmonyPrefs("Blah")
         Log.d("Trial", blah.contains("test").toString())
         blah.edit().clear().apply()
@@ -33,11 +36,11 @@ class CountReceiver : BroadcastReceiver() {
                 Thread.sleep(5)
                 currCount = i
             }
-            if (i == 99L) {
+            if (i == 999L) {
                 Log.d("Trial", "Got last event! Event: $i")
                 Log.d("Trial", "End CountReceiver loop: Duration=${System.currentTimeMillis() - startTime}")
             }
             Log.d("Blah", "Count: $i")
-        } while (i != 99L)
+        } while (i != 999L)
     }
 }

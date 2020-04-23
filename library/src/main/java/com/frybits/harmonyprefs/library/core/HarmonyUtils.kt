@@ -12,10 +12,12 @@ import java.io.IOException
  * Helper functions
  */
 
-@JvmSynthetic
-internal fun Context.harmonyPrefsFolder() =
-    File(filesDir, "harmony").apply { if (!exists()) mkdirs() }
+private const val HARMONY_PREFS_FOLDER = "harmony_prefs"
 
+@JvmSynthetic
+internal fun Context.harmonyPrefsFolder() = File(filesDir, HARMONY_PREFS_FOLDER)
+
+@JvmSynthetic
 internal fun JsonReader.toMap(): MutableMap<String, Any?> = readMap()
 
 private fun JsonReader.readMap(): MutableMap<String, Any?> {
@@ -28,7 +30,7 @@ private fun JsonReader.readMap(): MutableMap<String, Any?> {
     }
 
     beginObject()
-    while(hasNext()) {
+    while (hasNext()) {
         when (peek()) {
             JsonToken.BEGIN_OBJECT -> name?.let { map[it] = readMap() }
             JsonToken.NAME -> name = nextName()
@@ -38,7 +40,7 @@ private fun JsonReader.readMap(): MutableMap<String, Any?> {
             JsonToken.STRING -> name?.let { map[it] = nextString() }
             JsonToken.NULL -> nextNull()
             JsonToken.END_ARRAY -> {
-                logWTF("JsonReader", "This shouldn't happen")
+                HarmonyLog.wtf("JsonReader", "This shouldn't happen")
                 endArray()
             }
             JsonToken.END_OBJECT -> endObject()
@@ -61,7 +63,7 @@ private fun JsonReader.readList(): MutableList<Any?> {
             JsonToken.NULL -> nextNull()
             JsonToken.END_ARRAY -> endArray()
             JsonToken.END_OBJECT -> {
-                logWTF("JsonReader", "This shouldn't happen")
+                HarmonyLog.wtf("JsonReader", "This shouldn't happen")
                 endObject()
             }
             else -> Unit
