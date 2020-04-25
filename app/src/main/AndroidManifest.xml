@@ -9,14 +9,28 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
+<!--        <activity-->
+<!--            android:name=".test.singleentry.commit.HarmonyPrefsCommitActivity">-->
+<!--            <intent-filter>-->
+<!--                <action android:name="android.intent.action.MAIN" />-->
+<!--                <category android:name="android.intent.category.LAUNCHER" />-->
+<!--            </intent-filter>-->
+<!--        </activity>-->
+<!--        <service android:name=".test.singleentry.commit.HarmonyPrefsCommitFooService"-->
+<!--            android:process=":foo"/>-->
+<!--        <service android:name=".test.singleentry.commit.HarmonyPrefsCommitBarService"-->
+<!--            android:process=":bar"/>-->
+
         <activity
-            android:name=".MainActivity"
-            android:process=":blah">
+            android:name=".test.singleentry.apply.HarmonyPrefsApplyActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <receiver android:name=".CountReceiver"/>
+        <service android:name=".test.singleentry.apply.HarmonyPrefsApplyFooService"
+            android:process=":foo"/>
+        <service android:name=".test.singleentry.apply.HarmonyPrefsApplyBarService"
+            android:process=":bar"/>
     </application>
 </manifest>

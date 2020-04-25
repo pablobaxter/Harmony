@@ -31,7 +31,6 @@ class HarmonyTest {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
         appContext.getHarmonyPrefs(PREFS).edit(true) { clear() }
-        Log.d("Blah", "Deleting folder")
         appContext.harmonyPrefsFolder().deleteRecursively()
     }
 
@@ -40,7 +39,7 @@ class HarmonyTest {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
         val sharedPreferences = appContext.getHarmonyPrefs(PREFS)
-        assertFalse { sharedPreferences.contains("blah") }
+        assertFalse { sharedPreferences.contains("foo") }
     }
 
     @Test

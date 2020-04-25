@@ -5,7 +5,6 @@ import android.content.SharedPreferences
 import android.os.FileObserver
 import android.os.ParcelFileDescriptor
 import android.util.JsonReader
-import android.util.Log
 import com.frybits.harmonyprefs.library.core.HarmonyLog
 import com.frybits.harmonyprefs.library.core.harmonyFileObserver
 import com.frybits.harmonyprefs.library.core.harmonyPrefsFolder
@@ -26,6 +25,7 @@ import org.json.JSONException
 import org.json.JSONObject
 import java.io.File
 import java.io.SyncFailedException
+import java.nio.channels.FileLock
 import java.util.WeakHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.locks.ReentrantReadWriteLock
@@ -53,7 +53,7 @@ class Harmony private constructor(
     private val harmonyPrefsFile = File(harmonyPrefsFolder, prefsName)
 
     // Single thread dispatcher, which handles file reads/writes for the prefs asynchronously
-    private val harmonyDispatcher = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
+    private val harmonySingleThreadDispatcher = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
     private val harmonyCoroutineScope = CoroutineScope(SupervisorJob() + CoroutineName(LOG_TAG))
 
     // Lock to ensure data is loaded before attempting to read the map for the first time
@@ -70,9 +70,8 @@ class Harmony private constructor(
         harmonyFileObserver(harmonyPrefsFile) { event, _ ->
             when (event) {
                 FileObserver.MODIFY -> { // We only really care if this file has been modified
-                    harmonyCoroutineScope.launch(harmonyDispatcher) {
-                        HarmonyLog.d(LOG_TAG, "A file closed!")
-                        loadFromDisk()
+                    harmonyCoroutineScope.launch(harmonySingleThreadDispatcher) {
+                        loadFromDisk(true)
                     }
                 }
             }
@@ -91,7 +90,7 @@ class Harmony private constructor(
         }
 
         // Run the load of the file in a different thread
-        isLoadedDeferred = harmonyCoroutineScope.async(harmonyDispatcher) { loadFromDisk() }
+        isLoadedDeferred = harmonyCoroutineScope.async(harmonySingleThreadDispatcher) { loadFromDisk(false) }
     }
 
     override fun getInt(key: String, defValue: Int): Int {
@@ -195,7 +194,7 @@ class Harmony private constructor(
     }
 
     // Load from disk logic
-    private suspend fun loadFromDisk() {
+    private suspend fun loadFromDisk(shouldNotifyListeners: Boolean) {
 
         // Only allow one filedescriptor open at a time. Should not be reentrant
         fileDescriptorMutex.withLock {
@@ -211,7 +210,10 @@ class Harmony private constructor(
             HarmonyLog.v(LOG_TAG, "Attempting to get file lock...")
 
             // Lock the file to prevent other process from writing to it while this read is occurring. This is reentrant
-            val lock = prefsInputStream.channel.lock(0, Long.MAX_VALUE, true)
+            var lock: FileLock? = null
+            while (lock == null) {
+                lock = prefsInputStream.channel.tryLock(0, Long.MAX_VALUE, true)
+            }
             HarmonyLog.v(LOG_TAG, "Got the file lock!")
             val map: Map<String, Any?> = try {
                 if (harmonyPrefsFile.length() > 0) {
@@ -235,8 +237,30 @@ class Harmony private constructor(
 
             if (prefsName == map[NAME_KEY]) {
                 @Suppress("UNCHECKED_CAST")
+                val dataMap = map[DATA_KEY] as? Map<String, Any?>?
+                val oldMap = harmonyMap.toMutableMap()
                 mapReentrantReadWriteLock.write {
-                    harmonyMap.putAll((map[DATA_KEY] as? Map<String, Any?>?) ?: emptyMap())
+                    harmonyMap.putAll(dataMap ?: emptyMap())
+                }
+
+                if (shouldNotifyListeners && listenerMap.isNotEmpty()) {
+                    val listeners = listenerMap.keys.toMutableList()
+                    val keysModified = arrayListOf<String>()
+                    dataMap?.forEach { (k, v) ->
+                        if (!oldMap.containsKey(k) || oldMap[k] != v) {
+                            keysModified.add(k)
+                        }
+                    }
+
+                    if (keysModified.isNotEmpty()) {
+                        harmonyCoroutineScope.launch(Dispatchers.Main) {
+                            keysModified.asReversed().forEach { key ->
+                                listeners.forEach { listener ->
+                                    listener.onSharedPreferenceChanged(this@Harmony, key)
+                                }
+                            }
+                        }
+                    }
                 }
             } else {
                 HarmonyLog.w(
@@ -265,7 +289,10 @@ class Harmony private constructor(
             HarmonyLog.v(LOG_TAG, "Attempting to get file lock...")
 
             // Lock the file for writes across all processes. This is an exclusive lock
-            val lock = prefsOutputStream.channel.lock()
+            var lock: FileLock? = null
+            while (lock == null) {
+                lock = prefsOutputStream.channel.tryLock()
+            }
             HarmonyLog.v(LOG_TAG, "Got the file lock!")
             try {
                 HarmonyLog.d(LOG_TAG, "Stopping file observer...")
@@ -356,7 +383,6 @@ class Harmony private constructor(
         }
 
         override fun clear(): SharedPreferences.Editor {
-            Log.d("Blah", "Calling clear!")
             synchronized(this) {
                 cleared = true
                 return this
@@ -372,13 +398,12 @@ class Harmony private constructor(
 
         override fun apply() {
             val currMemoryMap = commitToMemory()
-            harmonyCoroutineScope.launch(harmonyDispatcher) {
+            harmonyCoroutineScope.launch(harmonySingleThreadDispatcher) {
                 commitToDisk(currMemoryMap)
             }
         }
 
         override fun commit(): Boolean {
-            Log.d("Blah", "Commit called!")
             return runBlocking {
                 commitToDisk(commitToMemory())
             }
