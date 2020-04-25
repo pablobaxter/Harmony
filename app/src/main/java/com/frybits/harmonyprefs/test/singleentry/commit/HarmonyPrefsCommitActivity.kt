@@ -79,10 +79,12 @@ class HarmonyPrefsCommitActivity : AppCompatActivity() {
             stopService(Intent(this@HarmonyPrefsCommitActivity, HarmonyPrefsCommitBarService::class.java))
             Log.d("Trial", "Activity: Stopping test!")
             withContext(Dispatchers.Main) {
+                Log.d("Trial", "Activity: Foo count: ${fooCaptureList.size}")
                 Log.d("Trial", "Activity: Foo Average receive time: ${fooCaptureList.average()} ms")
                 Log.d("Trial", "Activity: Foo Max receive time: ${fooCaptureList.max()} ms")
                 Log.d("Trial", "Activity: Foo Min receive time: ${fooCaptureList.min()} ms")
                 Log.d("Trial", "===")
+                Log.d("Trial", "Activity: Bar count: ${barCaptureList.size}")
                 Log.d("Trial", "Activity: Bar Average receive time: ${barCaptureList.average()} ms")
                 Log.d("Trial", "Activity: Bar Max receive time: ${barCaptureList.max()} ms")
                 Log.d("Trial", "Activity: Bar Min receive time: ${barCaptureList.min()} ms")

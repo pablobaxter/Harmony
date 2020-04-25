@@ -54,6 +54,7 @@ abstract class HarmonyBasePrefsApplyService(private val servicePrefs: String) : 
         }
         if (isStarted && endCommand) {
             Log.d("Trial", "${this::class.java.simpleName}: Stopping test!")
+            Log.d("Trial", "${this::class.java.simpleName}: Capture count: ${timeCaptureList.size}")
             Log.d("Trial", "${this::class.java.simpleName}: Average receive time: ${timeCaptureList.average()} ms")
             Log.d("Trial", "${this::class.java.simpleName}: Max receive time: ${timeCaptureList.max()} ms")
             Log.d("Trial", "${this::class.java.simpleName}: Min receive time: ${timeCaptureList.min()} ms")
