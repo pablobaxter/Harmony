@@ -16,6 +16,7 @@ import java.nio.channels.FileLock
  */
 
 private const val HARMONY_PREFS_FOLDER = "harmony_prefs"
+private const val RESOURCE_DEADLOCK_ERROR = "Resource deadlock would occur"
 
 @JvmSynthetic
 internal fun Context.harmonyPrefsFolder() = File(filesDir, HARMONY_PREFS_FOLDER)
@@ -30,15 +31,23 @@ internal inline fun <T> File.withFileLock(shared: Boolean = false, block: () -> 
         if (shared) FileInputStream(this).channel else FileOutputStream(this).channel
     // Lock the file to prevent other process from writing to it while this read is occurring. This is reentrant
     var lock: FileLock? = null
-    // Linux has a bug that produces a false deadlock. TryLock swallows that exception and returns null instead
-    // More info here: https://bugzilla.mozilla.org/show_bug.cgi?id=62457#c5
-    while (lock == null) {
-        lock = lockFileChannel.tryLock(0, Long.MAX_VALUE, shared)
-    }
     try {
+        // Keep retrying to get the lock
+        while (lock == null) {
+            try {
+                // This should block the thread, and prevent misuse of CPU cycles
+                lock = lockFileChannel.lock(0L, Long.MAX_VALUE, shared)
+            } catch (e: IOException) {
+                // This would not actually cause a deadlock
+                // Ignore this specific error and throw all others
+                if (e.message != RESOURCE_DEADLOCK_ERROR) {
+                    throw e
+                }
+            }
+        }
         return block()
     } finally {
-        lock.release()
+        lock?.release()
         lockFileChannel.close()
     }
 }
