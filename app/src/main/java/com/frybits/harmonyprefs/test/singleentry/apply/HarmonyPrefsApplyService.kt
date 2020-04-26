@@ -7,6 +7,7 @@ import android.os.IBinder
 import android.os.SystemClock
 import android.util.Log
 import androidx.core.content.edit
+import com.frybits.harmonyprefs.ITERATIONS
 import com.frybits.harmonyprefs.library.Harmony.Companion.getHarmonyPrefs
 
 /**
@@ -47,17 +48,17 @@ abstract class HarmonyBasePrefsApplyService(private val servicePrefs: String) : 
         val endCommand = intent?.getBooleanExtra("STOP", false) ?: false
         if (!isStarted && startCommand) {
             timeCaptureList.clear()
-            Log.d("Trial", "${this::class.java.simpleName}: Starting test!")
+            Log.i("Trial", "${this::class.java.simpleName}: Starting test!")
             isStarted = true
             isRegistered = true
             harmonyActivityPrefs.registerOnSharedPreferenceChangeListener(sharedPreferenceChangeListener)
         }
         if (isStarted && endCommand) {
-            Log.d("Trial", "${this::class.java.simpleName}: Stopping test!")
-            Log.d("Trial", "${this::class.java.simpleName}: Capture count: ${timeCaptureList.size}")
-            Log.d("Trial", "${this::class.java.simpleName}: Average receive time: ${timeCaptureList.average()} ms")
-            Log.d("Trial", "${this::class.java.simpleName}: Max receive time: ${timeCaptureList.max()} ms")
-            Log.d("Trial", "${this::class.java.simpleName}: Min receive time: ${timeCaptureList.min()} ms")
+            Log.i("Trial", "${this::class.java.simpleName}: Stopping test!")
+            Log.i("Trial", "${this::class.java.simpleName}: Capture count: ${timeCaptureList.size}, expecting $ITERATIONS")
+            Log.i("Trial", "${this::class.java.simpleName}: Average receive time: ${timeCaptureList.average()} ms")
+            Log.i("Trial", "${this::class.java.simpleName}: Max receive time: ${timeCaptureList.max()} ms")
+            Log.i("Trial", "${this::class.java.simpleName}: Min receive time: ${timeCaptureList.min()} ms")
             isStarted = false
             harmonyActivityPrefs.unregisterOnSharedPreferenceChangeListener(sharedPreferenceChangeListener)
             isRegistered = false

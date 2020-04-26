@@ -9,28 +9,29 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
-<!--        <activity-->
-<!--            android:name=".test.singleentry.commit.HarmonyPrefsCommitActivity">-->
-<!--            <intent-filter>-->
-<!--                <action android:name="android.intent.action.MAIN" />-->
-<!--                <category android:name="android.intent.category.LAUNCHER" />-->
-<!--            </intent-filter>-->
-<!--        </activity>-->
-<!--        <service android:name=".test.singleentry.commit.HarmonyPrefsCommitFooService"-->
-<!--            android:process=":foo"/>-->
-<!--        <service android:name=".test.singleentry.commit.HarmonyPrefsCommitBarService"-->
-<!--            android:process=":bar"/>-->
-
-        <activity
-            android:name=".test.singleentry.apply.HarmonyPrefsApplyActivity">
+        <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <service android:name=".test.singleentry.apply.HarmonyPrefsApplyFooService"
-            android:process=":foo"/>
-        <service android:name=".test.singleentry.apply.HarmonyPrefsApplyBarService"
-            android:process=":bar"/>
+
+        <activity android:name=".test.singleentry.commit.HarmonyPrefsCommitActivity" />
+
+        <service
+            android:name=".test.singleentry.commit.HarmonyPrefsCommitFooService"
+            android:process=":foo" />
+        <service
+            android:name=".test.singleentry.commit.HarmonyPrefsCommitBarService"
+            android:process=":bar" />
+
+        <activity android:name=".test.singleentry.apply.HarmonyPrefsApplyActivity" />
+
+        <service
+            android:name=".test.singleentry.apply.HarmonyPrefsApplyFooService"
+            android:process=":foo" />
+        <service
+            android:name=".test.singleentry.apply.HarmonyPrefsApplyBarService"
+            android:process=":bar" />
     </application>
 </manifest>

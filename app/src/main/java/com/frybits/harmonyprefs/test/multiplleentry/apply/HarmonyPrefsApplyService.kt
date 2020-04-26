@@ -1,4 +1,4 @@
-package com.frybits.harmonyprefs.test.singleentry.commit
+package com.frybits.harmonyprefs.test.multiplleentry.apply
 
 import android.app.Service
 import android.content.Intent
@@ -14,7 +14,7 @@ import com.frybits.harmonyprefs.library.Harmony.Companion.getHarmonyPrefs
  * Created by Pablo Baxter (Github: pablobaxter)
  */
 
-abstract class HarmonyBasePrefsCommitService(private val servicePrefs: String) : Service() {
+abstract class HarmonyBasePrefsApplyService(private val servicePrefs: String) : Service() {
 
     private lateinit var harmonyActivityPrefs: SharedPreferences
     private lateinit var harmonyServicePrefs: SharedPreferences
@@ -27,7 +27,7 @@ abstract class HarmonyBasePrefsCommitService(private val servicePrefs: String) :
         Log.d("Trial", "${this::class.java.simpleName}: Time to receive $key: ${now - activityTestTime}")
         Log.d("Trial", "${this::class.java.simpleName}: Sending response with key: $key")
         timeCaptureList.add(now - activityTestTime)
-        harmonyServicePrefs.edit(true) { putLong(key, SystemClock.elapsedRealtime()) }
+        harmonyServicePrefs.edit { putLong(key, SystemClock.elapsedRealtime()) }
     }
 
     private var isStarted = false
@@ -67,5 +67,5 @@ abstract class HarmonyBasePrefsCommitService(private val servicePrefs: String) :
     }
 }
 
-class HarmonyPrefsCommitFooService : HarmonyBasePrefsCommitService("fooServicePrefs")
-class HarmonyPrefsCommitBarService : HarmonyBasePrefsCommitService("barServicePrefs")
+class HarmonyPrefsApplyFooService : HarmonyBasePrefsApplyService("fooServicePrefs")
+class HarmonyPrefsApplyBarService : HarmonyBasePrefsApplyService("barServicePrefs")

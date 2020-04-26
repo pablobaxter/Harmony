@@ -1,4 +1,4 @@
-package com.frybits.harmonyprefs.test.singleentry.commit
+package com.frybits.harmonyprefs.test.multiplleentry.apply
 
 import android.app.Activity
 import android.content.Intent
@@ -14,13 +14,12 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.system.measureTimeMillis
 
 /**
  * Created by Pablo Baxter (Github: pablobaxter)
  */
 
-class HarmonyPrefsCommitActivity : Activity() {
+class HarmonyPrefsApplyActivity : Activity() {
 
     private lateinit var activityHarmonyPrefs: SharedPreferences
     private lateinit var fooServicePrefs: SharedPreferences
@@ -28,7 +27,6 @@ class HarmonyPrefsCommitActivity : Activity() {
 
     private val fooCaptureList = arrayListOf<Long>()
     private val barCaptureList = arrayListOf<Long>()
-    private val commitTimeSpent = arrayListOf<Long>()
 
     private val sharedPreferenceChangeListener = SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
         val now = SystemClock.elapsedRealtime()
@@ -56,27 +54,21 @@ class HarmonyPrefsCommitActivity : Activity() {
         barServicePrefs.registerOnSharedPreferenceChangeListener(sharedPreferenceChangeListener)
 
         GlobalScope.launch(Dispatchers.IO) {
-            startService(Intent(this@HarmonyPrefsCommitActivity, HarmonyPrefsCommitFooService::class.java).apply { putExtra("START", true) })
-            startService(Intent(this@HarmonyPrefsCommitActivity, HarmonyPrefsCommitBarService::class.java).apply { putExtra("START", true) })
+            startService(Intent(this@HarmonyPrefsApplyActivity, HarmonyPrefsApplyFooService::class.java).apply { putExtra("START", true) })
+            startService(Intent(this@HarmonyPrefsApplyActivity, HarmonyPrefsApplyBarService::class.java).apply { putExtra("START", true) })
             delay(3000)
             Log.i("Trial", "Activity: Starting test!")
-            repeat(ITERATIONS) { i ->
-                val measure = measureTimeMillis {
-                    activityHarmonyPrefs.edit(true) {
-                        putLong(
-                            "test$i",
-                            SystemClock.elapsedRealtime()
-                        )
-                    }
+            activityHarmonyPrefs.edit {
+                repeat(ITERATIONS) { i ->
+                    putBoolean("test$i", true)
                 }
-                commitTimeSpent.add(measure)
             }
             delay(5000)
-            startService(Intent(this@HarmonyPrefsCommitActivity, HarmonyPrefsCommitFooService::class.java).apply { putExtra("STOP", true) })
-            startService(Intent(this@HarmonyPrefsCommitActivity, HarmonyPrefsCommitBarService::class.java).apply { putExtra("STOP", true) })
+            startService(Intent(this@HarmonyPrefsApplyActivity, HarmonyPrefsApplyFooService::class.java).apply { putExtra("STOP", true) })
+            startService(Intent(this@HarmonyPrefsApplyActivity, HarmonyPrefsApplyBarService::class.java).apply { putExtra("STOP", true) })
             delay(1000)
-            stopService(Intent(this@HarmonyPrefsCommitActivity, HarmonyPrefsCommitFooService::class.java))
-            stopService(Intent(this@HarmonyPrefsCommitActivity, HarmonyPrefsCommitBarService::class.java))
+            stopService(Intent(this@HarmonyPrefsApplyActivity, HarmonyPrefsApplyFooService::class.java))
+            stopService(Intent(this@HarmonyPrefsApplyActivity, HarmonyPrefsApplyBarService::class.java))
             Log.i("Trial", "Activity: Stopping test!")
             withContext(Dispatchers.Main) {
                 Log.i("Trial", "Activity: Foo count: ${fooCaptureList.size}, expecting $ITERATIONS")
@@ -93,10 +85,6 @@ class HarmonyPrefsCommitActivity : Activity() {
                 Log.i("Trial", "Activity: Total Average receive time: ${totalCaptures.average()} ms")
                 Log.i("Trial", "Activity: Total Max receive time: ${totalCaptures.max()} ms")
                 Log.i("Trial", "Activity: Total Min receive time: ${totalCaptures.min()} ms")
-                Log.i("Trial", "===")
-                Log.i("Trial", "Activity: Total Average receive time: ${commitTimeSpent.average()} ms")
-                Log.i("Trial", "Activity: Total Max receive time: ${commitTimeSpent.max()} ms")
-                Log.i("Trial", "Activity: Total Min receive time: ${commitTimeSpent.min()} ms")
             }
         }
     }

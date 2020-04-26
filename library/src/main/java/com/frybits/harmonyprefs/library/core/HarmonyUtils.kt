@@ -4,7 +4,11 @@ import android.content.Context
 import android.util.JsonReader
 import android.util.JsonToken
 import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
 import java.io.IOException
+import java.nio.channels.FileChannel
+import java.nio.channels.FileLock
 
 /**
  * Created by Pablo Baxter (Github: pablobaxter)
@@ -19,6 +23,23 @@ internal fun Context.harmonyPrefsFolder() = File(filesDir, HARMONY_PREFS_FOLDER)
 
 @JvmSynthetic
 internal fun JsonReader.toMap(): MutableMap<String, Any?> = readMap()
+
+@JvmSynthetic
+internal inline fun <T> File.withFileLock(shared: Boolean = false, block: () -> T): T {
+    val lockFileChannel =
+        if (shared) FileInputStream(this).channel else FileOutputStream(this).channel
+    // Lock the file to prevent other process from writing to it while this read is occurring. This is reentrant
+    var lock: FileLock? = null
+    while (lock == null) {
+        lock = lockFileChannel.tryLock(0, Long.MAX_VALUE, shared)
+    }
+    try {
+        return block()
+    } finally {
+        lock.release()
+        lockFileChannel.close()
+    }
+}
 
 private fun JsonReader.readMap(): MutableMap<String, Any?> {
     var name: String? = null

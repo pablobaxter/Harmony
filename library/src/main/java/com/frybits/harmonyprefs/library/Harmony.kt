@@ -9,6 +9,7 @@ import com.frybits.harmonyprefs.library.core.HarmonyLog
 import com.frybits.harmonyprefs.library.core.harmonyFileObserver
 import com.frybits.harmonyprefs.library.core.harmonyPrefsFolder
 import com.frybits.harmonyprefs.library.core.toMap
+import com.frybits.harmonyprefs.library.core.withFileLock
 import kotlinx.atomicfu.locks.synchronized
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
@@ -25,7 +26,6 @@ import org.json.JSONException
 import org.json.JSONObject
 import java.io.File
 import java.io.SyncFailedException
-import java.nio.channels.FileLock
 import java.util.WeakHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.locks.ReentrantReadWriteLock
@@ -41,6 +41,11 @@ private const val LOG_TAG = "Harmony"
 private const val NAME_KEY = "name"
 private const val DATA_KEY = "data"
 
+private const val PREFS_DATA = "prefs.data"
+private const val PREFS_DATA_LOCK = "prefs.data.lock"
+private const val PREFS_BACKUP = "prefs.backup"
+private const val PREFS_BACKUP_LOCK = "prefs.backup.lock"
+
 // Empty singleton to support WeakHashmap
 private object CONTENT
 
@@ -49,8 +54,15 @@ class Harmony private constructor(
     private val prefsName: String
 ) : SharedPreferences {
 
-    private val harmonyPrefsFolder = context.harmonyPrefsFolder()
-    private val harmonyPrefsFile = File(harmonyPrefsFolder, prefsName)
+    private val harmonyPrefsFolder = File(context.harmonyPrefsFolder(), prefsName)
+
+    // Data file
+    private val harmonyPrefsFile = File(harmonyPrefsFolder, PREFS_DATA)
+    private val harmonyPrefsLockFile = File(harmonyPrefsFolder, PREFS_DATA_LOCK)
+
+    // Backup file
+    private val harmonyPrefsBackupFile = File(harmonyPrefsFolder, PREFS_BACKUP)
+    private val harmonyPrefsBackupLockFile = File(harmonyPrefsFolder, PREFS_BACKUP_LOCK)
 
     // Single thread dispatcher, which handles file reads/writes for the prefs asynchronously
     private val harmonySingleThreadDispatcher = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
@@ -67,11 +79,15 @@ class Harmony private constructor(
 
     // Observes changes that occur to the backing file of this preference
     private val harmonyFileObserver =
-        harmonyFileObserver(harmonyPrefsFile) { event, _ ->
+        harmonyFileObserver(harmonyPrefsFolder) { event, path ->
             when (event) {
                 FileObserver.MODIFY -> { // We only really care if this file has been modified
-                    harmonyCoroutineScope.launch(harmonySingleThreadDispatcher) {
-                        loadFromDisk(true)
+                    val isPrefsData = path?.contains(PREFS_DATA) ?: false
+                    if (isPrefsData) {
+                        HarmonyLog.d("Blah", path ?: "Nothing")
+                        harmonyCoroutineScope.launch(harmonySingleThreadDispatcher) {
+                            loadFromDisk(true)
+                        }
                     }
                 }
             }
@@ -201,46 +217,56 @@ class Harmony private constructor(
             if (!harmonyPrefsFolder.exists()) {
                 HarmonyLog.e(LOG_TAG, "Harmony folder does not exist! Creating...")
                 harmonyPrefsFolder.mkdirs()
+                harmonyPrefsLockFile.createNewFile()
+                harmonyPrefsBackupLockFile.createNewFile()
             }
-            val pfd = ParcelFileDescriptor.open(
-                harmonyPrefsFile,
-                ParcelFileDescriptor.MODE_CREATE or ParcelFileDescriptor.MODE_READ_ONLY
-            )
-            val prefsInputStream = ParcelFileDescriptor.AutoCloseInputStream(pfd)
-            HarmonyLog.v(LOG_TAG, "Attempting to get file lock...")
 
-            // Lock the file to prevent other process from writing to it while this read is occurring. This is reentrant
-            var lock: FileLock? = null
-            while (lock == null) {
-                lock = prefsInputStream.channel.tryLock(0, Long.MAX_VALUE, true)
-            }
-            HarmonyLog.v(LOG_TAG, "Got the file lock!")
-            val map: Map<String, Any?> = try {
-                if (harmonyPrefsFile.length() > 0) {
-                    HarmonyLog.v(LOG_TAG, "File exists! Reading json...")
-                    JsonReader(prefsInputStream.reader()).toMap()
-                } else {
-                    HarmonyLog.v(LOG_TAG, "File doesn't exist!")
-                    emptyMap()
+            // Lock the data file for writes. Reads are reentrant
+            val map: Map<String, Any?> = harmonyPrefsLockFile.withFileLock(true) {
+
+                // Check for backup file
+                if (harmonyPrefsBackupFile.exists()) {
+                    // Exclusively lock the backup files
+                    harmonyPrefsBackupLockFile.withFileLock {
+                        if (harmonyPrefsBackupFile.exists()) { // Check again if file exists
+                            harmonyPrefsFile.delete()
+                            if (harmonyPrefsBackupFile.renameTo(harmonyPrefsFile)) {
+                                harmonyPrefsBackupFile.delete()
+                            }
+                        }
+                    }
                 }
-            } catch (e: IllegalStateException) {
-                emptyMap()
-            } catch (e: JSONException) {
-                emptyMap()
-            } finally {
-                HarmonyLog.v(LOG_TAG, "Releasing lock and closing input stream")
 
-                // Release the file lock
-                lock.release()
-                prefsInputStream.close()
+                val pfd = ParcelFileDescriptor.open(
+                    harmonyPrefsFile,
+                    ParcelFileDescriptor.MODE_CREATE or ParcelFileDescriptor.MODE_READ_ONLY
+                )
+                val prefsInputStream = ParcelFileDescriptor.AutoCloseInputStream(pfd)
+                try {
+                    if (harmonyPrefsFile.length() > 0) {
+                        HarmonyLog.v(LOG_TAG, "File exists! Reading json...")
+                        JsonReader(prefsInputStream.reader()).toMap()
+                    } else {
+                        HarmonyLog.v(LOG_TAG, "File doesn't exist!")
+                        emptyMap()
+                    }
+                } catch (e: IllegalStateException) {
+                    emptyMap()
+                } catch (e: JSONException) {
+                    emptyMap()
+                } finally {
+                    HarmonyLog.v(LOG_TAG, "Closing input stream")
+                    prefsInputStream.close()
+                }
             }
 
             if (prefsName == map[NAME_KEY]) {
                 @Suppress("UNCHECKED_CAST")
                 val dataMap = map[DATA_KEY] as? Map<String, Any?>?
-                val oldMap = harmonyMap.toMutableMap()
-                mapReentrantReadWriteLock.write {
+                val oldMap = mapReentrantReadWriteLock.write {
+                    val oldMap = harmonyMap.toMutableMap()
                     harmonyMap.putAll(dataMap ?: emptyMap())
+                    return@write oldMap
                 }
 
                 if (shouldNotifyListeners && listenerMap.isNotEmpty()) {
@@ -279,54 +305,62 @@ class Harmony private constructor(
             if (!harmonyPrefsFolder.exists()) {
                 HarmonyLog.e(LOG_TAG, "Harmony folder does not exist! Creating...")
                 harmonyPrefsFolder.mkdirs()
+                harmonyPrefsLockFile.createNewFile()
             }
-            val pfd = ParcelFileDescriptor.open(
-                harmonyPrefsFile,
-                ParcelFileDescriptor.MODE_CREATE or ParcelFileDescriptor.MODE_READ_WRITE
-            )
-            val prefsOutputStream =
-                ParcelFileDescriptor.AutoCloseOutputStream(pfd)
-            HarmonyLog.v(LOG_TAG, "Attempting to get file lock...")
 
             // Lock the file for writes across all processes. This is an exclusive lock
-            var lock: FileLock? = null
-            while (lock == null) {
-                lock = prefsOutputStream.channel.tryLock()
-            }
-            HarmonyLog.v(LOG_TAG, "Got the file lock!")
-            try {
-                HarmonyLog.d(LOG_TAG, "Stopping file observer...")
-
-                // We don't want to observe the changes happening in our own process for this file
-                harmonyFileObserver.stopWatching()
-                HarmonyLog.v(LOG_TAG, "Begin writing data to file...")
-                prefsOutputStream.writer().apply {
-                    write(JSONObject().apply {
-                        put(NAME_KEY, prefsName)
-                        put(DATA_KEY, JSONObject(editedMap))
-                    }.toString())
-                }.flush()
-                HarmonyLog.v(LOG_TAG, "Finish writing data to file!")
-            } finally {
-                try {
-                    HarmonyLog.v(LOG_TAG, "Syncing the filedescriptor...")
-
-                    // Sync any in-memory buffer of file changes to the file system
-                    pfd.fileDescriptor.sync()
-                    commitResult = true
-                } catch (e: SyncFailedException) {
-                    HarmonyLog.e(LOG_TAG, "Unable to sync filedescriptor", e)
+            harmonyPrefsLockFile.withFileLock {
+                if (!harmonyPrefsBackupFile.exists()) {
+                    // No backup file exists. Let's create one
+                    if (!harmonyPrefsFile.renameTo(harmonyPrefsBackupFile)) {
+                        return commitResult
+                    }
+                } else {
+                    harmonyPrefsFile.delete()
                 }
-                HarmonyLog.d(LOG_TAG, "Releasing file lock and closing output stream")
 
-                // Release the file lock
-                lock.release()
-                prefsOutputStream.close()
-                HarmonyLog.d(LOG_TAG, "Restarting the file observer!")
+                val pfd = ParcelFileDescriptor.open(
+                    harmonyPrefsFile,
+                    ParcelFileDescriptor.MODE_CREATE or ParcelFileDescriptor.MODE_READ_WRITE
+                )
+                val prefsOutputStream =
+                    ParcelFileDescriptor.AutoCloseOutputStream(pfd)
+                try {
+                    HarmonyLog.d(LOG_TAG, "Stopping file observer...")
 
-                // Begin observing the file changes again
-                harmonyFileObserver.startWatching()
+                    // We don't want to observe the changes happening in our own process for this file
+                    harmonyFileObserver.stopWatching()
+                    HarmonyLog.v(LOG_TAG, "Begin writing data to file...")
+                    prefsOutputStream.writer().apply {
+                        write(JSONObject().apply {
+                            put(NAME_KEY, prefsName)
+                            put(DATA_KEY, JSONObject(editedMap))
+                        }.toString())
+                    }.flush()
+                    HarmonyLog.v(LOG_TAG, "Finish writing data to file!")
+                } finally {
+                    try {
+                        HarmonyLog.v(LOG_TAG, "Syncing the filedescriptor...")
+
+                        // Sync any in-memory buffer of file changes to the file system
+                        pfd.fileDescriptor.sync()
+
+                        // We wrote to file. We can delete the backup
+                        harmonyPrefsBackupFile.delete()
+                        commitResult = true
+                    } catch (e: SyncFailedException) {
+                        HarmonyLog.e(LOG_TAG, "Unable to sync filedescriptor", e)
+                    }
+                    HarmonyLog.d(LOG_TAG, "Releasing file lock and closing output stream")
+
+                    prefsOutputStream.close()
+                }
             }
+
+            HarmonyLog.d(LOG_TAG, "Restarting the file observer!")
+
+            // Begin observing the file changes again
+            harmonyFileObserver.startWatching()
         }
         return commitResult
     }

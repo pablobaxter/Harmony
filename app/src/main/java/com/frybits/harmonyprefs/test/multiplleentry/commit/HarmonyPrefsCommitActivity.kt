@@ -1,4 +1,4 @@
-package com.frybits.harmonyprefs.test.singleentry.commit
+package com.frybits.harmonyprefs.test.multiplleentry.commit
 
 import android.app.Activity
 import android.content.Intent
