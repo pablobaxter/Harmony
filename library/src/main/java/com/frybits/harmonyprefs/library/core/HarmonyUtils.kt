@@ -7,7 +7,6 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.IOException
-import java.nio.channels.FileChannel
 import java.nio.channels.FileLock
 
 /**
@@ -26,10 +25,13 @@ internal fun JsonReader.toMap(): MutableMap<String, Any?> = readMap()
 
 @JvmSynthetic
 internal inline fun <T> File.withFileLock(shared: Boolean = false, block: () -> T): T {
+    // File Channel must be write enabled for exclusive file locking
     val lockFileChannel =
         if (shared) FileInputStream(this).channel else FileOutputStream(this).channel
     // Lock the file to prevent other process from writing to it while this read is occurring. This is reentrant
     var lock: FileLock? = null
+    // Linux has a bug that produces a false deadlock. TryLock swallows that exception and returns null instead
+    // More info here: https://bugzilla.mozilla.org/show_bug.cgi?id=62457#c5
     while (lock == null) {
         lock = lockFileChannel.tryLock(0, Long.MAX_VALUE, shared)
     }

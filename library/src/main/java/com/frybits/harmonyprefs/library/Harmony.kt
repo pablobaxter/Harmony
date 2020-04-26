@@ -226,7 +226,7 @@ class Harmony private constructor(
 
                 // Check for backup file
                 if (harmonyPrefsBackupFile.exists()) {
-                    // Exclusively lock the backup files
+                    // Exclusively lock the backup file
                     harmonyPrefsBackupLockFile.withFileLock {
                         if (harmonyPrefsBackupFile.exists()) { // Check again if file exists
                             harmonyPrefsFile.delete()
