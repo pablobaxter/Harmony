@@ -338,7 +338,7 @@ class Harmony private constructor(
                         }.toString())
                     }.flush()
                     HarmonyLog.v(LOG_TAG, "Finish writing data to file!")
-                } finally {
+
                     try {
                         HarmonyLog.v(LOG_TAG, "Syncing the filedescriptor...")
 
@@ -351,6 +351,7 @@ class Harmony private constructor(
                     } catch (e: SyncFailedException) {
                         HarmonyLog.e(LOG_TAG, "Unable to sync filedescriptor", e)
                     }
+                } finally {
                     HarmonyLog.d(LOG_TAG, "Releasing file lock and closing output stream")
 
                     prefsOutputStream.close()
