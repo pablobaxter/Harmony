@@ -1,7 +1,6 @@
 package com.frybits.harmonyprefs.library
 
 import android.content.SharedPreferences
-import android.util.Log
 import androidx.core.content.edit
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -30,8 +29,8 @@ class HarmonyTest {
     fun setup() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        appContext.getHarmonyPrefs(PREFS).edit(true) { clear() }
         appContext.harmonyPrefsFolder().deleteRecursively()
+        appContext.getHarmonyPrefs(PREFS).edit(true) { clear() }
     }
 
     @Test(timeout = 1000)

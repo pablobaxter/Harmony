@@ -1,16 +1,21 @@
 package com.frybits.harmonyprefs.test.singleentry.apply
 
-import android.app.Activity
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.os.SystemClock
 import android.util.Log
+import android.widget.Button
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.edit
+import androidx.lifecycle.lifecycleScope
 import com.frybits.harmonyprefs.ITERATIONS
+import com.frybits.harmonyprefs.R
 import com.frybits.harmonyprefs.library.Harmony.Companion.getHarmonyPrefs
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -19,8 +24,9 @@ import kotlinx.coroutines.withContext
  * Created by Pablo Baxter (Github: pablobaxter)
  */
 
-class HarmonyPrefsApplyActivity : Activity() {
+class HarmonyPrefsApplyActivity : AppCompatActivity() {
 
+    private var testRunDeferred: Deferred<Unit> = CompletableDeferred(Unit)
     private lateinit var activityHarmonyPrefs: SharedPreferences
     private lateinit var fooServicePrefs: SharedPreferences
     private lateinit var barServicePrefs: SharedPreferences
@@ -44,16 +50,53 @@ class HarmonyPrefsApplyActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        activityHarmonyPrefs = getHarmonyPrefs("ActivityPrefs")
-        activityHarmonyPrefs.edit { clear() }
-        fooServicePrefs = getHarmonyPrefs("fooServicePrefs")
-        fooServicePrefs.edit { clear() }
-        fooServicePrefs.registerOnSharedPreferenceChangeListener(sharedPreferenceChangeListener)
-        barServicePrefs = getHarmonyPrefs("barServicePrefs")
-        barServicePrefs.edit { clear() }
-        barServicePrefs.registerOnSharedPreferenceChangeListener(sharedPreferenceChangeListener)
+        setContentView(R.layout.activity_test)
+        findViewById<Button>(R.id.actionTestButton).setOnClickListener {
+            val v = it as Button
+            if (testRunDeferred.isCompleted) {
+                runTest()
+                v.text = "Stop test"
+                lifecycleScope.launch {
+                    testRunDeferred.await()
+                    v.text = "Start test"
+                }
+            } else {
+                v.text = "Start test"
+                testRunDeferred.cancel()
+            }
+        }
+    }
 
-        GlobalScope.launch(Dispatchers.IO) {
+    override fun onStart() {
+        super.onStart()
+        findViewById<Button>(R.id.actionTestButton)?.let { v ->
+            if (testRunDeferred.isCompleted) {
+                v.text = "Start test"
+            } else {
+                v.text = "Stop test"
+            }
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        testRunDeferred.cancel()
+    }
+
+    private fun runTest() {
+        fooCaptureList.clear()
+        barCaptureList.clear()
+
+        testRunDeferred = lifecycleScope.async(Dispatchers.IO) {
+            activityHarmonyPrefs = getHarmonyPrefs("ActivityPrefs")
+            activityHarmonyPrefs.edit(true) { clear() }
+            fooServicePrefs = getHarmonyPrefs("fooServicePrefs")
+            fooServicePrefs.edit(true) { clear() }
+            fooServicePrefs.registerOnSharedPreferenceChangeListener(sharedPreferenceChangeListener)
+            barServicePrefs = getHarmonyPrefs("barServicePrefs")
+            barServicePrefs.edit(true) { clear() }
+            barServicePrefs.registerOnSharedPreferenceChangeListener(sharedPreferenceChangeListener)
+
             startService(Intent(this@HarmonyPrefsApplyActivity, HarmonyPrefsApplyFooService::class.java).apply { putExtra("START", true) })
             startService(Intent(this@HarmonyPrefsApplyActivity, HarmonyPrefsApplyBarService::class.java).apply { putExtra("START", true) })
             delay(3000)
@@ -89,6 +132,7 @@ class HarmonyPrefsApplyActivity : Activity() {
                 Log.i("Trial", "Activity: Total Max receive time: ${totalCaptures.max()} ms")
                 Log.i("Trial", "Activity: Total Min receive time: ${totalCaptures.min()} ms")
             }
+            return@async
         }
     }
 }
