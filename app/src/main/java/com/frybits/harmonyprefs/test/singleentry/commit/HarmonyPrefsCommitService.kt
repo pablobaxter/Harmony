@@ -6,28 +6,27 @@ import android.content.SharedPreferences
 import android.os.IBinder
 import android.os.SystemClock
 import android.util.Log
-import androidx.core.content.edit
 import com.frybits.harmonyprefs.ITERATIONS
+import com.frybits.harmonyprefs.PREFS_NAME
 import com.frybits.harmonyprefs.library.Harmony.Companion.getHarmonyPrefs
 
 /**
  * Created by Pablo Baxter (Github: pablobaxter)
  */
 
-abstract class HarmonyBasePrefsCommitService(private val servicePrefs: String) : Service() {
+abstract class HarmonyBasePrefsCommitService : Service() {
 
     private lateinit var harmonyActivityPrefs: SharedPreferences
-    private lateinit var harmonyServicePrefs: SharedPreferences
 
     private val sharedPreferenceChangeListener = SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
         val now = SystemClock.elapsedRealtime()
         require(prefs === harmonyActivityPrefs)
         val activityTestTime = prefs.getLong(key, -1L)
-        require(activityTestTime > -1L)
         Log.d("Trial", "${this::class.java.simpleName}: Time to receive $key: ${now - activityTestTime}")
         Log.d("Trial", "${this::class.java.simpleName}: Sending response with key: $key")
-        timeCaptureList.add(now - activityTestTime)
-        harmonyServicePrefs.edit(true) { putLong(key, SystemClock.elapsedRealtime()) }
+        if (activityTestTime > -1L) {
+            timeCaptureList.add(now - activityTestTime)
+        }
     }
 
     private var isStarted = false
@@ -37,8 +36,7 @@ abstract class HarmonyBasePrefsCommitService(private val servicePrefs: String) :
 
     override fun onCreate() {
         super.onCreate()
-        harmonyActivityPrefs = getHarmonyPrefs("ActivityPrefs")
-        harmonyServicePrefs = getHarmonyPrefs(servicePrefs)
+        harmonyActivityPrefs = getHarmonyPrefs(PREFS_NAME)
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -67,4 +65,4 @@ abstract class HarmonyBasePrefsCommitService(private val servicePrefs: String) :
     }
 }
 
-class HarmonyPrefsCommitFooService : HarmonyBasePrefsCommitService("fooServicePrefs")
+class HarmonyPrefsCommitFooService : HarmonyBasePrefsCommitService()

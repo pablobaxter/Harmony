@@ -69,7 +69,7 @@ class Harmony private constructor(
     // Lock file to prevent manipulation of backup file while it is restored
     private val harmonyPrefsBackupLockFile = File(harmonyPrefsFolder, PREFS_BACKUP_LOCK)
 
-    // Single thread dispatcher, which handles file reads/writes for the prefs asynchronously
+    // Single thread dispatcher, to serialize any calls to read/write the prefs
     private val harmonySingleThreadDispatcher =
         Executors.newSingleThreadExecutor().asCoroutineDispatcher()
     private val harmonyCoroutineScope = CoroutineScope(SupervisorJob() + CoroutineName(LOG_TAG))
@@ -390,8 +390,9 @@ class Harmony private constructor(
         }
 
         override fun commit(): Boolean {
+            val currMemoryMap = commitToMemory()
             return runBlocking(harmonySingleThreadDispatcher) {
-                commitToDisk(commitToMemory())
+                commitToDisk(currMemoryMap)
             }
         }
 

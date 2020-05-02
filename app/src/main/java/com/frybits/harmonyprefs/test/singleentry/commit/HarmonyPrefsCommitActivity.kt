@@ -10,6 +10,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.edit
 import androidx.lifecycle.lifecycleScope
 import com.frybits.harmonyprefs.ITERATIONS
+import com.frybits.harmonyprefs.PREFS_NAME
 import com.frybits.harmonyprefs.R
 import com.frybits.harmonyprefs.library.Harmony.Companion.getHarmonyPrefs
 import kotlinx.coroutines.CompletableDeferred
@@ -30,26 +31,8 @@ class HarmonyPrefsCommitActivity : AppCompatActivity() {
 
     private var testRunDeferred: Deferred<Unit> = CompletableDeferred(Unit)
     private lateinit var activityHarmonyPrefs: SharedPreferences
-    private lateinit var fooServicePrefs: SharedPreferences
 
-    private val fooCaptureList = arrayListOf<Long>()
     private val commitTimeSpent = arrayListOf<Long>()
-
-    private val sharedPreferenceChangeListener =
-        SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
-            val now = SystemClock.elapsedRealtime()
-            require(fooServicePrefs === prefs)
-            Log.d(
-                "Trial",
-                "Activity: Received the response for key: $key from ${if (fooServicePrefs === prefs) "fooPrefs" else "barPrefs"}"
-            )
-            val activityTestTime = prefs.getLong(key, -1L)
-            require(activityTestTime > -1L)
-            Log.d("Trial", "Activity: Time to receive $key: ${now - activityTestTime}")
-            if (fooServicePrefs === prefs) {
-                fooCaptureList.add(now - activityTestTime)
-            }
-        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -87,35 +70,30 @@ class HarmonyPrefsCommitActivity : AppCompatActivity() {
     }
 
     private fun runTest() {
-        fooCaptureList.clear()
         commitTimeSpent.clear()
 
-        testRunDeferred = lifecycleScope.async(Dispatchers.Main) {
-            activityHarmonyPrefs = getHarmonyPrefs("ActivityPrefs")
+        testRunDeferred = lifecycleScope.async(Dispatchers.IO) {
+            activityHarmonyPrefs = getHarmonyPrefs(PREFS_NAME)
             activityHarmonyPrefs.edit(true) { clear() }
-            fooServicePrefs = getHarmonyPrefs("fooServicePrefs")
-            fooServicePrefs.edit(true) { clear() }
-            fooServicePrefs.registerOnSharedPreferenceChangeListener(sharedPreferenceChangeListener)
             startService(
                 Intent(
                     this@HarmonyPrefsCommitActivity,
                     HarmonyPrefsCommitFooService::class.java
                 ).apply { putExtra("START", true) })
-            delay(3000)
+            delay(3000) // Give the service enough time to setup
             Log.i("Trial", "Activity: Starting test!")
+            val editor = activityHarmonyPrefs.edit()
             repeat(ITERATIONS) { i ->
                 if (!isActive) return@async
                 val measure = measureTimeMillis {
-                    activityHarmonyPrefs.edit(true) {
-                        putLong(
-                            "test$i",
-                            SystemClock.elapsedRealtime()
-                        )
-                    }
+                    editor.putLong(
+                        "test$i",
+                        SystemClock.elapsedRealtime()
+                    ).commit()
                 }
                 commitTimeSpent.add(measure)
             }
-            delay(15000)
+            delay(3000)
             startService(
                 Intent(
                     this@HarmonyPrefsCommitActivity,
@@ -130,14 +108,8 @@ class HarmonyPrefsCommitActivity : AppCompatActivity() {
             )
             Log.i("Trial", "Activity: Stopping test!")
             withContext(Dispatchers.Main) {
-                Log.i("Trial", "Activity: Foo count: ${fooCaptureList.size}, expecting $ITERATIONS")
-                Log.i("Trial", "Activity: Foo Average receive time: ${fooCaptureList.average()} ms")
-                Log.i("Trial", "Activity: Foo Max receive time: ${fooCaptureList.max()} ms")
-                Log.i("Trial", "Activity: Foo Min receive time: ${fooCaptureList.min()} ms")
-                Log.i(
-                    "Trial",
-                    "Activity: Total Average commit time: ${commitTimeSpent.average()} ms"
-                )
+                Log.i("Trial", "Activity: Commit count: ${commitTimeSpent.size}, expecting $ITERATIONS")
+                Log.i("Trial", "Activity: Total Average commit time: ${commitTimeSpent.average()} ms")
                 Log.i("Trial", "Activity: Total Max commit time: ${commitTimeSpent.max()} ms")
                 Log.i("Trial", "Activity: Total Min commit time: ${commitTimeSpent.min()} ms")
             }
