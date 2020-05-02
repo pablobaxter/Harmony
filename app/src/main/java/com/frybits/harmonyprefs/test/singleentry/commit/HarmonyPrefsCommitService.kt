@@ -68,4 +68,3 @@ abstract class HarmonyBasePrefsCommitService(private val servicePrefs: String) :
 }
 
 class HarmonyPrefsCommitFooService : HarmonyBasePrefsCommitService("fooServicePrefs")
-class HarmonyPrefsCommitBarService : HarmonyBasePrefsCommitService("barServicePrefs")

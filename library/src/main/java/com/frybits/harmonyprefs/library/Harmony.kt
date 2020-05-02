@@ -219,7 +219,6 @@ class Harmony private constructor(
 
     // Load from disk logic
     private suspend fun loadFromDisk(shouldNotifyListeners: Boolean) {
-
         // Only allow one filedescriptor open at a time. Should not be reentrant
         fileDescriptorMutex.withLock {
             if (!harmonyPrefsFolder.exists()) {
@@ -270,7 +269,8 @@ class Harmony private constructor(
 
             if (prefsName == map[NAME_KEY]) {
                 val notifyListeners = shouldNotifyListeners && listenerMap.isNotEmpty()
-                val keysModified: ArrayList<String>? = if (notifyListeners) arrayListOf() else null
+                val keysModified: ArrayList<String>? =
+                    if (notifyListeners) arrayListOf() else null
 
                 @Suppress("UNCHECKED_CAST")
                 val dataMap = map[DATA_KEY] as? Map<String, Any?>?
@@ -390,7 +390,7 @@ class Harmony private constructor(
         }
 
         override fun commit(): Boolean {
-            return runBlocking {
+            return runBlocking(harmonySingleThreadDispatcher) {
                 commitToDisk(commitToMemory())
             }
         }
@@ -432,7 +432,8 @@ class Harmony private constructor(
 
                     if (listenersNotEmpty) {
                         requireNotNull(keysModified)
-                        val listeners: Set<SharedPreferences.OnSharedPreferenceChangeListener> = listenerMap.keys.toHashSet()
+                        val listeners: Set<SharedPreferences.OnSharedPreferenceChangeListener> =
+                            listenerMap.keys.toHashSet()
                         harmonyCoroutineScope.launch(Dispatchers.Main) {
                             keysModified.asReversed().forEach { key ->
                                 listeners.forEach { listener ->

@@ -21,17 +21,11 @@
         <service
             android:name=".test.singleentry.commit.HarmonyPrefsCommitFooService"
             android:process=":foo" />
-        <service
-            android:name=".test.singleentry.commit.HarmonyPrefsCommitBarService"
-            android:process=":bar" />
 
         <activity android:name=".test.singleentry.apply.HarmonyPrefsApplyActivity" />
 
         <service
             android:name=".test.singleentry.apply.HarmonyPrefsApplyFooService"
             android:process=":foo" />
-        <service
-            android:name=".test.singleentry.apply.HarmonyPrefsApplyBarService"
-            android:process=":bar" />
     </application>
 </manifest>

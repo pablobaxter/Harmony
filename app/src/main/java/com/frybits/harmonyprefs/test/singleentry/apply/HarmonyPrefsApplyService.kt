@@ -68,4 +68,3 @@ abstract class HarmonyBasePrefsApplyService(private val servicePrefs: String) : 
 }
 
 class HarmonyPrefsApplyFooService : HarmonyBasePrefsApplyService("fooServicePrefs")
-class HarmonyPrefsApplyBarService : HarmonyBasePrefsApplyService("barServicePrefs")
