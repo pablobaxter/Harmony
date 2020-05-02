@@ -78,7 +78,7 @@ class HarmonyPrefsApplyActivity : AppCompatActivity() {
                     SystemClock.elapsedRealtime()
                 ).apply()
             }
-            delay(30000)
+            delay(10000)
             startService(Intent(this@HarmonyPrefsApplyActivity, HarmonyPrefsApplyFooService::class.java).apply { putExtra("STOP", true) })
             delay(1000)
             stopService(Intent(this@HarmonyPrefsApplyActivity, HarmonyPrefsApplyFooService::class.java))

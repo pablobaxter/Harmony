@@ -86,13 +86,11 @@ class Harmony private constructor(
     // Observes changes that occur to the backing file of this preference
     private val harmonyFileObserver =
         harmonyFileObserver(harmonyPrefsFolder) { event, path ->
-            when (event) {
-                FileObserver.MODIFY -> { // We only really care if this file has been modified
-                    val isPrefsData = path?.endsWith(PREFS_DATA) ?: false
-                    if (isPrefsData) { // Ignore the lock files
-                        harmonyCoroutineScope.launch(harmonySingleThreadDispatcher) {
-                            loadFromDisk(true)
-                        }
+            if (event == FileObserver.CLOSE_WRITE) { // We only really care if this file has been closed to writing
+                val isPrefsData = path?.endsWith(PREFS_DATA) ?: false
+                if (isPrefsData) { // Ignore the lock files
+                    harmonyCoroutineScope.launch(harmonySingleThreadDispatcher) {
+                        loadFromDisk(true)
                     }
                 }
             }
@@ -234,7 +232,7 @@ class Harmony private constructor(
                 // Check for backup file
                 if (harmonyPrefsBackupFile.exists()) {
                     // Exclusively lock the backup file
-                    harmonyPrefsBackupLockFile.withFileLock {
+                    harmonyPrefsBackupLockFile.withFileLock { // Because the data lock is reentrant, we need to do an exclusive lock on backup file here
                         if (harmonyPrefsBackupFile.exists()) { // Check again if file exists
                             harmonyPrefsFile.delete()
                             if (harmonyPrefsBackupFile.renameTo(harmonyPrefsFile)) {
@@ -390,9 +388,8 @@ class Harmony private constructor(
         }
 
         override fun commit(): Boolean {
-            val currMemoryMap = commitToMemory()
             return runBlocking(harmonySingleThreadDispatcher) {
-                commitToDisk(currMemoryMap)
+                commitToDisk(commitToMemory())
             }
         }
 
@@ -462,7 +459,12 @@ class Harmony private constructor(
 
                 // Lock the file for writes across all processes. This is an exclusive lock
                 harmonyPrefsLockFile.withFileLock {
-                    if (!harmonyPrefsBackupFile.exists()) { // Back up file doesn't need to be locked, as the data lock already restricts concurrents modifications
+                    HarmonyLog.d(LOG_TAG, "Stopping file observer...")
+
+                    // We don't want to observe the changes happening in our own process for this file
+                    harmonyFileObserver.stopWatching()
+
+                    if (!harmonyPrefsBackupFile.exists()) { // Back up file doesn't need to be locked, as the data lock already restricts concurrent modifications
                         // No backup file exists. Let's create one
                         if (!harmonyPrefsFile.renameTo(harmonyPrefsBackupFile)) {
                             return commitResult
@@ -478,10 +480,6 @@ class Harmony private constructor(
                     val prefsOutputStream =
                         ParcelFileDescriptor.AutoCloseOutputStream(pfd)
                     try {
-                        HarmonyLog.d(LOG_TAG, "Stopping file observer...")
-
-                        // We don't want to observe the changes happening in our own process for this file
-                        harmonyFileObserver.stopWatching()
                         HarmonyLog.v(LOG_TAG, "Begin writing data to file...")
                         prefsOutputStream.writer().apply {
                             write(JSONObject().apply {

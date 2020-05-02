@@ -72,7 +72,7 @@ class HarmonyPrefsCommitActivity : AppCompatActivity() {
     private fun runTest() {
         commitTimeSpent.clear()
 
-        testRunDeferred = lifecycleScope.async(Dispatchers.IO) {
+        testRunDeferred = lifecycleScope.async {
             activityHarmonyPrefs = getHarmonyPrefs(PREFS_NAME)
             activityHarmonyPrefs.edit(true) { clear() }
             startService(
