@@ -20,7 +20,7 @@ buildscript {
         test_ext_version = '1.1.1'
 
         // Android project
-        minSdk_version = 19
+        minSdk_version = 14
         compileSdk_version = 29
         targetSdk_version = 29
         buildtools_version = '29.0.2'

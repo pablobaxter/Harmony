@@ -5,9 +5,11 @@ import android.content.SharedPreferences
 import android.os.FileObserver
 import android.os.ParcelFileDescriptor
 import android.util.JsonReader
+import android.util.JsonWriter
 import com.frybits.harmonyprefs.library.core.HarmonyLog
 import com.frybits.harmonyprefs.library.core.harmonyFileObserver
 import com.frybits.harmonyprefs.library.core.harmonyPrefsFolder
+import com.frybits.harmonyprefs.library.core.putMap
 import com.frybits.harmonyprefs.library.core.toMap
 import com.frybits.harmonyprefs.library.core.withFileLock
 import kotlinx.atomicfu.locks.synchronized
@@ -23,7 +25,6 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.json.JSONException
-import org.json.JSONObject
 import java.io.File
 import java.io.SyncFailedException
 import java.util.WeakHashMap
@@ -231,6 +232,7 @@ class Harmony private constructor(
 
                 // Check for backup file
                 if (harmonyPrefsBackupFile.exists()) {
+                    HarmonyLog.d(LOG_TAG, "Backup exists!")
                     // Exclusively lock the backup file
                     harmonyPrefsBackupLockFile.withFileLock { // Because the data lock is reentrant, we need to do an exclusive lock on backup file here
                         if (harmonyPrefsBackupFile.exists()) { // Check again if file exists
@@ -481,12 +483,12 @@ class Harmony private constructor(
                         ParcelFileDescriptor.AutoCloseOutputStream(pfd)
                     try {
                         HarmonyLog.v(LOG_TAG, "Begin writing data to file...")
-                        prefsOutputStream.writer().apply {
-                            write(JSONObject().apply {
-                                put(NAME_KEY, prefsName)
-                                put(DATA_KEY, JSONObject(updatedMap))
-                            }.toString())
-                        }.flush()
+                        JsonWriter(prefsOutputStream.writer())
+                            .beginObject()
+                            .name(NAME_KEY).value(prefsName)
+                            .name(DATA_KEY).putMap(updatedMap)
+                            .endObject()
+                            .flush()
                         HarmonyLog.v(LOG_TAG, "Finish writing data to file!")
 
                         try {

@@ -3,6 +3,7 @@ package com.frybits.harmonyprefs.library.core
 import android.content.Context
 import android.util.JsonReader
 import android.util.JsonToken
+import android.util.JsonWriter
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -25,6 +26,30 @@ internal fun Context.harmonyPrefsFolder() = File(filesDir, HARMONY_PREFS_FOLDER)
 
 @JvmSynthetic
 internal fun JsonReader.toMap(): MutableMap<String, Any?> = readMap()
+
+@JvmSynthetic
+internal fun JsonWriter.putMap(map: Map<String, Any?>): JsonWriter {
+    beginObject()
+    map.forEach { (k, v) ->
+        when (v) {
+            is Long -> name(k).value(v)
+            is Boolean -> name(k).value(v)
+            is String -> name(k).value(v)
+            is Set<*> -> {
+                @Suppress("UNCHECKED_CAST")
+                (v as? Set<String>)?.let { set ->
+                    name(k).beginArray()
+                        set.forEach { s ->
+                            value(s)
+                        }
+                    endArray()
+                }
+            }
+        }
+    }
+    endObject()
+    return this
+}
 
 @JvmSynthetic
 internal inline fun <T> File.withFileLock(shared: Boolean = false, block: () -> T): T {
