@@ -15,9 +15,11 @@ import com.frybits.harmonyprefs.R
 import com.frybits.harmonyprefs.library.Harmony.Companion.getHarmonyPrefs
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.system.measureTimeMillis
 
 /**
  * Created by Pablo Baxter (Github: pablobaxter)
@@ -64,7 +66,7 @@ class HarmonyPrefsApplyActivity : AppCompatActivity() {
     }
 
     private fun runTest() {
-        testRunDeferred = lifecycleScope.async {
+        testRunDeferred = lifecycleScope.async(Dispatchers.Default) {
             activityHarmonyPrefs = getHarmonyPrefs(PREFS_NAME)
             activityHarmonyPrefs.edit { clear() }
             delay(1000)
@@ -72,12 +74,15 @@ class HarmonyPrefsApplyActivity : AppCompatActivity() {
             delay(3000) // Give the service enough time to setup
             Log.i("Trial", "Activity: Starting test!")
             val editor = activityHarmonyPrefs.edit()
-            repeat(ITERATIONS) { i ->
-                editor.putLong(
-                    "test$i",
-                    SystemClock.elapsedRealtime()
-                ).apply()
+            val time = measureTimeMillis {
+                repeat(ITERATIONS) { i ->
+                    editor.putLong(
+                        "test$i",
+                        SystemClock.elapsedRealtime()
+                    ).apply()
+                }
             }
+            Log.i("Trial", "Time: $time ms")
             delay(30000)
             startService(Intent(this@HarmonyPrefsApplyActivity, HarmonyPrefsApplyFooService::class.java).apply { putExtra("STOP", true) })
             delay(1000)

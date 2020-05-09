@@ -7,7 +7,7 @@ android {
     buildToolsVersion buildtools_version
     defaultConfig {
         applicationId "com.frybits.harmonyprefs"
-        minSdkVersion minSdk_version
+        minSdkVersion 16
         targetSdkVersion targetSdk_version
         versionCode 1
         versionName "1.0"
@@ -43,6 +43,8 @@ dependencies {
     implementation "androidx.appcompat:appcompat:$appcompat_version"
     implementation "androidx.core:core-ktx:$corektx_version"
     implementation "androidx.lifecycle:lifecycle-runtime-ktx:$lifecycle_scope_version"
+
+    implementation 'com.tencent:mmkv-static:1.1.1'
 
     // Test
     testImplementation "junit:junit:$junit_version"

@@ -1,7 +1,6 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
-apply plugin: 'kotlinx-atomicfu'
 
 android {
     compileSdkVersion compileSdk_version
@@ -32,10 +31,6 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
     }
-
-    packagingOptions {
-        pickFirst("META-INF/atomicfu.kotlin_module")
-    }
 }
 
 dependencies {
@@ -43,7 +38,6 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlin_coroutine_version"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$kotlin_coroutine_version"
-    implementation "org.jetbrains.kotlinx:atomicfu:$atomicfu_version"
 
     // Android
     implementation "androidx.core:core-ktx:$corektx_version"

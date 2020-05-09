@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.widget.Button
 import com.frybits.harmonyprefs.test.singleentry.apply.HarmonyPrefsApplyActivity
 import com.frybits.harmonyprefs.test.singleentry.commit.HarmonyPrefsCommitActivity
+import com.tencent.mmkv.MMKV
 
 /**
  * Created by Pablo Baxter (Github: pablobaxter)
@@ -14,6 +15,7 @@ import com.frybits.harmonyprefs.test.singleentry.commit.HarmonyPrefsCommitActivi
 class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        MMKV.initialize(this)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 

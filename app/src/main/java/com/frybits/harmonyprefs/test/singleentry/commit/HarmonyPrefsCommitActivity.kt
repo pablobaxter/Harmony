@@ -72,7 +72,7 @@ class HarmonyPrefsCommitActivity : AppCompatActivity() {
     private fun runTest() {
         commitTimeSpent.clear()
 
-        testRunDeferred = lifecycleScope.async {
+        testRunDeferred = lifecycleScope.async(Dispatchers.Default) {
             activityHarmonyPrefs = getHarmonyPrefs(PREFS_NAME)
             activityHarmonyPrefs.edit(true) { clear() }
             startService(
@@ -83,16 +83,19 @@ class HarmonyPrefsCommitActivity : AppCompatActivity() {
             delay(3000) // Give the service enough time to setup
             Log.i("Trial", "Activity: Starting test!")
             val editor = activityHarmonyPrefs.edit()
-            repeat(ITERATIONS) { i ->
-                if (!isActive) return@async
-                val measure = measureTimeMillis {
-                    editor.putLong(
-                        "test$i",
-                        SystemClock.elapsedRealtime()
-                    ).commit()
+            val time = measureTimeMillis {
+                repeat(ITERATIONS) { i ->
+                    if (!isActive) return@async
+                    val measure = measureTimeMillis {
+                        editor.putLong(
+                            "test$i",
+                            SystemClock.elapsedRealtime()
+                        ).commit()
+                    }
+                    commitTimeSpent.add(measure)
                 }
-                commitTimeSpent.add(measure)
             }
+            Log.i("Trial", "Time: $time ms")
             delay(3000)
             startService(
                 Intent(
