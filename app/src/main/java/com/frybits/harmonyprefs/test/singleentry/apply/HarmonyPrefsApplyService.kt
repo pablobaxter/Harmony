@@ -22,8 +22,6 @@ abstract class HarmonyBasePrefsApplyService : Service() {
         val now = SystemClock.elapsedRealtime()
         require(prefs === harmonyActivityPrefs)
         val activityTestTime = prefs.getLong(key, -1L)
-        Log.d("Trial", "${this::class.java.simpleName}: Time to receive $key: ${now - activityTestTime}")
-        Log.d("Trial", "${this::class.java.simpleName}: Sending response with key: $key")
         if (activityTestTime > -1L) {
             timeCaptureList.add(now - activityTestTime)
         }

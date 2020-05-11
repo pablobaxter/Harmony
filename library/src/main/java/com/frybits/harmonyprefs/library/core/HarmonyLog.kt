@@ -1,4 +1,6 @@
-@file:Suppress("unused")
+@file:Suppress("unused", "ClassName")
+@file:JvmName("_InternalCoreHarmony")
+@file:JvmMultifileClass
 
 package com.frybits.harmonyprefs.library.core
 
@@ -13,7 +15,7 @@ import com.frybits.harmonyprefs.library.BuildConfig
 
 private val LOG = BuildConfig.DEBUG
 
-internal object HarmonyLog {
+internal object _InternalHarmonyLog {
 
     @JvmSynthetic
     internal fun v(tag: String, msg: String?, throwable: Throwable? = null) {

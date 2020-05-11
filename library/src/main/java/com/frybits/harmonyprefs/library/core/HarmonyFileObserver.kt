@@ -1,3 +1,6 @@
+@file:JvmName("_InternalCoreHarmony")
+@file:JvmMultifileClass
+
 package com.frybits.harmonyprefs.library.core
 
 import android.os.FileObserver

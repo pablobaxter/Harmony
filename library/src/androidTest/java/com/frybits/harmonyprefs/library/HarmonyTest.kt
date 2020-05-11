@@ -29,7 +29,6 @@ class HarmonyTest {
     fun setup() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        appContext.harmonyPrefsFolder().deleteRecursively()
         appContext.getHarmonyPrefs(PREFS).edit(true) { clear() }
     }
 

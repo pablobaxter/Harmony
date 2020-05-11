@@ -4,10 +4,9 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.os.FileObserver
 import android.os.ParcelFileDescriptor
-import android.os.SystemClock
 import android.util.JsonReader
 import android.util.JsonWriter
-import com.frybits.harmonyprefs.library.core.HarmonyLog
+import com.frybits.harmonyprefs.library.core._InternalHarmonyLog
 import com.frybits.harmonyprefs.library.core.harmonyFileObserver
 import com.frybits.harmonyprefs.library.core.harmonyPrefsFolder
 import com.frybits.harmonyprefs.library.core.putMap
@@ -26,28 +25,15 @@ import org.json.JSONException
 import java.io.File
 import java.util.WeakHashMap
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
 import kotlin.concurrent.write
-import kotlin.system.measureTimeMillis
 
 /**
  * Created by Pablo Baxter (Github: pablobaxter)
  */
-
-private val posixRegex = "[^-_.A-Za-z0-9]".toRegex()
-private const val LOG_TAG = "Harmony"
-private const val NAME_KEY = "name"
-private const val DATA_KEY = "data"
-
-private const val PREFS_DATA = "prefs.data"
-private const val PREFS_DATA_LOCK = "prefs.data.lock"
-private const val PREFS_BACKUP = "prefs.backup"
-private const val PREFS_BACKUP_LOCK = "prefs.backup.lock"
-
-// Empty singleton to support WeakHashmap
-private object CONTENT
 
 class Harmony private constructor(
     context: Context,
@@ -218,7 +204,7 @@ class Harmony private constructor(
     private fun loadFromDisk(shouldNotifyListeners: Boolean) {
         // Only allow one filedescriptor open at a time. Should not be reentrant
         if (!harmonyPrefsFolder.exists()) {
-            HarmonyLog.e(LOG_TAG, "Harmony folder does not exist! Creating...")
+            _InternalHarmonyLog.e(LOG_TAG, "Harmony folder does not exist! Creating...")
             harmonyPrefsFolder.mkdirs()
             harmonyPrefsLockFile.createNewFile()
             harmonyPrefsBackupLockFile.createNewFile()
@@ -228,7 +214,7 @@ class Harmony private constructor(
 
             // Check for backup file
             if (harmonyPrefsBackupFile.exists()) {
-                HarmonyLog.d(LOG_TAG, "Backup exists!")
+                _InternalHarmonyLog.d(LOG_TAG, "Backup exists!")
                 // Exclusively lock the backup file
                 harmonyPrefsBackupLockFile.withFileLock { // Because the data lock is reentrant, we need to do an exclusive lock on backup file here
                     if (harmonyPrefsBackupFile.exists()) { // Check again if file exists
@@ -247,10 +233,10 @@ class Harmony private constructor(
             val prefsInputStream = ParcelFileDescriptor.AutoCloseInputStream(pfd)
             try {
                 if (harmonyPrefsFile.length() > 0) {
-                    HarmonyLog.v(LOG_TAG, "File exists! Reading json...")
+                    _InternalHarmonyLog.v(LOG_TAG, "File exists! Reading json...")
                     return@withFileLock JsonReader(prefsInputStream.bufferedReader()).toMap()
                 } else {
-                    HarmonyLog.v(LOG_TAG, "File doesn't exist!")
+                    _InternalHarmonyLog.v(LOG_TAG, "File doesn't exist!")
                     return@withFileLock emptyMap()
                 }
             } catch (e: IllegalStateException) {
@@ -258,7 +244,7 @@ class Harmony private constructor(
             } catch (e: JSONException) {
                 return@withFileLock emptyMap()
             } finally {
-                HarmonyLog.v(LOG_TAG, "Closing input stream")
+                _InternalHarmonyLog.v(LOG_TAG, "Closing input stream")
                 prefsInputStream.close()
             }
         }
@@ -273,25 +259,19 @@ class Harmony private constructor(
                 keysModified = if (notifyListeners) arrayListOf() else null
                 listeners = if (notifyListeners) listenerMap.keys.toHashSet() else null
 
+                val oldMap = harmonyMap
                 @Suppress("UNCHECKED_CAST")
-                val dataMap = map[DATA_KEY] as? Map<String, Any?>?
-                if (dataMap.isNullOrEmpty()) {
-                    keysModified?.addAll(harmonyMap.keys)
-                    harmonyMap = hashMapOf()
+                harmonyMap = map[DATA_KEY] as? HashMap<String, Any?>? ?: hashMapOf()
+                if (harmonyMap.isEmpty()) {
+                    keysModified?.addAll(oldMap.keys)
                 } else {
-                    dataMap.forEach { (k, v) ->
-                        if (!harmonyMap.containsKey(k) || harmonyMap[k] != v) {
+                    harmonyMap.forEach { (k, v) ->
+                        if (!oldMap.containsKey(k) || oldMap[k] != v) {
                             keysModified?.add(k)
-                            harmonyMap[k] = v
                         }
+                        oldMap.remove(k)
                     }
-                    harmonyMap.keys.removeAll {
-                        val removed = !dataMap.containsKey(it)
-                        if (removed) {
-                            keysModified?.add(it)
-                        }
-                        return@removeAll removed
-                    }
+                    keysModified?.addAll(oldMap.keys)
                 }
             }
 
@@ -306,11 +286,6 @@ class Harmony private constructor(
                     }
                 }
             }
-        } else {
-            HarmonyLog.w(
-                LOG_TAG,
-                "File name changed under us!"
-            )
         }
     }
 
@@ -318,7 +293,7 @@ class Harmony private constructor(
 
         // Container for our current changes
         private val modifiedMap = hashMapOf<String, Any?>()
-        private var cleared = false
+        private var cleared = AtomicBoolean(false)
 
         override fun putLong(key: String, value: Long): SharedPreferences.Editor {
             synchronized(this) {
@@ -367,7 +342,7 @@ class Harmony private constructor(
 
         override fun clear(): SharedPreferences.Editor {
             synchronized(this) {
-                cleared = true
+                cleared.set(true)
                 return this
             }
         }
@@ -380,51 +355,16 @@ class Harmony private constructor(
         }
 
         override fun apply() {
-            val now = SystemClock.elapsedRealtime()
             val currMemoryMap = commitToMemory()
-            val delta = SystemClock.elapsedRealtime() - now
-            if (delta > 5) {
-                HarmonyLog.d(
-                    "Timing",
-                    "Time to commit to memory: $delta ms"
-                )
-            }
             harmonyCoroutineScope.launch(harmonySingleThreadDispatcher) {
                 commitToDisk(currMemoryMap)
             }
         }
 
         override fun commit(): Boolean {
-            val now = SystemClock.elapsedRealtime()
-            try {
-                val currMemoryMap = commitToMemory()
-                var delta = SystemClock.elapsedRealtime() - now
-                if (delta > 10) {
-                    HarmonyLog.i(
-                        "Timing",
-                        "Time to commit to memory: $delta ms"
-                    )
-                }
-                return runBlocking(harmonySingleThreadDispatcher) {
-                    val nowCommit = SystemClock.elapsedRealtime()
-                    val result = commitToDisk(currMemoryMap)
-                    delta = SystemClock.elapsedRealtime() - nowCommit
-                    if (delta > 10) {
-                        HarmonyLog.i(
-                            "Timing",
-                            "Time to commit to disk: $delta ms"
-                        )
-                    }
-                    return@runBlocking result
-                }
-            } finally {
-                val delta = SystemClock.elapsedRealtime() - now
-                if (delta > 10) {
-                    HarmonyLog.i(
-                        "Timing",
-                        "Time to commit: $delta ms"
-                    )
-                }
+            val currMemoryMap = commitToMemory()
+            return runBlocking(harmonySingleThreadDispatcher) {
+                return@runBlocking commitToDisk(currMemoryMap)
             }
         }
 
@@ -439,18 +379,13 @@ class Harmony private constructor(
                 listeners = if (listenersNotEmpty) listenerMap.keys.toHashSet() else null
 
                 if (commitsInFlight.getAndIncrement() > 0L) {
-                    HarmonyLog.i(
-                        "Timing",
-                        "Copying memory map! Commits in flight: ${commitsInFlight.get()}"
-                    )
                     harmonyMap = HashMap(harmonyMap)
                 }
 
-                if (cleared) {
+                if (cleared.getAndSet(false)) {
                     if (harmonyMap.isNotEmpty()) {
                         harmonyMap.clear()
                     }
-                    cleared = false
                 }
 
                 synchronized(this@HarmonyEditor) {
@@ -486,7 +421,6 @@ class Harmony private constructor(
                     }
                 }
             }
-            // Return a copy of the new map. We don't want any changes on the in-memory map to reflect here
             return map
         }
 
@@ -494,55 +428,26 @@ class Harmony private constructor(
             var commitResult = false
 
             // Lock the file for writes across all processes. This is an exclusive lock
-            val now = SystemClock.elapsedRealtime()
             harmonyPrefsLockFile.withFileLock {
-                val delta = SystemClock.elapsedRealtime() - now
-                if (delta > 10) {
-                    HarmonyLog.d(
-                        "Timing",
-                        "Time to get write lock: $delta ms"
-                    )
+
+                if (!harmonyPrefsFolder.exists()) {
+                    _InternalHarmonyLog.e(LOG_TAG, "Harmony folder does not exist! Creating...")
+                    harmonyPrefsFolder.mkdirs()
+                    harmonyPrefsLockFile.createNewFile()
                 }
 
-                val timeToCreateFolders = measureTimeMillis {
-                    if (!harmonyPrefsFolder.exists()) {
-                        HarmonyLog.e(LOG_TAG, "Harmony folder does not exist! Creating...")
-                        harmonyPrefsFolder.mkdirs()
-                        harmonyPrefsLockFile.createNewFile()
+                _InternalHarmonyLog.d(LOG_TAG, "Stopping file observer...")
+
+                // We don't want to observe the changes happening in our own process for this file
+                harmonyFileObserver.stopWatching()
+
+                if (!harmonyPrefsBackupFile.exists()) { // Back up file doesn't need to be locked, as the data lock already restricts concurrent modifications
+                    // No backup file exists. Let's create one
+                    if (!harmonyPrefsFile.renameTo(harmonyPrefsBackupFile)) {
+                        return commitResult // Couldn't create a backup!
                     }
-                }
-
-                if (timeToCreateFolders > 10) {
-                    HarmonyLog.d(
-                        "Timing",
-                        "Time to create folders and lock files: $timeToCreateFolders ms"
-                    )
-                }
-
-                HarmonyLog.d(LOG_TAG, "Stopping file observer...")
-
-                val timeTostopWatch = measureTimeMillis {
-                    // We don't want to observe the changes happening in our own process for this file
-                    harmonyFileObserver.stopWatching()
-                }
-
-                if (timeTostopWatch > 10) {
-                    HarmonyLog.d("Timing", "Time to stop watcher: $timeTostopWatch ms")
-                }
-
-                val timeToCheckForBackups = measureTimeMillis {
-                    if (!harmonyPrefsBackupFile.exists()) { // Back up file doesn't need to be locked, as the data lock already restricts concurrent modifications
-                        // No backup file exists. Let's create one
-                        if (!harmonyPrefsFile.renameTo(harmonyPrefsBackupFile)) {
-                            return commitResult
-                        }
-                    } else {
-                        harmonyPrefsFile.delete()
-                    }
-                }
-
-                if (timeToCheckForBackups > 10) {
-                    HarmonyLog.d("Timing", "Time to check for backups: $timeToCheckForBackups ms")
+                } else {
+                    harmonyPrefsFile.delete()
                 }
 
                 val pfd = ParcelFileDescriptor.open(
@@ -552,58 +457,47 @@ class Harmony private constructor(
                 val prefsOutputStream =
                     ParcelFileDescriptor.AutoCloseOutputStream(pfd)
                 try {
-                    val writeDataTime = measureTimeMillis {
-                        HarmonyLog.v(LOG_TAG, "Begin writing data to file...")
-                        JsonWriter(prefsOutputStream.bufferedWriter())
-                            .beginObject()
-                            .name(NAME_KEY).value(prefsName)
-                            .name(DATA_KEY).putMap(updatedMap)
-                            .endObject()
-                            .flush()
-                        HarmonyLog.v(LOG_TAG, "Finish writing data to file!")
-                    }
+                    _InternalHarmonyLog.v(LOG_TAG, "Begin writing data to file...")
+                    JsonWriter(prefsOutputStream.bufferedWriter())
+                        .beginObject()
+                        .name(NAME_KEY).value(prefsName)
+                        .name(DATA_KEY).putMap(updatedMap)
+                        .endObject()
+                        .flush()
+                    _InternalHarmonyLog.v(LOG_TAG, "Finish writing data to file!")
 
-                    if (writeDataTime > 10) {
-                        HarmonyLog.d("Timing", "Time to write dat: $writeDataTime ms")
-                    }
-
-                    val timeToSyncData = measureTimeMillis {
-                        // We wrote to file. We can delete the backup
-                        harmonyPrefsBackupFile.delete()
-                        commitResult = true
-                    }
-                    if (timeToSyncData > 10) {
-                        HarmonyLog.d("Timing", "Time to sync data: $timeToSyncData ms")
-                    }
+                    // We wrote to file. We can delete the backup
+                    harmonyPrefsBackupFile.delete()
+                    commitResult = true
                 } finally {
-                    HarmonyLog.d(LOG_TAG, "Releasing file lock and closing output stream")
-
-                    val timeToClose = measureTimeMillis {
-                        prefsOutputStream.close()
-                    }
-                    if (timeToClose > 10) {
-                        HarmonyLog.d("Timing", "Time to close outputstream: $timeToClose ms")
-                    }
+                    _InternalHarmonyLog.d(LOG_TAG, "Releasing file lock and closing output stream")
+                    prefsOutputStream.close()
                 }
             }
 
             commitsInFlight.decrementAndGet()
 
-            HarmonyLog.d(LOG_TAG, "Restarting the file observer!")
+            _InternalHarmonyLog.d(LOG_TAG, "Restarting the file observer!")
 
-            val timeToStartWatching = measureTimeMillis {
-                // Begin observing the file changes again
-                harmonyFileObserver.startWatching()
-            }
-            if (timeToStartWatching > 10) {
-                HarmonyLog.d("Timing", "Time to start watcher: $timeToStartWatching ms")
-            }
+            // Begin observing the file changes again
+            harmonyFileObserver.startWatching()
             return commitResult
         }
     }
 
     companion object {
+        private val posixRegex = "[^-_.A-Za-z0-9]".toRegex()
+        private const val LOG_TAG = "Harmony"
+        private const val NAME_KEY = "name"
+        private const val DATA_KEY = "data"
 
+        private const val PREFS_DATA = "prefs.data"
+        private const val PREFS_DATA_LOCK = "prefs.data.lock"
+        private const val PREFS_BACKUP = "prefs.backup"
+        private const val PREFS_BACKUP_LOCK = "prefs.backup.lock"
+
+        // Empty singleton to support WeakHashmap
+        private object CONTENT
         private val SINGLETON_MAP = hashMapOf<String, Harmony>()
 
         @JvmStatic

@@ -1,3 +1,6 @@
+@file:JvmName("_InternalCoreHarmony")
+@file:JvmMultifileClass
+
 package com.frybits.harmonyprefs.library.core
 
 import android.content.Context
@@ -99,7 +102,7 @@ private fun JsonReader.readMap(): MutableMap<String, Any?> {
             JsonToken.STRING -> name?.let { map[it] = nextString() }
             JsonToken.NULL -> nextNull()
             JsonToken.END_ARRAY -> {
-                HarmonyLog.wtf("JsonReader", "This shouldn't happen")
+                _InternalHarmonyLog.wtf("JsonReader", "This shouldn't happen")
                 endArray()
             }
             JsonToken.END_OBJECT -> endObject()
@@ -122,7 +125,7 @@ private fun JsonReader.readList(): MutableList<Any?> {
             JsonToken.NULL -> nextNull()
             JsonToken.END_ARRAY -> endArray()
             JsonToken.END_OBJECT -> {
-                HarmonyLog.wtf("JsonReader", "This shouldn't happen")
+                _InternalHarmonyLog.wtf("JsonReader", "This shouldn't happen")
                 endObject()
             }
             else -> Unit
