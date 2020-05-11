@@ -23,6 +23,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.json.JSONException
 import java.io.File
+import java.io.IOException
 import java.util.WeakHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
@@ -457,31 +458,48 @@ class Harmony private constructor(
                 val prefsOutputStream =
                     ParcelFileDescriptor.AutoCloseOutputStream(pfd)
                 try {
-                    _InternalHarmonyLog.v(LOG_TAG, "Begin writing data to file...")
-                    JsonWriter(prefsOutputStream.bufferedWriter())
-                        .beginObject()
-                        .name(NAME_KEY).value(prefsName)
-                        .name(DATA_KEY).putMap(updatedMap)
-                        .endObject()
-                        .flush()
-                    _InternalHarmonyLog.v(LOG_TAG, "Finish writing data to file!")
+                    try {
+                        _InternalHarmonyLog.v(LOG_TAG, "Begin writing data to file...")
+                        JsonWriter(prefsOutputStream.bufferedWriter())
+                            .beginObject()
+                            .name(NAME_KEY).value(prefsName)
+                            .name(DATA_KEY).putMap(updatedMap)
+                            .endObject()
+                            .flush()
+                        _InternalHarmonyLog.v(LOG_TAG, "Finish writing data to file!")
+
+                        // Write all changes to the physical storage
+                        pfd.fileDescriptor.sync()
+                    } finally {
+                        _InternalHarmonyLog.d(
+                            LOG_TAG,
+                            "Releasing file lock and closing output stream"
+                        )
+                        prefsOutputStream.close()
+                    }
 
                     // We wrote to file. We can delete the backup
                     harmonyPrefsBackupFile.delete()
                     commitResult = true
-                } finally {
-                    _InternalHarmonyLog.d(LOG_TAG, "Releasing file lock and closing output stream")
-                    prefsOutputStream.close()
+
+                    commitsInFlight.decrementAndGet()
+
+                    _InternalHarmonyLog.d(LOG_TAG, "Restarting the file observer!")
+
+                    // Begin observing the file changes again
+                    harmonyFileObserver.startWatching()
+                    return commitResult
+                } catch (e: IOException) {
+                    _InternalHarmonyLog.e(LOG_TAG, "commitToDisk got exception:", e)
                 }
+
+                if (harmonyPrefsFile.exists()) {
+                    if (!harmonyPrefsFile.delete()) {
+                        _InternalHarmonyLog.w(LOG_TAG, "Couldn't cleanup partially-written preference")
+                    }
+                }
+                return false
             }
-
-            commitsInFlight.decrementAndGet()
-
-            _InternalHarmonyLog.d(LOG_TAG, "Restarting the file observer!")
-
-            // Begin observing the file changes again
-            harmonyFileObserver.startWatching()
-            return commitResult
         }
     }
 

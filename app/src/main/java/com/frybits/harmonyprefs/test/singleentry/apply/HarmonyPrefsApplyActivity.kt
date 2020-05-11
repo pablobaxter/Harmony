@@ -83,7 +83,7 @@ class HarmonyPrefsApplyActivity : AppCompatActivity() {
                 }
             }
             Log.i("Trial", "Time: $time ms")
-            delay(10000)
+            delay(20000)
             startService(Intent(this@HarmonyPrefsApplyActivity, HarmonyPrefsApplyFooService::class.java).apply { putExtra("STOP", true) })
             delay(1000)
             stopService(Intent(this@HarmonyPrefsApplyActivity, HarmonyPrefsApplyFooService::class.java))
