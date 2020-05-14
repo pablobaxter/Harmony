@@ -1,38 +1,37 @@
 version: 2.1
 
-  orbs:
-    android: circleci/android@0.2.0
+orbs:
+  android: circleci/android@0.2.0
 
-  jobs:
-    library_build:
-      executor: android/android
+jobs:
+  library_build:
+    executor: android/android
 
-      steps:
-        - checkout
-        - run:
-            name: Assemble the library
-            command: ./gradlew :library:assembleRelease
+    steps:
+      - checkout
+      - run:
+          name: Assemble the library
+          command: ./gradlew :library:assembleRelease
 
-    bintray_upload:
-      executor: android/android
+  bintray_upload:
+    executor: android/android
 
-      steps:
-        - checkout
-        - run:
-            name: Upload to bintray
-            command: ./gradlew :library:bintrayUpload
+    steps:
+      - checkout
+      - run:
+          name: Upload to bintray
+          command: ./gradlew :library:bintrayUpload
 
-  workflows:
-    build:
-      jobs:
-        - library_build
+workflows:
+  build:
+    jobs:
+      - library_build
 
-    upload:
-      jobs:
-        - bintray_upload:
-            type: approval
-            requires: build
-            filters:
-              branches:
-                only:
-                  - master
+  upload:
+    jobs:
+      - bintray_upload:
+          type: approval
+          requires: library_build
+          filters:
+            branches:
+              only: master
