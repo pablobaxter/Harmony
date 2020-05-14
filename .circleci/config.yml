@@ -37,9 +37,6 @@ jobs:
 
 workflows:
   version: 2
-  Build:
-    jobs:
-      - Android-Library-Build
   Upload:
     jobs:
       - Android-Library-Build

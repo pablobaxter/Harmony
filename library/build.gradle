@@ -120,7 +120,9 @@ bintray {
     //Gets local.properties info
     Properties properties = new Properties()
     def propertiesFile = project.rootProject.file('local.properties')
-    properties.load(propertiesFile.newDataInputStream())
+    if (propertiesFile.exists()) {
+        properties.load(propertiesFile.newDataInputStream())
+    }
 
     //Assigns credentials
     user = properties.getProperty('bintray.user') ?: System.getenv('BINTRAY_USER')
