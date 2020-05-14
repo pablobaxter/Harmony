@@ -23,6 +23,7 @@ jobs:
           command: ./gradlew :library:bintrayUpload
 
 workflows:
+  version: 2
   build:
     jobs:
       - library_build
