@@ -4,7 +4,7 @@ orbs:
   android: circleci/android@0.2.0
 
 jobs:
-  build:
+  library_build:
     executor: android/android
 
     steps:
@@ -13,7 +13,7 @@ jobs:
           name: Assemble the library
           command: ./gradlew :library:assembleRelease
 
-  upload:
+  bintray_upload:
     executor: android/android
 
     steps:
@@ -25,11 +25,11 @@ jobs:
 workflows:
   build:
     jobs:
-      - build
+      - library_build
 
   upload:
     jobs:
-      - upload:
+      - bintray_upload:
           type: approval
           requires: build
           filters:
