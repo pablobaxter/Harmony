@@ -25,6 +25,9 @@ buildscript {
         targetSdk_version = 29
         buildtools_version = '29.0.2'
 
+        version_name = "0.1"
+        version_code = System.getenv('CIRCLE_BUILD_NUM')?.toInteger() ?: 1
+
     }
     repositories {
         google()
@@ -35,6 +38,7 @@ buildscript {
         classpath 'com.android.tools.build:gradle:3.6.3'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath "org.jetbrains.dokka:dokka-gradle-plugin:${dokka_version}"
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.5'
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
     }
