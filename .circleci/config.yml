@@ -42,6 +42,7 @@ workflows:
       - Android-Library-Build
   Upload:
     jobs:
+      - Android-Library-Build
       - Android-Library-Upload:
           type: approval
           requires:
