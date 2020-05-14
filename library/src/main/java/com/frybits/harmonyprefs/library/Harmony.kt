@@ -600,11 +600,11 @@ class Harmony private constructor(
          * @receiver Any valid context
          * @param name The desired preference file
          *
-         * @return The Harmony Preference object
+         * @return A [SharedPreferences] object backed by [Harmony]
          */
         @JvmStatic
         @JvmName("getSharedPreferences")
-        fun Context.getHarmonyPrefs(name: String): Harmony {
+        fun Context.getHarmonySharedPreferences(name: String): SharedPreferences {
             return SINGLETON_MAP[name] ?: synchronized(this@Companion) {
                 SINGLETON_MAP.getOrPut(name) { Harmony(applicationContext, name) }
             }

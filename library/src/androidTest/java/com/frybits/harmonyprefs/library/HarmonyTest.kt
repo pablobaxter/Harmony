@@ -4,8 +4,7 @@ import android.content.SharedPreferences
 import androidx.core.content.edit
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.frybits.harmonyprefs.library.Harmony.Companion.getHarmonyPrefs
-import com.frybits.harmonyprefs.library.core.harmonyPrefsFolder
+import com.frybits.harmonyprefs.library.Harmony.Companion.getHarmonySharedPreferences
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
 import org.junit.Before
@@ -29,14 +28,14 @@ class HarmonyTest {
     fun setup() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        appContext.getHarmonyPrefs(PREFS).edit(true) { clear() }
+        appContext.getHarmonySharedPreferences(PREFS).edit(true) { clear() }
     }
 
     @Test(timeout = 1000)
     fun testHarmonyLoad() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        val sharedPreferences = appContext.getHarmonyPrefs(PREFS)
+        val sharedPreferences = appContext.getHarmonySharedPreferences(PREFS)
         assertFalse { sharedPreferences.contains("foo") }
     }
 
@@ -44,7 +43,7 @@ class HarmonyTest {
     fun testIntStorage() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        val sharedPreferences = appContext.getHarmonyPrefs(PREFS)
+        val sharedPreferences = appContext.getHarmonySharedPreferences(PREFS)
         val randomNumber = Random.nextInt()
         assertFalse { sharedPreferences.contains("test") }
         sharedPreferences.edit { putInt("test", randomNumber) }
@@ -55,7 +54,7 @@ class HarmonyTest {
     fun testLongStorage() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        val sharedPreferences = appContext.getHarmonyPrefs(PREFS)
+        val sharedPreferences = appContext.getHarmonySharedPreferences(PREFS)
         val randomNumber = Random.nextLong()
         assertFalse { sharedPreferences.contains("test") }
         sharedPreferences.edit { putLong("test", randomNumber) }
@@ -66,7 +65,7 @@ class HarmonyTest {
     fun testFloatStorage() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        val sharedPreferences = appContext.getHarmonyPrefs(PREFS)
+        val sharedPreferences = appContext.getHarmonySharedPreferences(PREFS)
         val randomNumber = Random.nextFloat()
         assertFalse { sharedPreferences.contains("test") }
         sharedPreferences.edit { putFloat("test", randomNumber) }
@@ -77,7 +76,7 @@ class HarmonyTest {
     fun testBooleanStorage() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        val sharedPreferences = appContext.getHarmonyPrefs(PREFS)
+        val sharedPreferences = appContext.getHarmonySharedPreferences(PREFS)
         val randomBoolean = Random.nextBoolean()
         assertFalse { sharedPreferences.contains("test") }
         sharedPreferences.edit { putBoolean("test", randomBoolean) }
@@ -88,7 +87,7 @@ class HarmonyTest {
     fun testStringStorage() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        val sharedPreferences = appContext.getHarmonyPrefs(PREFS)
+        val sharedPreferences = appContext.getHarmonySharedPreferences(PREFS)
         val randomString = "${Random.nextLong()}"
         assertFalse { sharedPreferences.contains("test") }
         sharedPreferences.edit { putString("test", randomString) }
@@ -99,7 +98,7 @@ class HarmonyTest {
     fun testStringSetStorage() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        val sharedPreferences = appContext.getHarmonyPrefs(PREFS)
+        val sharedPreferences = appContext.getHarmonySharedPreferences(PREFS)
         val randomStringSet = hashSetOf<String>().apply {
             repeat(Random.nextInt(100)) {
                 add("${Random.nextLong()}")
@@ -114,7 +113,7 @@ class HarmonyTest {
     fun testOnPreferenceChangeListener() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        val harmonyPrefs = appContext.getHarmonyPrefs(PREFS)
+        val harmonyPrefs = appContext.getHarmonySharedPreferences(PREFS)
         val keyCompletableDeferred = CompletableDeferred<String>()
         val onPreferenChanListener =
             SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences, key ->

@@ -8,7 +8,7 @@ import android.os.SystemClock
 import android.util.Log
 import com.frybits.harmonyprefs.ITERATIONS
 import com.frybits.harmonyprefs.PREFS_NAME
-import com.frybits.harmonyprefs.library.Harmony.Companion.getHarmonyPrefs
+import com.frybits.harmonyprefs.library.Harmony.Companion.getHarmonySharedPreferences
 import kotlin.system.measureTimeMillis
 
 /**
@@ -40,7 +40,7 @@ class HarmonyPrefsReceiveService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        harmonyActivityPrefs = getHarmonyPrefs(PREFS_NAME)
+        harmonyActivityPrefs = getHarmonySharedPreferences(PREFS_NAME)
     }
 
     override fun onBind(intent: Intent?): IBinder? = null

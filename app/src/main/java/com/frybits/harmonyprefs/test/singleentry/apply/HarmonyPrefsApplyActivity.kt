@@ -12,7 +12,7 @@ import androidx.lifecycle.lifecycleScope
 import com.frybits.harmonyprefs.ITERATIONS
 import com.frybits.harmonyprefs.PREFS_NAME
 import com.frybits.harmonyprefs.R
-import com.frybits.harmonyprefs.library.Harmony.Companion.getHarmonyPrefs
+import com.frybits.harmonyprefs.library.Harmony.Companion.getHarmonySharedPreferences
 import com.frybits.harmonyprefs.test.singleentry.HarmonyPrefsReceiveService
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
@@ -73,7 +73,7 @@ class HarmonyPrefsApplyActivity : AppCompatActivity() {
     private fun runTest() {
         testRunDeferred = lifecycleScope.async(Dispatchers.Default) {
             applyTimeSpent.fill(0L, 0, ITERATIONS)
-            activityHarmonyPrefs = getHarmonyPrefs(PREFS_NAME)
+            activityHarmonyPrefs = getHarmonySharedPreferences(PREFS_NAME)
             activityHarmonyPrefs.edit(true) { clear() }
             startService(Intent(this@HarmonyPrefsApplyActivity, HarmonyPrefsReceiveService::class.java).apply { putExtra("START", true) })
             delay(3000) // Give the service enough time to setup
