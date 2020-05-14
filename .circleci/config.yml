@@ -1,38 +1,52 @@
 version: 2.1
 
-orbs:
-  android: circleci/android@0.2.0
-
 jobs:
-  library_build:
-    executor: android/android
+  Android-Library-Build:
+    docker:
+      - image: circleci/android:api-29
+
+    environment:
+      # Configure the JVM and Gradle to avoid OOM errors
+      _JAVA_OPTIONS: "-Xmx3g"
+      GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2"
+
+    working_directory: ~/repo
 
     steps:
       - checkout
       - run:
-          name: Assemble the library
+          name: Assemble Harmony Library
           command: ./gradlew :library:assembleRelease
 
-  bintray_upload:
-    executor: android/android
+  Android-Library-Upload:
+    docker:
+      - image: circleci/android:api-29
+
+    environment:
+      # Configure the JVM and Gradle to avoid OOM errors
+      _JAVA_OPTIONS: "-Xmx3g"
+      GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2"
+
+    working_directory: ~/repo
 
     steps:
       - checkout
       - run:
-          name: Upload to bintray
+          name: Assemble Harmony Library
           command: ./gradlew :library:bintrayUpload
 
 workflows:
   version: 2
-  build:
+  Build:
     jobs:
-      - library_build
-
-  upload:
+      - Android-Library-Build
+  Upload:
     jobs:
-      - bintray_upload:
+      - Android-Library-Upload:
           type: approval
-          requires: library_build
+          requires:
+            - Android-Library-Build
           filters:
             branches:
               only: master
+
