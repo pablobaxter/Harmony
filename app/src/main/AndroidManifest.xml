@@ -16,16 +16,36 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".test.singleentry.commit.HarmonyPrefsCommitActivity" />
+        <activity android:name=".test.singleentry.commit.HarmonyPrefsCommitActivity" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MainActivity" />
+        </activity>
+
+        <activity android:name=".test.singleentry.apply.HarmonyPrefsApplyActivity" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MainActivity" />
+        </activity>
+
+        <activity android:name=".test.bulkentry.apply.HarmonyPrefsBulkApplyActivity" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MainActivity" />
+        </activity>
+
+        <activity android:name=".test.bulkentry.commit.HarmonyPrefsBulkCommitActivity" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MainActivity" />
+        </activity>
 
         <service
-            android:name=".test.singleentry.commit.HarmonyPrefsCommitFooService"
+            android:name=".test.singleentry.HarmonyPrefsReceiveService"
             android:process=":foo" />
 
-        <activity android:name=".test.singleentry.apply.HarmonyPrefsApplyActivity" />
-
         <service
-            android:name=".test.singleentry.apply.HarmonyPrefsApplyFooService"
+            android:name=".test.bulkentry.HarmonyPrefsBulkReadService"
             android:process=":foo" />
     </application>
 </manifest>

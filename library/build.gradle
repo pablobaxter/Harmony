@@ -1,6 +1,7 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
+apply plugin: 'org.jetbrains.dokka'
 
 android {
     compileSdkVersion compileSdk_version
@@ -30,6 +31,28 @@ android {
 
     kotlinOptions {
         jvmTarget = "1.8"
+    }
+}
+
+dokka {
+    outputFormat = 'html'
+    outputDirectory = "$buildDir/dokka"
+
+    configuration {
+        moduleName = 'data'
+        reportUndocumented = true
+        platform = "JVM"
+        sourceRoot {
+            path = "src/main"
+        }
+        jdkVersion = 8
+
+        perPackageOption {
+            prefix = "kotlin"
+            skipDeprecated = false
+            reportUndocumented = true
+            includeNonPublic = false
+        }
     }
 }
 

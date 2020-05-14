@@ -16,4 +16,16 @@
         android:layout_height="wrap_content"
         android:text="Start Single Apply Test"/>
 
+    <Button
+        android:id="@+id/bulkApplyButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Start Bulk Apply Test"/>
+
+    <Button
+        android:id="@+id/bulkCommitButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Start Bulk Commit Test"/>
+
 </LinearLayout>

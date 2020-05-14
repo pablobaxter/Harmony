@@ -32,10 +32,16 @@ import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
 import kotlin.concurrent.write
 
-/**
+/*
  * Created by Pablo Baxter (Github: pablobaxter)
  */
 
+/**
+ * Harmony is a process-safe, thread-safe [SharedPreferences] implementation.
+ *
+ * For the most part, documentation from [SharedPreferences] is also true for Harmony, except the warning about multiple processes not being supported.
+ * It's totally supported here.
+ */
 class Harmony private constructor(
     context: Context,
     private val prefsName: String
@@ -88,6 +94,9 @@ class Harmony private constructor(
     // Pref change listener map
     private val listenerMap = WeakHashMap<SharedPreferences.OnSharedPreferenceChangeListener, Any>()
 
+    /**
+     * @suppress
+     */
     init {
         // Empty names or invalid characters are not allowed!
         if (prefsName.isEmpty() || posixRegex.containsMatchIn(prefsName)) {
@@ -100,6 +109,9 @@ class Harmony private constructor(
             harmonyCoroutineScope.async(harmonySingleThreadDispatcher) { loadFromDisk(false) }
     }
 
+    /**
+     * @see [SharedPreferences.getInt]
+     */
     override fun getInt(key: String, defValue: Int): Int {
         if (!isLoadedDeferred.isCompleted) { // Only block if this job is not completed
             runBlocking {
@@ -110,6 +122,9 @@ class Harmony private constructor(
         return (obj as Long?)?.toInt() ?: defValue
     }
 
+    /**
+     * @see [SharedPreferences.getLong]
+     */
     override fun getLong(key: String, defValue: Long): Long {
         if (!isLoadedDeferred.isCompleted) { // Only block if this job is not completed
             runBlocking {
@@ -120,6 +135,9 @@ class Harmony private constructor(
         return (obj as Long?) ?: defValue
     }
 
+    /**
+     * @see [SharedPreferences.getFloat]
+     */
     // Due to the backing nature of this data, we store all numbers as longs. Float raw bits are stored when saved, and used for reading it back
     override fun getFloat(key: String, defValue: Float): Float {
         if (!isLoadedDeferred.isCompleted) { // Only block if this job is not completed
@@ -131,6 +149,9 @@ class Harmony private constructor(
         return (obj as Long?)?.let { Float.fromBits(it.toInt()) } ?: defValue
     }
 
+    /**
+     * @see [SharedPreferences.getBoolean]
+     */
     override fun getBoolean(key: String, defValue: Boolean): Boolean {
         if (!isLoadedDeferred.isCompleted) {
             runBlocking {
@@ -141,6 +162,9 @@ class Harmony private constructor(
         return (obj as Boolean?) ?: defValue
     }
 
+    /**
+     * @see [SharedPreferences.getString]
+     */
     override fun getString(key: String, defValue: String?): String? {
         if (!isLoadedDeferred.isCompleted) {
             runBlocking {
@@ -151,6 +175,9 @@ class Harmony private constructor(
         return (obj as String?) ?: defValue
     }
 
+    /**
+     * @see [SharedPreferences.getStringSet]
+     */
     override fun getStringSet(key: String, defValues: MutableSet<String>?): Set<String>? {
         if (!isLoadedDeferred.isCompleted) {
             runBlocking {
@@ -162,6 +189,9 @@ class Harmony private constructor(
         return (obj as Set<String>?) ?: defValues
     }
 
+    /**
+     * @see [SharedPreferences.contains]
+     */
     override fun contains(key: String): Boolean {
         if (!isLoadedDeferred.isCompleted) {
             runBlocking {
@@ -171,6 +201,9 @@ class Harmony private constructor(
         return mapReentrantReadWriteLock.read { harmonyMap.containsKey(key) }
     }
 
+    /**
+     * @see [SharedPreferences.getAll]
+     */
     override fun getAll(): MutableMap<String, *> {
         if (!isLoadedDeferred.isCompleted) {
             runBlocking {
@@ -180,6 +213,9 @@ class Harmony private constructor(
         return mapReentrantReadWriteLock.read { harmonyMap.toMutableMap() }
     }
 
+    /**
+     * @see [SharedPreferences.edit]
+     */
     override fun edit(): SharedPreferences.Editor {
         if (!isLoadedDeferred.isCompleted) {
             runBlocking {
@@ -189,12 +225,20 @@ class Harmony private constructor(
         return HarmonyEditor()
     }
 
+    /**
+     * This listener will also listen for changes that occur to the [Harmony] preference with the same name from other processes.
+     *
+     * @see [SharedPreferences.registerOnSharedPreferenceChangeListener]
+     */
     override fun registerOnSharedPreferenceChangeListener(listener: SharedPreferences.OnSharedPreferenceChangeListener) {
         mapReentrantReadWriteLock.write {
             listenerMap[listener] = CONTENT
         }
     }
 
+    /**
+     * @see [SharedPreferences.unregisterOnSharedPreferenceChangeListener]
+     */
     override fun unregisterOnSharedPreferenceChangeListener(listener: SharedPreferences.OnSharedPreferenceChangeListener) {
         mapReentrantReadWriteLock.write {
             listenerMap.remove(listener)
@@ -263,9 +307,7 @@ class Harmony private constructor(
                 val oldMap = harmonyMap
                 @Suppress("UNCHECKED_CAST")
                 harmonyMap = map[DATA_KEY] as? HashMap<String, Any?>? ?: hashMapOf()
-                if (harmonyMap.isEmpty()) {
-                    keysModified?.addAll(oldMap.keys)
-                } else {
+                if (harmonyMap.isNotEmpty()) {
                     harmonyMap.forEach { (k, v) ->
                         if (!oldMap.containsKey(k) || oldMap[k] != v) {
                             keysModified?.add(k)
@@ -296,6 +338,9 @@ class Harmony private constructor(
         private val modifiedMap = hashMapOf<String, Any?>()
         private var cleared = AtomicBoolean(false)
 
+        /**
+         * @see [SharedPreferences.Editor.putLong]
+         */
         override fun putLong(key: String, value: Long): SharedPreferences.Editor {
             synchronized(this) {
                 modifiedMap[key] = value
@@ -303,6 +348,9 @@ class Harmony private constructor(
             }
         }
 
+        /**
+         * @see [SharedPreferences.Editor.putInt]
+         */
         override fun putInt(key: String, value: Int): SharedPreferences.Editor {
             synchronized(this) {
                 modifiedMap[key] = value.toLong()
@@ -310,6 +358,9 @@ class Harmony private constructor(
             }
         }
 
+        /**
+         * @see [SharedPreferences.Editor.putBoolean]
+         */
         override fun putBoolean(key: String, value: Boolean): SharedPreferences.Editor {
             synchronized(this) {
                 modifiedMap[key] = value
@@ -317,6 +368,9 @@ class Harmony private constructor(
             }
         }
 
+        /**
+         * @see [SharedPreferences.Editor.putFloat]
+         */
         override fun putFloat(key: String, value: Float): SharedPreferences.Editor {
             synchronized(this) {
                 modifiedMap[key] = value.toRawBits().toLong()
@@ -324,6 +378,9 @@ class Harmony private constructor(
             }
         }
 
+        /**
+         * @see [SharedPreferences.Editor.putString]
+         */
         override fun putString(key: String, value: String?): SharedPreferences.Editor {
             synchronized(this) {
                 modifiedMap[key] = value ?: this
@@ -331,6 +388,9 @@ class Harmony private constructor(
             }
         }
 
+        /**
+         * @see [SharedPreferences.Editor.putStringSet]
+         */
         override fun putStringSet(
             key: String,
             values: MutableSet<String>?
@@ -341,6 +401,9 @@ class Harmony private constructor(
             }
         }
 
+        /**
+         * @see [SharedPreferences.Editor.clear]
+         */
         override fun clear(): SharedPreferences.Editor {
             synchronized(this) {
                 cleared.set(true)
@@ -348,6 +411,9 @@ class Harmony private constructor(
             }
         }
 
+        /**
+         * @see [SharedPreferences.Editor.remove]
+         */
         override fun remove(key: String): SharedPreferences.Editor {
             synchronized(this) {
                 modifiedMap[key] = this
@@ -355,6 +421,9 @@ class Harmony private constructor(
             }
         }
 
+        /**
+         * @see [SharedPreferences.Editor.apply]
+         */
         override fun apply() {
             val currMemoryMap = commitToMemory()
             harmonyCoroutineScope.launch(harmonySingleThreadDispatcher) {
@@ -362,6 +431,9 @@ class Harmony private constructor(
             }
         }
 
+        /**
+         * @see [SharedPreferences.Editor.commit]
+         */
         override fun commit(): Boolean {
             val currMemoryMap = commitToMemory()
             return runBlocking(harmonySingleThreadDispatcher) {
@@ -518,6 +590,18 @@ class Harmony private constructor(
         private object CONTENT
         private val SINGLETON_MAP = hashMapOf<String, Harmony>()
 
+        /**
+         * Main entry to get Harmony Preferences
+         *
+         * This creates and holds a single instance of a [Harmony] object in memory for each unique string provided.
+         * This method is thread-safe. This method is also process-safe, meaning that if the same name is given to this method
+         * from different processes, the same content is returned, and changes in from one process will be reflected in the other.
+         *
+         * @receiver Any valid context
+         * @param name The desired preference file
+         *
+         * @return The Harmony Preference object
+         */
         @JvmStatic
         @JvmName("getSharedPreferences")
         fun Context.getHarmonyPrefs(name: String): Harmony {

@@ -1,4 +1,4 @@
-package com.frybits.harmonyprefs.test.singleentry.apply
+package com.frybits.harmonyprefs.test.bulkentry.apply
 
 import android.content.Intent
 import android.content.SharedPreferences
@@ -13,7 +13,7 @@ import com.frybits.harmonyprefs.ITERATIONS
 import com.frybits.harmonyprefs.PREFS_NAME
 import com.frybits.harmonyprefs.R
 import com.frybits.harmonyprefs.library.Harmony.Companion.getHarmonyPrefs
-import com.frybits.harmonyprefs.test.singleentry.HarmonyPrefsReceiveService
+import com.frybits.harmonyprefs.test.bulkentry.HarmonyPrefsBulkReadService
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
@@ -26,13 +26,10 @@ import kotlin.system.measureTimeMillis
  * Created by Pablo Baxter (Github: pablobaxter)
  */
 
-class HarmonyPrefsApplyActivity : AppCompatActivity() {
+class HarmonyPrefsBulkApplyActivity : AppCompatActivity() {
 
     private var testRunDeferred: Deferred<Unit> = CompletableDeferred(Unit)
     private lateinit var activityHarmonyPrefs: SharedPreferences
-
-    private val testKeyArray = Array(ITERATIONS) { i -> "test$i" }
-    private val applyTimeSpent = LongArray(ITERATIONS)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -72,34 +69,23 @@ class HarmonyPrefsApplyActivity : AppCompatActivity() {
 
     private fun runTest() {
         testRunDeferred = lifecycleScope.async(Dispatchers.Default) {
-            applyTimeSpent.fill(0L, 0, ITERATIONS)
             activityHarmonyPrefs = getHarmonyPrefs(PREFS_NAME)
             activityHarmonyPrefs.edit(true) { clear() }
-            startService(Intent(this@HarmonyPrefsApplyActivity, HarmonyPrefsReceiveService::class.java).apply { putExtra("START", true) })
-            delay(3000) // Give the service enough time to setup
-            Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Starting single entry test of $ITERATIONS items!")
+            Log.i("Trial", "${this@HarmonyPrefsBulkApplyActivity::class.java.simpleName}: Starting bulk entry test of $ITERATIONS items!")
             val editor = activityHarmonyPrefs.edit()
-            val time = measureTimeMillis {
-                repeat(ITERATIONS) { i ->
-                    val measure = measureTimeMillis {
-                        editor.putLong(
-                            testKeyArray[i],
-                            SystemClock.elapsedRealtime()
-                        ).apply()
-                    }
-                    applyTimeSpent[i] = measure
-                }
+            repeat(ITERATIONS) { i ->
+                editor.putLong(
+                    "test$i",
+                    SystemClock.elapsedRealtime()
+                )
             }
-            Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Time to apply $ITERATIONS items: $time ms")
-            delay(20000)
-            startService(Intent(this@HarmonyPrefsApplyActivity, HarmonyPrefsReceiveService::class.java).apply { putExtra("STOP", true) })
-            delay(1000)
-            stopService(Intent(this@HarmonyPrefsApplyActivity, HarmonyPrefsReceiveService::class.java))
-            Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Stopping test!")
-            Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Apply count: ${applyTimeSpent.size}, expecting $ITERATIONS")
-            Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Average to apply one item: ${applyTimeSpent.average()} ms")
-            Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Max to apply one item: ${applyTimeSpent.max()} ms")
-            Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Min to apply one item: ${applyTimeSpent.min()} ms")
+            val measure = measureTimeMillis { editor.apply() }
+            Log.i("Trial", "${this@HarmonyPrefsBulkApplyActivity::class.java.simpleName}: Time to bulk apply $ITERATIONS items: $measure ms")
+            delay(32) // Give it about the time it takes for a single frame render at 30hz
+            startService(Intent(this@HarmonyPrefsBulkApplyActivity, HarmonyPrefsBulkReadService::class.java).apply { putExtra("START", true) })
+            startService(Intent(this@HarmonyPrefsBulkApplyActivity, HarmonyPrefsBulkReadService::class.java).apply { putExtra("STOP", true) })
+            stopService(Intent(this@HarmonyPrefsBulkApplyActivity, HarmonyPrefsBulkReadService::class.java))
+            Log.i("Trial", "${this@HarmonyPrefsBulkApplyActivity::class.java.simpleName}: Stopping test!")
             return@async
         }
     }

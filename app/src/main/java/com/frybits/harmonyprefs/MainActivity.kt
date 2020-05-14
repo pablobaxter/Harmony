@@ -4,6 +4,8 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
+import com.frybits.harmonyprefs.test.bulkentry.apply.HarmonyPrefsBulkApplyActivity
+import com.frybits.harmonyprefs.test.bulkentry.commit.HarmonyPrefsBulkCommitActivity
 import com.frybits.harmonyprefs.test.singleentry.apply.HarmonyPrefsApplyActivity
 import com.frybits.harmonyprefs.test.singleentry.commit.HarmonyPrefsCommitActivity
 import com.tencent.mmkv.MMKV
@@ -25,6 +27,14 @@ class MainActivity : Activity() {
 
         findViewById<Button>(R.id.singleApplyButton).setOnClickListener {
             startActivity(Intent(this, HarmonyPrefsApplyActivity::class.java))
+        }
+
+        findViewById<Button>(R.id.bulkApplyButton).setOnClickListener {
+            startActivity(Intent(this, HarmonyPrefsBulkApplyActivity::class.java))
+        }
+
+        findViewById<Button>(R.id.bulkCommitButton).setOnClickListener {
+            startActivity(Intent(this, HarmonyPrefsBulkCommitActivity::class.java))
         }
     }
 }
