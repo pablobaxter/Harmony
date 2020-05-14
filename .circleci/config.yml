@@ -23,11 +23,11 @@ jobs:
           command: ./gradlew :library:bintrayUpload
 
 workflows:
-  build:
+  "build":
     jobs:
       - library_build
 
-  upload:
+  "upload":
     jobs:
       - bintray_upload:
           type: approval
