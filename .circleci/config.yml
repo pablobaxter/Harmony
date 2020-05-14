@@ -32,7 +32,7 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Assemble Harmony Library
+          name: Upload Harmony Library
           command: ./gradlew :library:bintrayUpload
 
 workflows:
@@ -50,4 +50,4 @@ workflows:
           filters:
             branches:
               only: master
-        
+

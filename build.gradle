@@ -25,7 +25,7 @@ buildscript {
         targetSdk_version = 29
         buildtools_version = '29.0.2'
 
-        version_name = "0.1"
+        version_name = "0.1." + (System.getenv('CIRCLE_BUILD_NUM') ?: "0")
         version_code = System.getenv('CIRCLE_BUILD_NUM')?.toInteger() ?: 1
 
     }
