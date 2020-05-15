@@ -1,5 +1,7 @@
 # Harmony Preferences
-[![CircleCI](https://circleci.com/gh/pablobaxter/HarmonyPreferences/tree/master.svg?style=shield)](https://circleci.com/gh/pablobaxter/HarmonyPreferences/tree/master) ![GitHub](https://img.shields.io/github/license/pablobaxter/HarmonyPreferences) [ ![Download](https://api.bintray.com/packages/soaboz/Harmony/com.frybits.harmonyprefs/images/download.svg?version=0.0.1) ](https://bintray.com/soaboz/Harmony/com.frybits.harmonyprefs/0.0.1/link)
+[![CircleCI](https://circleci.com/gh/pablobaxter/Harmony/tree/master.svg?style=shield)](https://circleci.com/gh/pablobaxter/Harmony/tree/master)
+![GitHub](https://img.shields.io/github/license/pablobaxter/Harmony)
+[![Download](https://api.bintray.com/packages/soaboz/Harmony/com.frybits.harmony/images/download.svg?version=0.0.2)](https://bintray.com/soaboz/Harmony/com.frybits.harmony/0.0.2/link)
 
 Working on multiprocess Android apps is a complex undertaking. One of the biggest challenges is managing shared data between the multiple processes. Most solutions rely on one process to be available for another to read the data, which can be quite slow and could potentially lead to ANRs.
 
@@ -16,7 +18,7 @@ Harmony is a thread-safe, process-safe, full [`SharedPreferences`](https://devel
 ## Download
 ### Gradle
 ```
-implementation 'com.frybits.harmonyprefs:harmony:0.0.1'
+implementation 'com.frybits.harmony:harmony:0.0.2'
 ```
 
 ## Usage
@@ -37,6 +39,14 @@ SharedPreferences prefs = Harmony.getSharedPreferences(context, "PREF_NAME")
 Once you have this `SharedPreferences` object, it can be used just like any other `SharedPreferences`. The main difference with `Harmony` is that any changes made to `"PREF_NAME"` using `apply()` or `commit()` is reflected across all processes.
 
 ## Change Log
+### Version 0.0.2 / 2020-05-15
+- Removes `app_name` from the `strings.xml` file
+- Restructures library to be under the package `com.frybits.harmony`
+  instead of `com.frybits.harmonyprefs`
+- Renames the `Harmony` class to `HarmonyImpl` and sets class to
+  private.
+- Import of `getHarmonySharedPreferences()` method is now cleaner
+
 ### Version 0.0.1 / 2020-05-15
 - Initial release!
 

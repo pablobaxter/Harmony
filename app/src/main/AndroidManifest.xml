@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.frybits.harmonyprefs">
+    package="com.frybits.harmony.app">
 
     <application
         android:allowBackup="true"

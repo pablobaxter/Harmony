@@ -90,7 +90,7 @@ afterEvaluate {
                 from components.release
 
                 // You can then customize attributes of the publication as shown below.
-                groupId = 'com.frybits.harmonyprefs'
+                groupId = 'com.frybits.harmony'
                 artifactId = 'harmony'
                 version = version_name
 
@@ -100,7 +100,7 @@ afterEvaluate {
 
                 pom.withXml { pom ->
                     def root = asNode()
-                    root.appendNode('name', 'HarmonyPreferences')
+                    root.appendNode('name', 'Harmony')
                     root.appendNode('description', 'A process-safe SharedPreferences implementation')
                     def license = root.appendNode('licenses').appendNode('license')
                     license.appendNode('name', 'MIT License')
@@ -140,11 +140,11 @@ bintray {
 
     pkg {
         repo = 'Harmony' // the name of the repository you created on Bintray
-        name = 'com.frybits.harmonyprefs' // the name of the package you created inside it
+        name = 'com.frybits.harmony' // the name of the package you created inside it
         desc = 'A process-safe SharedPreferences implementation'
         licenses = ['MIT']
-        vcsUrl = 'https://github.com/pablobaxter/HarmonyPreferences.git'
-        githubRepo = 'pablobaxter/HarmonyPreferences' //Optional Github repository
+        vcsUrl = 'https://github.com/pablobaxter/Harmony.git'
+        githubRepo = 'pablobaxter/Harmony' //Optional Github repository
         version {
             name = version_name
             released = new Date()

@@ -6,7 +6,7 @@ android {
     compileSdkVersion compileSdk_version
     buildToolsVersion buildtools_version
     defaultConfig {
-        applicationId "com.frybits.harmonyprefs"
+        applicationId "com.frybits.harmony.app"
         minSdkVersion 16
         targetSdkVersion targetSdk_version
         versionCode 1
@@ -33,6 +33,7 @@ android {
 
 dependencies {
     implementation project (':library')
+//    implementation 'com.frybits.harmony:harmony:0.0.2'
 
     // Kotlin
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
