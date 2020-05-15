@@ -1,7 +1,7 @@
 # Harmony Preferences
 [![CircleCI](https://circleci.com/gh/pablobaxter/Harmony/tree/master.svg?style=shield)](https://circleci.com/gh/pablobaxter/Harmony/tree/master)
-![GitHub](https://img.shields.io/github/license/pablobaxter/Harmony)
-![Bintray](https://img.shields.io/bintray/v/soaboz/Harmony/com.frybits.harmony)
+![GitHub](https://img.shields.io/github/license/pablobaxter/Harmony?style=shield)
+![Bintray](https://img.shields.io/bintray/v/soaboz/Harmony/com.frybits.harmony?style=shield)
 
 Working on multiprocess Android apps is a complex undertaking. One of the biggest challenges is managing shared data between the multiple processes. Most solutions rely on one process to be available for another to read the data, which can be quite slow and could potentially lead to ANRs.
 
@@ -18,7 +18,7 @@ Harmony is a thread-safe, process-safe, full [`SharedPreferences`](https://devel
 ## Download
 ### Gradle
 ```
-implementation 'com.frybits.harmony:harmony:0.0.2'
+implementation 'com.frybits.harmony:harmony:0.0.5'
 ```
 
 ## Usage
@@ -39,6 +39,10 @@ SharedPreferences prefs = Harmony.getSharedPreferences(context, "PREF_NAME")
 Once you have this `SharedPreferences` object, it can be used just like any other `SharedPreferences`. The main difference with `Harmony` is that any changes made to `"PREF_NAME"` using `apply()` or `commit()` is reflected across all processes.
 
 ## Change Log
+### Version 0.0.5 / 2020-05-15
+- Adds java doc (Dokka HTML) to this release
+- Prep work to release on Maven Central
+
 ### Version 0.0.2 / 2020-05-15
 - Removes `app_name` from the `strings.xml` file
 - Restructures library to be under the package `com.frybits.harmony`
