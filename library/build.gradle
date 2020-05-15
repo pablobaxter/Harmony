@@ -119,6 +119,10 @@ afterEvaluate {
                     developer.appendNode('id', 'soaboz')
                     developer.appendNode('name', 'Pablo Baxter')
                     developer.appendNode('email', 'pablo@frybits.com')
+                    def scm = root.appendNode('scm')
+                    scm.appendNode('connection', 'scm:git:git://github.com/pablobaxter/Harmony.git')
+                    scm.appendNode('developerConnection', 'git:ssh://github.com/pablobaxter/Harmony.git')
+                    scm.appendNode('url', 'https://github.com/pablobaxter/Harmony')
                 }
             }
         }
