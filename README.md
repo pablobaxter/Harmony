@@ -1,7 +1,7 @@
 # Harmony Preferences
 [![CircleCI](https://circleci.com/gh/pablobaxter/Harmony/tree/master.svg?style=shield)](https://circleci.com/gh/pablobaxter/Harmony/tree/master)
 ![GitHub](https://img.shields.io/github/license/pablobaxter/Harmony)
-[![Download](https://api.bintray.com/packages/soaboz/Harmony/com.frybits.harmony/images/download.svg?version=0.0.2)](https://bintray.com/soaboz/Harmony/com.frybits.harmony/0.0.2/link)
+![Bintray](https://img.shields.io/bintray/v/soaboz/Harmony/com.frybits.harmony)
 
 Working on multiprocess Android apps is a complex undertaking. One of the biggest challenges is managing shared data between the multiple processes. Most solutions rely on one process to be available for another to read the data, which can be quite slow and could potentially lead to ANRs.
 
