@@ -112,6 +112,7 @@ afterEvaluate {
                     def root = asNode()
                     root.appendNode('name', 'Harmony')
                     root.appendNode('description', 'A process-safe SharedPreferences implementation')
+                    root.appendNode('url', 'https://github.com/pablobaxter/Harmony')
                     def license = root.appendNode('licenses').appendNode('license')
                     license.appendNode('name', 'MIT License')
                     license.appendNode('url', 'https://opensource.org/licenses/MIT')
