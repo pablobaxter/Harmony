@@ -63,8 +63,14 @@ task sourcesJar(type: Jar) {
     archiveClassifier = 'sources'
 }
 
+task javadocJar(type: Jar, dependsOn: dokka) {
+    from "$buildDir/dokka"
+    archiveClassifier = 'javadoc'
+}
+
 artifacts {
     archives sourcesJar
+    archives javadocJar
 }
 
 dependencies {
@@ -96,6 +102,10 @@ afterEvaluate {
 
                 artifact sourcesJar {
                     archiveClassifier = 'sources'
+                }
+
+                artifact javadocJar {
+                    archiveClassifier = 'javadoc'
                 }
 
                 pom.withXml { pom ->
