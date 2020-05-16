@@ -114,8 +114,8 @@ afterEvaluate {
                     root.appendNode('description', 'A process-safe SharedPreferences implementation')
                     root.appendNode('url', 'https://github.com/pablobaxter/Harmony')
                     def license = root.appendNode('licenses').appendNode('license')
-                    license.appendNode('name', 'MIT License')
-                    license.appendNode('url', 'https://opensource.org/licenses/MIT')
+                    license.appendNode('name', 'Apache License, Version 2.0')
+                    license.appendNode('url', 'https://opensource.org/licenses/Apache-2.0')
                     def developer = root.appendNode('developers').appendNode('developer')
                     developer.appendNode('id', 'soaboz')
                     developer.appendNode('name', 'Pablo Baxter')
@@ -157,7 +157,7 @@ bintray {
         repo = 'Harmony' // the name of the repository you created on Bintray
         name = 'com.frybits.harmony' // the name of the package you created inside it
         desc = 'A process-safe SharedPreferences implementation'
-        licenses = ['MIT']
+        licenses = ['Apache-2.0']
         vcsUrl = 'https://github.com/pablobaxter/Harmony.git'
         githubRepo = 'pablobaxter/Harmony' //Optional Github repository
         version {

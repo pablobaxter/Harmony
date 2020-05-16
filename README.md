@@ -18,7 +18,7 @@ Harmony is a thread-safe, process-safe, full [`SharedPreferences`](https://devel
 ## Download
 ### Gradle
 ```
-implementation 'com.frybits.harmony:harmony:0.0.5'
+implementation 'com.frybits.harmony:harmony:0.0.6'
 ```
 
 ## Usage
@@ -39,6 +39,9 @@ SharedPreferences prefs = Harmony.getSharedPreferences(context, "PREF_NAME")
 Once you have this `SharedPreferences` object, it can be used just like any other `SharedPreferences`. The main difference with `Harmony` is that any changes made to `"PREF_NAME"` using `apply()` or `commit()` is reflected across all processes.
 
 ## Change Log
+### Version 0.0.6 / 2020-05-15
+- License change from MIT to Apache-2.0
+
 ### Version 0.0.5 / 2020-05-15
 - Adds java doc (Dokka HTML) to this release
 - Prep work to release on Maven Central
@@ -56,25 +59,17 @@ Once you have this `SharedPreferences` object, it can be used just like any othe
 
 ## License
 ```
-MIT License
+Copyright 2020 Pablo Baxter
 
-Copyright (c) 2020 Pablo Baxter
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+    http://www.apache.org/licenses/LICENSE-2.0
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 ```
