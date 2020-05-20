@@ -53,6 +53,9 @@ import kotlin.concurrent.write
  *
  * For the most part, documentation from [SharedPreferences] is also true for Harmony, except the warning about multiple processes not being supported.
  * It's totally supported here.
+ *
+ * Parts of this code loosely replicates code in SharedPreferencesImpl.
+ * Source code here: https://android.googlesource.com/platform/frameworks/base.git/+/master/core/java/android/app/SharedPreferencesImpl.java
  */
 private class HarmonyImpl internal constructor(
     context: Context,
@@ -422,6 +425,7 @@ private class HarmonyImpl internal constructor(
             }
         }
 
+        // Credit for most of this code goes to whomever wrote this "apply()" for the current (as of 5/20/2020) SharedPreferencesImpl source
         private fun commitToMemory(): MemoryCommit {
             mapReentrantReadWriteLock.write {
                 if (commitsInFlight > 0L) {

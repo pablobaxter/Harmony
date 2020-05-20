@@ -113,7 +113,7 @@ class HarmonyPrefsCommitActivity : AppCompatActivity() {
                     }
                 }
                 vanillaTotalCommitTimeSpent[testCount] = time
-                delay(1000)
+                delay(1000) // Give vanilla preferences ample time to ensure data is set
 
                 // Read test
                 val readTime = measureTimeMillis {
@@ -154,11 +154,11 @@ class HarmonyPrefsCommitActivity : AppCompatActivity() {
                     }
                 }
                 harmonyTotalCommitTimeSpent[testCount] = time
-                delay(1000)
+                delay(1000) // Give ample time to let the data replicate to process
                 startService(Intent(this@HarmonyPrefsCommitActivity, HarmonyPrefsReceiveService::class.java).apply { putExtra("STOP", true) })
-                delay(1000)
+                delay(1000) // Give ample time to let service run read tests
                 activityHarmonyPrefs.edit(true) { clear() }
-                delay(3000)
+                delay(1000) // Give ample time for clearing of data across all processes
             }
             Log.i("Trial", "${this@HarmonyPrefsCommitActivity::class.java.simpleName}: Finished running Harmony SharedPreferences test!")
             // End Harmony tests
