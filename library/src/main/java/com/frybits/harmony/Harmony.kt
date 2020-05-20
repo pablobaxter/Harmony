@@ -251,6 +251,7 @@ private class HarmonyImpl internal constructor(
 
         val map: Map<String, Any?> = harmonyPrefsLockFile.withFileLock(true) {
 
+            // This backup mechanism was inspired by the SharedPreferencesImpl source code
             // Check for backup file
             if (harmonyPrefsBackupFile.exists()) {
                 _InternalHarmonyLog.d(LOG_TAG, "Backup exists!")
