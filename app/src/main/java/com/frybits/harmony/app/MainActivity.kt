@@ -8,7 +8,6 @@ import com.frybits.harmony.app.test.bulkentry.apply.HarmonyPrefsBulkApplyActivit
 import com.frybits.harmony.app.test.bulkentry.commit.HarmonyPrefsBulkCommitActivity
 import com.frybits.harmony.app.test.singleentry.apply.HarmonyPrefsApplyActivity
 import com.frybits.harmony.app.test.singleentry.commit.HarmonyPrefsCommitActivity
-import com.tencent.mmkv.MMKV
 
 /*
  *  Copyright 2020 Pablo Baxter
@@ -31,7 +30,6 @@ import com.tencent.mmkv.MMKV
 class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        MMKV.initialize(this)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 

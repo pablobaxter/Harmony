@@ -11,14 +11,14 @@ Harmony is a thread-safe, process-safe, full [`SharedPreferences`](https://devel
 - Built to support multiprocess apps
 - Full [`SharedPreferences`](https://developer.android.com/reference/android/content/SharedPreferences) implementation
 - [`OnSharedPreferenceChangeListener`](https://developer.android.com/reference/android/content/SharedPreferences.OnSharedPreferenceChangeListener) emits changes made by other processes
-- No native code (NDK) usage and uses no [`ContentProvider`](https://developer.android.com/reference/android/content/ContentProvider), [`Service`](https://developer.android.com/reference/android/app/Service), [`BroadcastReceiver`](https://developer.android.com/reference/android/content/BroadcastReceiver), or [AIDL](https://developer.android.com/guide/components/aidl)
+- Uses no native code (NDK) or any [`ContentProvider`](https://developer.android.com/reference/android/content/ContentProvider), [`Service`](https://developer.android.com/reference/android/app/Service), [`BroadcastReceiver`](https://developer.android.com/reference/android/content/BroadcastReceiver), or [AIDL](https://developer.android.com/guide/components/aidl)
 - Built-in failed-write recovery similar to the default [`SharedPreferences`](https://developer.android.com/reference/android/content/SharedPreferences)
-- Min Android API: 11
+- Supports Android API 11+
 
 ## Download
 ### Gradle
 ```
-implementation 'com.frybits.harmony:harmony:0.0.6'
+implementation 'com.frybits.harmony:harmony:0.0.7'
 ```
 
 ## Usage
@@ -39,6 +39,11 @@ SharedPreferences prefs = Harmony.getSharedPreferences(context, "PREF_NAME")
 Once you have this `SharedPreferences` object, it can be used just like any other `SharedPreferences`. The main difference with `Harmony` is that any changes made to `"PREF_NAME"` using `apply()` or `commit()` is reflected across all processes.
 
 ## Change Log
+### Version 0.0.7 / 2020-XX-XX
+- Slight improvement to `apply()` performance
+- Adds code for performance testing of Harmony vs SharedPreferences
+- Removes unused library from example app ([MMKV](https://github.com/Tencent/MMKV))
+
 ### Version 0.0.6 / 2020-05-15
 - License change from MIT to Apache-2.0
 
