@@ -16,7 +16,7 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -33,7 +33,7 @@ android {
 
 dependencies {
     implementation project (':library')
-//    implementation 'com.frybits.harmony:harmony:0.0.6'
+//    implementation 'com.frybits.harmony:harmony:0.0.7'
 
     // Kotlin
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
@@ -44,8 +44,6 @@ dependencies {
     implementation "androidx.appcompat:appcompat:$appcompat_version"
     implementation "androidx.core:core-ktx:$corektx_version"
     implementation "androidx.lifecycle:lifecycle-runtime-ktx:$lifecycle_scope_version"
-
-    implementation 'com.tencent:mmkv-static:1.1.1'
 
     // Test
     testImplementation "junit:junit:$junit_version"

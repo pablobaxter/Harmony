@@ -28,8 +28,6 @@ import java.io.File
 import java.io.IOException
 import java.util.WeakHashMap
 import java.util.concurrent.Executors
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
 import kotlin.concurrent.write
@@ -55,6 +53,9 @@ import kotlin.concurrent.write
  *
  * For the most part, documentation from [SharedPreferences] is also true for Harmony, except the warning about multiple processes not being supported.
  * It's totally supported here.
+ *
+ * Parts of this code loosely replicates code in SharedPreferencesImpl.
+ * Source code here: https://android.googlesource.com/platform/frameworks/base.git/+/master/core/java/android/app/SharedPreferencesImpl.java
  */
 private class HarmonyImpl internal constructor(
     context: Context,
@@ -103,7 +104,7 @@ private class HarmonyImpl internal constructor(
     // Prevents multiple threads from editing the in-memory map at once
     private val mapReentrantReadWriteLock = ReentrantReadWriteLock()
 
-    private val commitsInFlight = AtomicLong(0L)
+    private var commitsInFlight = 0L
 
     // Observes changes that occur to the backing file of this preference
     private val harmonyFileObserver =
@@ -250,6 +251,7 @@ private class HarmonyImpl internal constructor(
 
         val map: Map<String, Any?> = harmonyPrefsLockFile.withFileLock(true) {
 
+            // This backup mechanism was inspired by the SharedPreferencesImpl source code
             // Check for backup file
             if (harmonyPrefsBackupFile.exists()) {
                 _InternalHarmonyLog.d(LOG_TAG, "Backup exists!")
@@ -329,7 +331,7 @@ private class HarmonyImpl internal constructor(
 
         // Container for our current changes
         private val modifiedMap = hashMapOf<String, Any?>()
-        private var cleared = AtomicBoolean(false)
+        private var cleared = false
 
         override fun putLong(key: String, value: Long): SharedPreferences.Editor {
             synchronized(this) {
@@ -378,7 +380,7 @@ private class HarmonyImpl internal constructor(
 
         override fun clear(): SharedPreferences.Editor {
             synchronized(this) {
-                cleared.set(true)
+                cleared = true
                 return this
             }
         }
@@ -391,73 +393,86 @@ private class HarmonyImpl internal constructor(
         }
 
         override fun apply() {
-            val currMemoryMap = commitToMemory()
+            val memoryCommit = commitToMemory()
             harmonyCoroutineScope.launch(harmonySingleThreadDispatcher) {
+                val (currMemoryMap, keysModified, listeners) = memoryCommit
+                if (!listeners.isNullOrEmpty() && !keysModified.isNullOrEmpty()) {
+                    launch(Dispatchers.Main) {
+                        keysModified.asReversed().forEach { key ->
+                            listeners.forEach { listener ->
+                                listener.onSharedPreferenceChanged(this@HarmonyImpl, key)
+                            }
+                        }
+                    }
+                }
                 commitToDisk(currMemoryMap)
             }
         }
 
         override fun commit(): Boolean {
-            val currMemoryMap = commitToMemory()
+            val memoryCommit = commitToMemory()
             return runBlocking(harmonySingleThreadDispatcher) {
+                val (currMemoryMap, keysModified, listeners) = memoryCommit
+                if (!listeners.isNullOrEmpty() && !keysModified.isNullOrEmpty()) {
+                    harmonyCoroutineScope.launch(Dispatchers.Main) {
+                        keysModified.asReversed().forEach { key ->
+                            listeners.forEach { listener ->
+                                listener.onSharedPreferenceChanged(this@HarmonyImpl, key)
+                            }
+                        }
+                    }
+                }
                 return@runBlocking commitToDisk(currMemoryMap)
             }
         }
 
-        private fun commitToMemory(): Map<String, Any?> {
-            var listenersNotEmpty = false
-            var keysModified: ArrayList<String>? = null
-            var listeners: Set<SharedPreferences.OnSharedPreferenceChangeListener>? = null
-
-            val map = mapReentrantReadWriteLock.write {
-                listenersNotEmpty = listenerMap.isNotEmpty()
-                keysModified = if (listenersNotEmpty) arrayListOf() else null
-                listeners = if (listenersNotEmpty) listenerMap.keys.toHashSet() else null
-
-                if (commitsInFlight.getAndIncrement() > 0L) {
+        // Credit for most of this code goes to whomever wrote this "apply()" for the current (as of 5/20/2020) SharedPreferencesImpl source
+        private fun commitToMemory(): MemoryCommit {
+            mapReentrantReadWriteLock.write {
+                if (commitsInFlight > 0L) {
                     harmonyMap = HashMap(harmonyMap)
                 }
+                val mapToWrite = harmonyMap
+                commitsInFlight++
 
-                if (cleared.getAndSet(false)) {
-                    if (harmonyMap.isNotEmpty()) {
-                        harmonyMap.clear()
-                    }
+                var keysModified: ArrayList<String>? = null
+                var listeners: Set<SharedPreferences.OnSharedPreferenceChangeListener>? = null
+                val listenersNotEmpty = listenerMap.size > 0
+
+                if (listenersNotEmpty) {
+                    keysModified = arrayListOf()
+                    listeners = HashSet(listenerMap.keys)
                 }
 
                 synchronized(this@HarmonyEditor) {
+                    if (cleared) {
+                        if (mapToWrite.isNotEmpty()) {
+                            mapToWrite.clear()
+                        }
+                        cleared = false
+                    }
+
                     modifiedMap.forEach { (k, v) ->
                         // "this" is the magic value to remove the key associated to it
                         if (v == this || v == null) {
-                            if (!harmonyMap.containsKey(k)) {
+                            if (!mapToWrite.containsKey(k)) {
                                 return@forEach
                             }
-                            harmonyMap.remove(k)
+                            mapToWrite.remove(k)
                         } else {
-                            if (harmonyMap.containsKey(k)) {
-                                val existingVal = harmonyMap[k]
+                            if (mapToWrite.containsKey(k)) {
+                                val existingVal = mapToWrite[k]
                                 if (existingVal != null && existingVal == v) return@forEach
                             }
-                            harmonyMap[k] = v
+                            mapToWrite[k] = v
                         }
 
                         keysModified?.add(k)
                     }
                     modifiedMap.clear()
                 }
-                return@write harmonyMap
+                return MemoryCommit(mapToWrite, keysModified, listeners)
             }
-
-            if (listenersNotEmpty) {
-                requireNotNull(keysModified)
-                harmonyCoroutineScope.launch(Dispatchers.Main) {
-                    keysModified?.asReversed()?.forEach { key ->
-                        listeners?.forEach { listener ->
-                            listener.onSharedPreferenceChanged(this@HarmonyImpl, key)
-                        }
-                    }
-                }
-            }
-            return map
         }
 
         private fun commitToDisk(updatedMap: Map<String, Any?>): Boolean {
@@ -517,7 +532,9 @@ private class HarmonyImpl internal constructor(
                     harmonyPrefsBackupFile.delete()
                     commitResult = true
 
-                    commitsInFlight.decrementAndGet()
+                    mapReentrantReadWriteLock.write {
+                        commitsInFlight--
+                    }
 
                     _InternalHarmonyLog.d(LOG_TAG, "Restarting the file observer!")
 
@@ -541,6 +558,12 @@ private class HarmonyImpl internal constructor(
         }
     }
 }
+
+private data class MemoryCommit(
+    val memoryToCommit: Map<String, Any?>,
+    val keysModified: ArrayList<String>?,
+    val listeners: Set<SharedPreferences.OnSharedPreferenceChangeListener>?
+)
 
 private val posixRegex = "[^-_.A-Za-z0-9]".toRegex()
 private const val LOG_TAG = "Harmony"
