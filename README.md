@@ -39,7 +39,7 @@ SharedPreferences prefs = Harmony.getSharedPreferences(context, "PREF_NAME")
 Once you have this `SharedPreferences` object, it can be used just like any other `SharedPreferences`. The main difference with `Harmony` is that any changes made to `"PREF_NAME"` using `apply()` or `commit()` is reflected across all processes.
 
 ## Change Log
-### Version 0.0.7 / 2020-XX-XX
+### Version 0.0.7 / 2020-05-20
 - Slight improvement to `apply()` performance
 - Adds code for performance testing of Harmony vs SharedPreferences
 - Removes unused library from example app ([MMKV](https://github.com/Tencent/MMKV))
