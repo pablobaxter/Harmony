@@ -16,8 +16,9 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Build test apk
+          name: Build dummy app apk and test apk
           command: |
+            ./gradlew :app:assembleDebug
             ./gradlew :library:assembleAndroidTest
 
       - run:
@@ -35,15 +36,20 @@ jobs:
           command: >
             sudo gcloud firebase test android run \
               --type instrumentation \
+              --app ${HOME}/repo/app/build/outputs/apk/debug/app-debug.apk \
               --test ${HOME}/repo/library/build/outputs/apk/androidTest/debug/library-debug-androidTest.apk \
-              --results-bucket cloud-test-${GOOGLE_PROJECT_ID}
+              --results-bucket cloud-test-${GOOGLE_PROJECT_ID} \
+              --results-dir ${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM} \
+              --device model=Pixel2,version=29 \
+              --no-performance-metrics \
+              --no-record-video \
               --use-orchestrator
 
       - run:
           name: Install gsutil dependency and copy test results data
           command: |
             sudo pip install -U crcmod
-            sudo gsutil -m cp -r -U `sudo gsutil ls gs://frybits_home/ci_builds | tail -1` ${CIRCLE_ARTIFACTS}/ | true
+            sudo gsutil -m cp -r -U `sudo gsutil ls gs://${GOOGLE_PROJECT_ID}/${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM}/Pixel2-29-en-portrait/test_result_1.xml | tail -1` ${CIRCLE_ARTIFACTS}/ | true
 
   Android-Library-Build:
     docker:
