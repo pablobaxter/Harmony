@@ -89,16 +89,11 @@ workflows:
   version: 2
   Build_Upload:
     jobs:
+      - Android-Library-Test
       - Android-Library-Build:
           filters:
             branches:
               ignore: master
-      - Android-Library-Test:
-          filters:
-            branches:
-              only:
-                - master
-                - develop
       - Upload-Approval:
           type: approval
           requires:
