@@ -49,7 +49,7 @@ jobs:
           name: Install gsutil dependency and copy test results data
           command: |
             sudo pip install -U crcmod
-            sudo gsutil -m cp -r -U `sudo gsutil ls gs://${GOOGLE_PROJECT_ID}/${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM}/Pixel2-29-en-portrait/test_result_1.xml | tail -1` ${CIRCLE_ARTIFACTS}/ | true
+            sudo gsutil -m cp -r -U `sudo gsutil ls gs://cloud-test-${GOOGLE_PROJECT_ID}/${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM}/Pixel2-29-en-portrait/test_result_1.xml | tail -1` ${CIRCLE_ARTIFACTS}/ | true
 
   Android-Library-Build:
     docker:
@@ -89,8 +89,16 @@ workflows:
   version: 2
   Build_Upload:
     jobs:
-      - Android-Library-Test
-      - Android-Library-Build
+      - Android-Library-Build:
+          filters:
+            branches:
+              ignore: master
+      - Android-Library-Test:
+          filters:
+            branches:
+              only:
+                - master
+                - develop
       - Upload-Approval:
           type: approval
           requires:

@@ -42,7 +42,7 @@ Once you have this `SharedPreferences` object, it can be used just like any othe
 ### Version 0.0.8 / YYYY-MM-DD
 - Updates Kotlin Coroutines library
 - Updates min Android SDK to API 14
-- Adds automated tests via Firebase Test Lab
+- Adds instrumented tests via Firebase Test Lab
 
 ### Version 0.0.7 / 2020-05-20
 - Slight improvement to `apply()` performance
