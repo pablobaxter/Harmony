@@ -1,7 +1,7 @@
 # Harmony Preferences
 [![CircleCI](https://circleci.com/gh/pablobaxter/Harmony/tree/master.svg?style=shield)](https://circleci.com/gh/pablobaxter/Harmony/tree/master)
 ![GitHub](https://img.shields.io/github/license/pablobaxter/harmony)
-![Bintray](https://img.shields.io/bintray/v/soaboz/Harmony/com.frybits.harmony?style=shield) ![Status](https://img.shields.io/badge/status-pre--release-yellow) [![API](https://img.shields.io/badge/API-11%2B-brightgreen.svg?style=flat)](https://android-arsenal.com/api?level=11)
+![Bintray](https://img.shields.io/bintray/v/soaboz/Harmony/com.frybits.harmony?style=shield) ![Status](https://img.shields.io/badge/status-pre--release-yellow) [![API](https://img.shields.io/badge/API-11%2B-brightgreen.svg?style=flat)](https://android-arsenal.com/api?level=14)
 
 Working on multiprocess Android apps is a complex undertaking. One of the biggest challenges is managing shared data between the multiple processes. Most solutions rely on one process to be available for another to read the data, which can be quite slow and could potentially lead to ANRs.
 
@@ -13,12 +13,12 @@ Harmony is a thread-safe, process-safe, full [`SharedPreferences`](https://devel
 - [`OnSharedPreferenceChangeListener`](https://developer.android.com/reference/android/content/SharedPreferences.OnSharedPreferenceChangeListener) emits changes made by other processes
 - Uses no native code (NDK) or any [`ContentProvider`](https://developer.android.com/reference/android/content/ContentProvider), [`Service`](https://developer.android.com/reference/android/app/Service), [`BroadcastReceiver`](https://developer.android.com/reference/android/content/BroadcastReceiver), or [AIDL](https://developer.android.com/guide/components/aidl)
 - Built-in failed-write recovery similar to the default [`SharedPreferences`](https://developer.android.com/reference/android/content/SharedPreferences)
-- Supports Android API 11+
+- Supports Android API 14+
 
 ## Download
 ### Gradle
 ```
-implementation 'com.frybits.harmony:harmony:0.0.7'
+implementation 'com.frybits.harmony:harmony:0.0.8'
 ```
 
 ## Usage
@@ -39,6 +39,11 @@ SharedPreferences prefs = Harmony.getSharedPreferences(context, "PREF_NAME")
 Once you have this `SharedPreferences` object, it can be used just like any other `SharedPreferences`. The main difference with `Harmony` is that any changes made to `"PREF_NAME"` using `apply()` or `commit()` is reflected across all processes.
 
 ## Change Log
+### Version 0.0.8 / YYYY-MM-DD
+- Updates Kotlin Coroutines library
+- Updates min Android SDK to API 14
+- Adds automated tests via Firebase Test Lab
+
 ### Version 0.0.7 / 2020-05-20
 - Slight improvement to `apply()` performance
 - Adds code for performance testing of Harmony vs SharedPreferences
