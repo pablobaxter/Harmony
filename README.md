@@ -43,6 +43,8 @@ Once you have this `SharedPreferences` object, it can be used just like any othe
 - Updates Kotlin Coroutines library
 - Updates min Android SDK to API 14
 - Adds instrumented tests via Firebase Test Lab
+- Added additional tests, especially around testing Harmony in multiprocess
+- Changes underlying data structure (BREAKING CHANGE)
 
 ### Version 0.0.7 / 2020-05-20
 - Slight improvement to `apply()` performance

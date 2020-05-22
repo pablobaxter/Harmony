@@ -3,7 +3,6 @@
 
 package com.frybits.harmony.core
 
-import android.content.Context
 import android.util.JsonReader
 import android.util.JsonToken
 import android.util.JsonWriter
@@ -34,37 +33,151 @@ import java.nio.channels.FileLock
  * Helper functions
  */
 
-private const val HARMONY_PREFS_FOLDER = "harmony_prefs"
-
 // String source: https://github.com/aosp-mirror/platform_prebuilt/blob/master/ndk/android-ndk-r7/platforms/android-14/arch-arm/usr/include/sys/_errdefs.h#L73
 private const val RESOURCE_DEADLOCK_ERROR = "Resource deadlock would occur"
 
-@JvmSynthetic
-internal fun Context.harmonyPrefsFolder() = File(filesDir,
-    HARMONY_PREFS_FOLDER
-)
+private const val METADATA = "metaData"
+private const val DATA = "data"
+private const val NAME_KEY = "name"
+
+private const val TYPE = "type"
+private const val KEY = "key"
+private const val VALUE = "value"
+
+private const val INT = "int"
+private const val LONG = "long"
+private const val FLOAT = "float"
+private const val BOOLEAN = "boolean"
+private const val STRING = "string"
+private const val SET = "set"
 
 @JvmSynthetic
-internal fun JsonReader.toMap(): MutableMap<String, Any?> = readMap()
+internal fun JsonReader.readHarmony(): Pair<String?, HashMap<String, Any?>> {
+    var prefsName: String? = null
+    var currName: String? = null
+    val map = hashMapOf<String, Any?>()
+    try {
+        if (this.peek() == JsonToken.END_DOCUMENT) return prefsName to map
+    } catch (e: IOException) {
+        return prefsName to map
+    }
 
-@JvmSynthetic
-internal fun JsonWriter.putMap(map: Map<String, Any?>): JsonWriter {
     beginObject()
-    map.forEach { (k, v) ->
-        when (v) {
-            is Long -> name(k).value(v)
-            is Boolean -> name(k).value(v)
-            is String -> name(k).value(v)
-            is Set<*> -> {
-                @Suppress("UNCHECKED_CAST")
-                (v as? Set<String>)?.let { set ->
-                    name(k).beginArray()
-                        set.forEach { s ->
-                            value(s)
-                        }
-                    endArray()
+    while (hasNext()) {
+        when (peek()) {
+            JsonToken.NAME -> currName = nextName()
+            JsonToken.BEGIN_OBJECT -> {
+                if (currName == METADATA) {
+                    beginObject()
+                    val n = nextName()
+                    if (n == NAME_KEY) {
+                        prefsName = nextString()
+                    }
+                    endObject()
+                } else {
+                    skipValue()
                 }
             }
+            JsonToken.BEGIN_ARRAY -> {
+                if (currName == DATA) {
+                    beginArray()
+                    while (hasNext()) {
+                        beginObject()
+                        var type: String? = null
+                        var key: String? = null
+                        while (hasNext()) {
+                            when (nextName()) {
+                                TYPE -> type = nextString()
+                                KEY -> key = nextString()
+                                VALUE -> {
+                                    when (type) {
+                                        INT -> key?.let { map[it] = nextInt() }
+                                        LONG -> key?.let { map[it] = nextLong() }
+                                        FLOAT -> key?.let { map[it] = nextDouble().toFloat() }
+                                        BOOLEAN -> key?.let { map[it] = nextBoolean() }
+                                        STRING -> key?.let { map[it] = nextString() }
+                                        SET -> {
+                                            val stringSet = mutableSetOf<String>()
+                                            beginArray()
+                                            while (hasNext()) {
+                                                stringSet.add(nextString())
+                                            }
+                                            endArray()
+                                            key?.let { map[it] = stringSet }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        endObject()
+                    }
+                    endArray()
+                } else {
+                    skipValue()
+                }
+            }
+            else -> skipValue()
+        }
+    }
+    endObject()
+
+    return prefsName to map
+}
+
+@JvmSynthetic
+internal fun JsonWriter.putHarmony(prefsName: String, data: Map<String, Any?>): JsonWriter {
+    beginObject().run {
+        name(METADATA).run {
+            beginObject()
+            name(NAME_KEY).value(prefsName)
+            endObject()
+        }
+        name(DATA).run {
+            beginArray()
+            data.forEach { (key, value) ->
+                beginObject()
+                when (value) {
+                    is Int -> {
+                        name(TYPE).value(INT)
+                        name(KEY).value(key)
+                        name(VALUE).value(value)
+                    }
+                    is Long -> {
+                        name(TYPE).value(LONG)
+                        name(KEY).value(key)
+                        name(VALUE).value(value)
+                    }
+                    is Float -> {
+                        name(TYPE).value(FLOAT)
+                        name(KEY).value(key)
+                        name(VALUE).value(value)
+                    }
+                    is Boolean -> {
+                        name(TYPE).value(BOOLEAN)
+                        name(KEY).value(key)
+                        name(VALUE).value(value)
+                    }
+                    is String -> {
+                        name(TYPE).value(STRING)
+                        name(KEY).value(key)
+                        name(VALUE).value(value)
+                    }
+                    is Set<*> -> {
+                        name(TYPE).value(SET)
+                        name(KEY).value(key)
+                        name(VALUE).run {
+                            beginArray()
+                            @Suppress("UNCHECKED_CAST")
+                            (value as Set<String>).forEach {
+                                value(it)
+                            }
+                            endArray()
+                        }
+                    }
+                }
+                endObject()
+            }
+            endArray()
         }
     }
     endObject()
@@ -97,56 +210,4 @@ internal inline fun <T> File.withFileLock(shared: Boolean = false, block: () -> 
         lock?.release()
         lockFileChannel.close()
     }
-}
-
-private fun JsonReader.readMap(): MutableMap<String, Any?> {
-    var name: String? = null
-    val map = mutableMapOf<String, Any?>()
-    try {
-        if (this.peek() == JsonToken.END_DOCUMENT) return map
-    } catch (e: IOException) {
-        return map
-    }
-
-    beginObject()
-    while (hasNext()) {
-        when (peek()) {
-            JsonToken.BEGIN_OBJECT -> name?.let { map[it] = readMap() }
-            JsonToken.NAME -> name = nextName()
-            JsonToken.BEGIN_ARRAY -> name?.let { map[it] = readList() }
-            JsonToken.BOOLEAN -> name?.let { map[it] = nextBoolean() }
-            JsonToken.NUMBER -> name?.let { map[it] = nextLong() }
-            JsonToken.STRING -> name?.let { map[it] = nextString() }
-            JsonToken.NULL -> nextNull()
-            JsonToken.END_ARRAY -> {
-                _InternalHarmonyLog.wtf("JsonReader", "This shouldn't happen")
-                endArray()
-            }
-            JsonToken.END_OBJECT -> endObject()
-            else -> Unit
-        }
-    }
-    return map
-}
-
-private fun JsonReader.readList(): MutableList<Any?> {
-    val array = mutableListOf<Any?>()
-    beginArray()
-    while (hasNext()) {
-        when (peek()) {
-            JsonToken.BEGIN_OBJECT -> array.add(readMap())
-            JsonToken.BEGIN_ARRAY -> array.add(readList())
-            JsonToken.BOOLEAN -> array.add(nextBoolean())
-            JsonToken.NUMBER -> array.add(nextLong())
-            JsonToken.STRING -> array.add(nextString())
-            JsonToken.NULL -> nextNull()
-            JsonToken.END_ARRAY -> endArray()
-            JsonToken.END_OBJECT -> {
-                _InternalHarmonyLog.wtf("JsonReader", "This shouldn't happen")
-                endObject()
-            }
-            else -> Unit
-        }
-    }
-    return array
 }

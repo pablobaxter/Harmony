@@ -10,9 +10,8 @@ import android.util.JsonReader
 import android.util.JsonWriter
 import com.frybits.harmony.core._InternalHarmonyLog
 import com.frybits.harmony.core.harmonyFileObserver
-import com.frybits.harmony.core.harmonyPrefsFolder
-import com.frybits.harmony.core.putMap
-import com.frybits.harmony.core.toMap
+import com.frybits.harmony.core.putHarmony
+import com.frybits.harmony.core.readHarmony
 import com.frybits.harmony.core.withFileLock
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
@@ -144,7 +143,7 @@ private class HarmonyImpl internal constructor(
             }
         }
         val obj = mapReentrantReadWriteLock.read { harmonyMap[key] }
-        return (obj as Long?)?.toInt() ?: defValue
+        return obj as Int? ?: defValue
     }
 
     override fun getLong(key: String, defValue: Long): Long {
@@ -154,7 +153,7 @@ private class HarmonyImpl internal constructor(
             }
         }
         val obj = mapReentrantReadWriteLock.read { harmonyMap[key] }
-        return (obj as Long?) ?: defValue
+        return obj as Long? ?: defValue
     }
 
     // Due to the backing nature of this data, we store all numbers as longs. Float raw bits are stored when saved, and used for reading it back
@@ -165,7 +164,7 @@ private class HarmonyImpl internal constructor(
             }
         }
         val obj = mapReentrantReadWriteLock.read { harmonyMap[key] }
-        return (obj as Long?)?.let { Float.fromBits(it.toInt()) } ?: defValue
+        return obj as Float? ?: defValue
     }
 
     override fun getBoolean(key: String, defValue: Boolean): Boolean {
@@ -175,7 +174,7 @@ private class HarmonyImpl internal constructor(
             }
         }
         val obj = mapReentrantReadWriteLock.read { harmonyMap[key] }
-        return (obj as Boolean?) ?: defValue
+        return obj as Boolean? ?: defValue
     }
 
     override fun getString(key: String, defValue: String?): String? {
@@ -185,7 +184,7 @@ private class HarmonyImpl internal constructor(
             }
         }
         val obj = mapReentrantReadWriteLock.read { harmonyMap[key] }
-        return (obj as String?) ?: defValue
+        return obj as String? ?: defValue
     }
 
     override fun getStringSet(key: String, defValues: MutableSet<String>?): Set<String>? {
@@ -196,7 +195,7 @@ private class HarmonyImpl internal constructor(
         }
         val obj = mapReentrantReadWriteLock.read { harmonyMap[key] }
         @Suppress("UNCHECKED_CAST")
-        return (obj as Set<String>?) ?: defValues
+        return obj as Set<String>? ?: defValues
     }
 
     override fun contains(key: String): Boolean {
@@ -249,7 +248,7 @@ private class HarmonyImpl internal constructor(
             harmonyPrefsBackupLockFile.createNewFile()
         }
 
-        val map: Map<String, Any?> = harmonyPrefsLockFile.withFileLock(true) {
+        val (name: String?, map: Map<String, Any?>) = harmonyPrefsLockFile.withFileLock(true) {
 
             // This backup mechanism was inspired by the SharedPreferencesImpl source code
             // Check for backup file
@@ -274,22 +273,22 @@ private class HarmonyImpl internal constructor(
             try {
                 if (harmonyPrefsFile.length() > 0) {
                     _InternalHarmonyLog.v(LOG_TAG, "File exists! Reading json...")
-                    return@withFileLock JsonReader(prefsInputStream.bufferedReader()).toMap()
+                    return@withFileLock JsonReader(prefsInputStream.bufferedReader()).readHarmony()
                 } else {
                     _InternalHarmonyLog.v(LOG_TAG, "File doesn't exist!")
-                    return@withFileLock emptyMap()
+                    return@withFileLock null to emptyMap<String, Any?>()
                 }
             } catch (e: IllegalStateException) {
-                return@withFileLock emptyMap()
+                return@withFileLock null to emptyMap<String, Any?>()
             } catch (e: JSONException) {
-                return@withFileLock emptyMap()
+                return@withFileLock null to emptyMap<String, Any?>()
             } finally {
                 _InternalHarmonyLog.v(LOG_TAG, "Closing input stream")
                 prefsInputStream.close()
             }
         }
 
-        if (prefsName == map[NAME_KEY]) {
+        if (prefsName == name) {
             var notifyListeners = false
             var keysModified: ArrayList<String>? = null
             var listeners: Set<SharedPreferences.OnSharedPreferenceChangeListener>? = null
@@ -301,7 +300,7 @@ private class HarmonyImpl internal constructor(
 
                 val oldMap = harmonyMap
                 @Suppress("UNCHECKED_CAST")
-                harmonyMap = map[DATA_KEY] as? HashMap<String, Any?>? ?: hashMapOf()
+                harmonyMap = (map as? HashMap<String, Any?>) ?: hashMapOf()
                 if (harmonyMap.isNotEmpty()) {
                     harmonyMap.forEach { (k, v) ->
                         if (!oldMap.containsKey(k) || oldMap[k] != v) {
@@ -342,7 +341,7 @@ private class HarmonyImpl internal constructor(
 
         override fun putInt(key: String, value: Int): SharedPreferences.Editor {
             synchronized(this) {
-                modifiedMap[key] = value.toLong()
+                modifiedMap[key] = value
                 return this
             }
         }
@@ -356,7 +355,7 @@ private class HarmonyImpl internal constructor(
 
         override fun putFloat(key: String, value: Float): SharedPreferences.Editor {
             synchronized(this) {
-                modifiedMap[key] = value.toRawBits().toLong()
+                modifiedMap[key] = value
                 return this
             }
         }
@@ -511,10 +510,7 @@ private class HarmonyImpl internal constructor(
                     try {
                         _InternalHarmonyLog.v(LOG_TAG, "Begin writing data to file...")
                         JsonWriter(prefsOutputStream.bufferedWriter())
-                            .beginObject()
-                            .name(NAME_KEY).value(prefsName)
-                            .name(DATA_KEY).putMap(updatedMap)
-                            .endObject()
+                            .putHarmony(prefsName, updatedMap)
                             .flush()
                         _InternalHarmonyLog.v(LOG_TAG, "Finish writing data to file!")
 
@@ -565,9 +561,12 @@ private data class MemoryCommit(
     val listeners: Set<SharedPreferences.OnSharedPreferenceChangeListener>?
 )
 
+private const val HARMONY_PREFS_FOLDER = "harmony_prefs"
+
+private fun Context.harmonyPrefsFolder() = File(filesDir, HARMONY_PREFS_FOLDER)
+
 private val posixRegex = "[^-_.A-Za-z0-9]".toRegex()
 private const val LOG_TAG = "Harmony"
-private const val NAME_KEY = "name"
 private const val DATA_KEY = "data"
 
 private const val PREFS_DATA = "prefs.data"

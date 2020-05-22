@@ -1,12 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest package="com.frybits.harmony"
     xmlns:android="http://schemas.android.com/apk/res/android">
-    <instrumentation
-        android:name="androidx.test.runner.AndroidJUnitRunner"
-        android:targetPackage="com.frybits.harmony"
-        android:targetProcesses="*">
-        <meta-data
-            android:name="remoteMethod"
-            android:value="androidx.test.espresso.remote.EspressoRemote#remoteInit" />
-    </instrumentation>
+
+    <application>
+        <service android:name=".AlternateProcessService"
+            android:process=":alternate"/>
+    </application>
 </manifest>
