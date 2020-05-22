@@ -38,6 +38,8 @@ SharedPreferences prefs = Harmony.getSharedPreferences(context, "PREF_NAME")
 
 Once you have this `SharedPreferences` object, it can be used just like any other `SharedPreferences`. The main difference with `Harmony` is that any changes made to `"PREF_NAME"` using `apply()` or `commit()` is reflected across all processes.
 
+**NOTE: Changes in Harmony do not reflect in Android SharedPreferences and vice-versa!** 
+
 ## Change Log
 ### Version 0.0.8 / YYYY-MM-DD
 - Updates Kotlin Coroutines library
@@ -45,6 +47,7 @@ Once you have this `SharedPreferences` object, it can be used just like any othe
 - Adds instrumented tests via Firebase Test Lab
 - Added additional tests, especially around testing Harmony in multiprocess
 - Changes underlying data structure (BREAKING CHANGE)
+- Change to underlying cast, to match documentation of [SharedPreferences](https://developer.android.com/reference/android/content/SharedPreferences)
 
 ### Version 0.0.7 / 2020-05-20
 - Slight improvement to `apply()` performance
