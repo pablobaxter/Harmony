@@ -36,6 +36,8 @@ import java.nio.channels.FileLock
 // String source: https://github.com/aosp-mirror/platform_prebuilt/blob/master/ndk/android-ndk-r7/platforms/android-14/arch-arm/usr/include/sys/_errdefs.h#L73
 private const val RESOURCE_DEADLOCK_ERROR = "Resource deadlock would occur"
 
+private const val LOG_TAG = "HarmonyUtils"
+
 private const val METADATA = "metaData"
 private const val DATA = "data"
 private const val NAME_KEY = "name"
@@ -59,6 +61,7 @@ internal fun JsonReader.readHarmony(): Pair<String?, HashMap<String, Any?>> {
     try {
         if (this.peek() == JsonToken.END_DOCUMENT) return prefsName to map
     } catch (e: IOException) {
+        _InternalHarmonyLog.e(LOG_TAG, "IOException occurred while reading json", e)
         return prefsName to map
     }
 

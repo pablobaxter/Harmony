@@ -1,7 +1,7 @@
 # Harmony Preferences
 [![CircleCI](https://circleci.com/gh/pablobaxter/Harmony/tree/master.svg?style=shield)](https://circleci.com/gh/pablobaxter/Harmony/tree/master)
 ![GitHub](https://img.shields.io/github/license/pablobaxter/harmony)
-![Bintray](https://img.shields.io/bintray/v/soaboz/Harmony/com.frybits.harmony?style=shield) ![Status](https://img.shields.io/badge/status-pre--release-yellow) [![API](https://img.shields.io/badge/API-11%2B-brightgreen.svg?style=flat)](https://android-arsenal.com/api?level=14)
+![Bintray](https://img.shields.io/bintray/v/soaboz/Harmony/com.frybits.harmony?style=shield) ![Status](https://img.shields.io/badge/status-pre--release-yellow) [![API](https://img.shields.io/badge/API-14%2B-brightgreen.svg?style=flat)](https://android-arsenal.com/api?level=14)
 
 Working on multiprocess Android apps is a complex undertaking. One of the biggest challenges is managing shared data between the multiple processes. Most solutions rely on one process to be available for another to read the data, which can be quite slow and could potentially lead to ANRs.
 
@@ -42,11 +42,13 @@ Once you have this `SharedPreferences` object, it can be used just like any othe
 
 ## Change Log
 ### Version 0.0.8 / YYYY-MM-DD
+- Fixes a bug where `getAll()` only holds `long` numbers, instead of `int` and `float`
+- Fixes a but where lock files could be deleted but not recreated, causing a crash
+- Changes underlying data structure (BREAKING CHANGE)
 - Updates Kotlin Coroutines library
 - Updates min Android SDK to API 14
 - Adds instrumented tests via Firebase Test Lab
 - Added additional tests, especially around testing Harmony in multiprocess
-- Changes underlying data structure (BREAKING CHANGE)
 - Change to underlying cast, to match documentation of [SharedPreferences](https://developer.android.com/reference/android/content/SharedPreferences)
 
 ### Version 0.0.7 / 2020-05-20
