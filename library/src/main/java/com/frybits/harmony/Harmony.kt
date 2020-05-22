@@ -240,11 +240,18 @@ private class HarmonyImpl internal constructor(
 
     // Load from disk logic
     private fun loadFromDisk(shouldNotifyListeners: Boolean) {
-        // Only allow one filedescriptor open at a time. Should not be reentrant
         if (!harmonyPrefsFolder.exists()) {
             _InternalHarmonyLog.e(LOG_TAG, "Harmony folder does not exist! Creating...")
             harmonyPrefsFolder.mkdirs()
+        }
+
+        if (!harmonyPrefsLockFile.exists()) {
+            _InternalHarmonyLog.e(LOG_TAG, "Harmony lock file does not exist! Creating...")
             harmonyPrefsLockFile.createNewFile()
+        }
+
+        if (!harmonyPrefsBackupLockFile.exists()) {
+            _InternalHarmonyLog.e(LOG_TAG, "Harmony backup lock file does not exist! Creating...")
             harmonyPrefsBackupLockFile.createNewFile()
         }
 
@@ -258,9 +265,7 @@ private class HarmonyImpl internal constructor(
                 harmonyPrefsBackupLockFile.withFileLock { // Because the data lock is reentrant, we need to do an exclusive lock on backup file here
                     if (harmonyPrefsBackupFile.exists()) { // Check again if file exists
                         harmonyPrefsFile.delete()
-                        if (harmonyPrefsBackupFile.renameTo(harmonyPrefsFile)) {
-                            harmonyPrefsBackupFile.delete()
-                        }
+                        harmonyPrefsBackupFile.renameTo(harmonyPrefsFile)
                     }
                 }
             }
@@ -279,8 +284,10 @@ private class HarmonyImpl internal constructor(
                     return@withFileLock null to emptyMap<String, Any?>()
                 }
             } catch (e: IllegalStateException) {
+                _InternalHarmonyLog.e(LOG_TAG, "IllegalStateException while reading data file", e)
                 return@withFileLock null to emptyMap<String, Any?>()
             } catch (e: JSONException) {
+                _InternalHarmonyLog.e(LOG_TAG, "JSONException while reading data file", e)
                 return@withFileLock null to emptyMap<String, Any?>()
             } finally {
                 _InternalHarmonyLog.v(LOG_TAG, "Closing input stream")
@@ -477,14 +484,18 @@ private class HarmonyImpl internal constructor(
         private fun commitToDisk(updatedMap: Map<String, Any?>): Boolean {
             var commitResult = false
 
+            if (!harmonyPrefsFolder.exists()) {
+                _InternalHarmonyLog.e(LOG_TAG, "Harmony folder does not exist! Creating...")
+                harmonyPrefsFolder.mkdirs()
+            }
+
+            if (!harmonyPrefsLockFile.exists()) {
+                _InternalHarmonyLog.e(LOG_TAG, "Harmony lock file does not exist! Creating...")
+                harmonyPrefsLockFile.createNewFile()
+            }
+
             // Lock the file for writes across all processes. This is an exclusive lock
             harmonyPrefsLockFile.withFileLock {
-
-                if (!harmonyPrefsFolder.exists()) {
-                    _InternalHarmonyLog.e(LOG_TAG, "Harmony folder does not exist! Creating...")
-                    harmonyPrefsFolder.mkdirs()
-                    harmonyPrefsLockFile.createNewFile()
-                }
 
                 _InternalHarmonyLog.d(LOG_TAG, "Stopping file observer...")
 
