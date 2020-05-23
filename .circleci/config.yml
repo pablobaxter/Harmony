@@ -99,11 +99,15 @@ workflows:
             - Android-Library-Build
           filters:
             branches:
-              only: master
+              only:
+                - develop
+                - master
       - Android-Library-Upload:
           requires:
             - Upload-Approval
           filters:
             branches:
-              only: master
+              only:
+                - develop
+                - master
 
