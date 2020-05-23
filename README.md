@@ -41,7 +41,7 @@ Once you have this `SharedPreferences` object, it can be used just like any othe
 
 **NOTE: Changes in Harmony do not reflect in Android SharedPreferences and vice-versa!** 
 
-:warning: **WARNING:** Calling `apply()` in quick succession could create a large enough queue of jobs for writing to the underlying data file, that it will delay the data replication across processes (up to a 25 second delay when calling `apply()` 1k times in a loop). When possible, put all the data to write in the `Editor` object before calling `apply()` or `commit()`.
+:warning: **WARNING:** Calling `apply()` in a loop could create a large enough queue of jobs for writing to the underlying data file, that it will delay the data replication across processes (up to a 25 second delay when calling `apply()` 1k times in a loop). When possible, put all the data to write in the `Editor` object before calling `apply()` or `commit()`.
 
 ## Performance
 All tests were performed on a Samsung Galaxy S9 (SM-G960U) running Android 10.
