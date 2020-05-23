@@ -1,24 +1,25 @@
 # Harmony Preferences
 [![CircleCI](https://circleci.com/gh/pablobaxter/Harmony/tree/master.svg?style=shield)](https://circleci.com/gh/pablobaxter/Harmony/tree/master)
 ![GitHub](https://img.shields.io/github/license/pablobaxter/harmony)
-![Bintray](https://img.shields.io/bintray/v/soaboz/Harmony/com.frybits.harmony?style=shield) ![Status](https://img.shields.io/badge/status-pre--release-yellow) [![API](https://img.shields.io/badge/API-11%2B-brightgreen.svg?style=flat)](https://android-arsenal.com/api?level=11)
+![Bintray](https://img.shields.io/bintray/v/soaboz/Harmony/com.frybits.harmony?style=shield) [![API](https://img.shields.io/badge/API-14%2B-brightgreen.svg?style=flat)](https://android-arsenal.com/api?level=14)
 
 Working on multiprocess Android apps is a complex undertaking. One of the biggest challenges is managing shared data between the multiple processes. Most solutions rely on one process to be available for another to read the data, which can be quite slow and could potentially lead to ANRs.
 
-Harmony is a thread-safe, process-safe, full [`SharedPreferences`](https://developer.android.com/reference/android/content/SharedPreferences) implementation. It can be used in place of [`SharedPreferences`](https://developer.android.com/reference/android/content/SharedPreferences) everwhere.
+Harmony is a thread-safe, process-safe, full [`SharedPreferences`](https://developer.android.com/reference/android/content/SharedPreferences) implementation. It can be used in place of [`SharedPreferences`](https://developer.android.com/reference/android/content/SharedPreferences) everywhere.
 
 ## Features
 - Built to support multiprocess apps
+- Each process can open a Harmony `SharedPreference` object, without requiring another process to start
 - Full [`SharedPreferences`](https://developer.android.com/reference/android/content/SharedPreferences) implementation
 - [`OnSharedPreferenceChangeListener`](https://developer.android.com/reference/android/content/SharedPreferences.OnSharedPreferenceChangeListener) emits changes made by other processes
 - Uses no native code (NDK) or any [`ContentProvider`](https://developer.android.com/reference/android/content/ContentProvider), [`Service`](https://developer.android.com/reference/android/app/Service), [`BroadcastReceiver`](https://developer.android.com/reference/android/content/BroadcastReceiver), or [AIDL](https://developer.android.com/guide/components/aidl)
 - Built-in failed-write recovery similar to the default [`SharedPreferences`](https://developer.android.com/reference/android/content/SharedPreferences)
-- Supports Android API 11+
+- Supports Android API 14+
 
 ## Download
 ### Gradle
 ```
-implementation 'com.frybits.harmony:harmony:0.0.7'
+implementation 'com.frybits.harmony:harmony:1.0.0'
 ```
 
 ## Usage
@@ -36,9 +37,71 @@ val prefs: SharedPreferences = context.getHarmonySharedPreferences("PREF_NAME")
 SharedPreferences prefs = Harmony.getSharedPreferences(context, "PREF_NAME")
 ```
 
-Once you have this `SharedPreferences` object, it can be used just like any other `SharedPreferences`. The main difference with `Harmony` is that any changes made to `"PREF_NAME"` using `apply()` or `commit()` is reflected across all processes.
+Once you have this `SharedPreferences` object, it can be used just like any other `SharedPreferences`. The main difference with Harmony is that any changes made to `"PREF_NAME"` using `apply()` or `commit()` is reflected across all processes.
+
+**NOTE: Changes in Harmony do not reflect in Android SharedPreferences and vice-versa!** 
+
+:warning: **WARNING:** Calling `apply()` each time in a loop iteration could create a large enough queue of jobs for writing to the underlying data file, that it will delay the data replication across processes (up to a 25 second delay when calling `apply()` 1k times each iteration in a loop). When possible, put all the data to write in the `Editor` object before calling `apply()` or `commit()`.
+
+## Performance
+All tests were performed on a Samsung Galaxy S9 (SM-G960U) running Android 10.
+
+### Commit (Single Entry) Test
+Test setup:
+- Harmony preferences are cleared before the start of the test
+- Each test creates a single `Editor` object
+- Each time an entry is set on the `Editor`, `commit()` was called immediately
+- Each test inserted 1k `long` values
+- The time measured is the duration it took to complete all 1k inserts
+- This test was performed 10 times
+
+The source code for this test can be found in [`HarmonyPrefsCommitActivity`](./app/src/main/java/com/frybits/harmony/app/test/singleentry/commit/HarmonyPrefsCommitActivity.kt)
+
+![Commit Single Entry Test](./graphics/commit_test.png)
+
+**Summary:** This result is expected. Harmony will perform a commit that is slightly slower than the vanilla SharedPreferences due to file locking occurring within Harmony.
+
+### Apply (Single Entry) Test
+Test setup:
+- Harmony preferences are cleared before the start of the test
+- Each test creates a single `Editor` object
+- Each time an entry is set on the `Editor`, `apply()` was called immediately
+- Each test inserted 1k `long` values
+- The time measured is the duration it took to complete all 1k inserts
+- This test was performed 10 times
+- **NOTE: This is the worst case scenario for multiprocess replication, and not recommended for production use!**
+
+The source code for this test can be found in [`HarmonyPrefsApplyActivity`](./app/src/main/java/com/frybits/harmony/app/test/singleentry/apply/HarmonyPrefsApplyActivity.kt)
+
+![Apply Single Entry Test](./graphics/apply_test.png)
+
+**Summary:** A lot of work has gone to improve the memory commit speed when calling `apply()`. However, the vanilla SharedPreferences is still faster, meaning that Harmony still has room to improve when calling `apply()`.
+
+## Inter-Process Replication Test
+Test Setup:
+- Uses the `HarmonyPrefsCommitActivity` test
+- Harmony preferences are cleared before the start of the test
+- Each entry is the current time on the activity process right before `commit()` is called
+- A service called `HarmonyPrefsReceiveService` is listening on another processes using the `OnSharedPreferenceChangeListener`
+- On every key change, the current time is taken on the service process, and compared against the received time from the activity process
+- This test was performed 10 times, with the results based off of all 10k entries
+- Results (sorry, no pretty graph):
+  - **Min time:** `4 ms`
+  - **Max time:** `102 ms`
+  - **Average time:** `25.7527 ms`
 
 ## Change Log
+### Version 1.0.0 / 2020-05-23
+- **FIRST MAJOR RELEASE!**
+- Fixes a bug where `getAll()` only holds `long` numbers, instead of `int` and `float`
+- Fixes a but where lock files could be deleted but not recreated, causing a crash
+- Changes underlying data structure (BREAKING CHANGE)
+- Updates Kotlin Coroutines library
+- Updates min Android SDK to API 14
+- Adds instrumented tests via Firebase Test Lab
+- Added additional tests, especially around testing Harmony in multiprocess
+- Change to casting logic from in-memory map, to match documentation of [SharedPreferences](https://developer.android.com/reference/android/content/SharedPreferences)
+
 ### Version 0.0.7 / 2020-05-20
 - Slight improvement to `apply()` performance
 - Adds code for performance testing of Harmony vs SharedPreferences

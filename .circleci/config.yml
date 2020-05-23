@@ -1,6 +1,58 @@
 version: 2.1
 
 jobs:
+
+  Android-Library-Test:
+    docker:
+      - image: circleci/android:api-29
+
+    environment:
+      # Configure the JVM and Gradle to avoid OOM errors
+      _JAVA_OPTIONS: "-Xmx3g"
+      GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2"
+
+    working_directory: ~/repo
+
+    steps:
+      - checkout
+      - run:
+          name: Build dummy app apk and test apk
+          command: |
+            ./gradlew :app:assembleDebug
+            ./gradlew :library:assembleAndroidTest
+
+      - run:
+          name: Store Google Service Account
+          command: echo $GCLOUD_SERVICE_KEY > ${HOME}/gcloud-service-key.json
+
+      - run:
+          name: Authorize gcloud and set config defaults
+          command: |
+            sudo gcloud auth activate-service-account --key-file=${HOME}/gcloud-service-key.json
+            sudo gcloud --quiet config set project ${GOOGLE_PROJECT_ID}
+
+      - run:
+          name: Test with Firebase Test Lab
+          command: >
+            sudo gcloud firebase test android run \
+              --type instrumentation \
+              --app ${HOME}/repo/app/build/outputs/apk/debug/app-debug.apk \
+              --test ${HOME}/repo/library/build/outputs/apk/androidTest/debug/library-debug-androidTest.apk \
+              --results-bucket cloud-test-${GOOGLE_PROJECT_ID} \
+              --results-dir ${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM} \
+              --device model=Pixel2,version=29 \
+              --no-performance-metrics \
+              --no-record-video \
+              --use-orchestrator
+
+      - run:
+          name: Install gsutil dependency and copy test results data
+          command: |
+            sudo pip install -U crcmod
+            sudo gsutil -m cp -r -U `sudo gsutil ls gs://cloud-test-${GOOGLE_PROJECT_ID}/${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM}/Pixel2-29-en-portrait/test_result_1.xml | tail -1` ${HOME}/temp_results/test_result_1.xml | true
+      - store_test_results:
+          path: ~/temp_results
+
   Android-Library-Build:
     docker:
       - image: circleci/android:api-29
@@ -37,17 +89,31 @@ jobs:
 
 workflows:
   version: 2
-  Upload:
+  Build_Upload:
     jobs:
       - Android-Library-Build
+      - Android-Library-Test:
+          filters:
+            branches:
+              only:
+                - develop
+                - master
       - Upload-Approval:
           type: approval
           requires:
+            - Android-Library-Test
             - Android-Library-Build
+          filters:
+            branches:
+              only:
+                - develop
+                - master
       - Android-Library-Upload:
           requires:
             - Upload-Approval
           filters:
             branches:
-              only: master
+              only:
+                - develop
+                - master
 

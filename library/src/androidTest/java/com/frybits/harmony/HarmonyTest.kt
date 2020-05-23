@@ -4,7 +4,6 @@ import android.content.SharedPreferences
 import androidx.core.content.edit
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.frybits.harmony.Harmony.Companion.getHarmonySharedPreferences
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
 import org.junit.Before
