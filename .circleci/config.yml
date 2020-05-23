@@ -94,8 +94,9 @@ workflows:
       - Android-Library-Build
       - Android-Library-Test:
           filters:
-            - develop
-            - master
+            branches:
+              - develop
+              - master
       - Upload-Approval:
           type: approval
           requires:
