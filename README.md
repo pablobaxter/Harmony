@@ -5,7 +5,7 @@
 
 Working on multiprocess Android apps is a complex undertaking. One of the biggest challenges is managing shared data between the multiple processes. Most solutions rely on one process to be available for another to read the data, which can be quite slow and could potentially lead to ANRs.
 
-Harmony is a thread-safe, process-safe, full [`SharedPreferences`](https://developer.android.com/reference/android/content/SharedPreferences) implementation. It can be used in place of [`SharedPreferences`](https://developer.android.com/reference/android/content/SharedPreferences) everwhere.
+Harmony is a thread-safe, process-safe, full [`SharedPreferences`](https://developer.android.com/reference/android/content/SharedPreferences) implementation. It can be used in place of [`SharedPreferences`](https://developer.android.com/reference/android/content/SharedPreferences) everywhere.
 
 ## Features
 - Built to support multiprocess apps
@@ -41,51 +41,53 @@ Once you have this `SharedPreferences` object, it can be used just like any othe
 
 **NOTE: Changes in Harmony do not reflect in Android SharedPreferences and vice-versa!** 
 
-:warning: **WARNING:** Calling `apply()` in quick succession could create a large enough queue of jobs for writing to the underlying data file, that it will delay the data replication across processes (up to a 25 second delay when calling `apply()` 1k times in a loop). When possible, stage all the data to write in the `Editor` object before calling `apply()` or `commit()`.
+:warning: **WARNING:** Calling `apply()` in quick succession could create a large enough queue of jobs for writing to the underlying data file, that it will delay the data replication across processes (up to a 25 second delay when calling `apply()` 1k times in a loop). When possible, put all the data to write in the `Editor` object before calling `apply()` or `commit()`.
 
 ## Performance
 The following are 10 tests, with each test inserting 1k entries using either `apply()` or `commit()`. All tests were performed on a Samsung Galaxy S9 (SM-G960U) running Android 10.
 
 ### Commit (Single Entry)
-This test was performed by calling `commit()` after each entry was placed in the editor. Source code for test found in [`HarmonyPrefsCommitActivity`](./app/src/main/java/com/frybits/harmony/app/test/singleentry/commit/HarmonyPrefsCommitActivity.kt)
+Test setup:
+- Each test creates a single `Editor` object
+- Each time an entry is set on the `Editor`, `commit()` was called immediately
+- Each test inserted 1k `long` values
+- The time measured is the duration it took to complete all 1k inserts
+- Test was run 10 times
 
-![Commit Single Entry Test](./graphics/commit_single_entry.png)
+The source code for test found in [`HarmonyPrefsCommitActivity`](./app/src/main/java/com/frybits/harmony/app/test/singleentry/commit/HarmonyPrefsCommitActivity.kt)
 
-## Commit (Bulk Entry)
-This test was performed by calling `commit()` after all 1k entries were placed in the editor. Source code for test found in [`HarmonyPrefsBulkCommitActivity`](./app/src/main/java/com/frybits/harmony/app/test/bulkentry/apply/HarmonyPrefsBulkCommitActivity.kt)
+![Commit Single Entry Test](./graphics/commit_test.png)
 
-![Commit Bulk Entry Test](./graphics/commit_bulk_entry.png)
-
-**Summary:** This result is expected. Harmony will perform a commit slightly slower than the vanilla SharedPreferences due to file locking occurring within Harmony.
-
----
+**Summary:** This result is expected. Harmony will perform a commit that is slightly slower than the vanilla SharedPreferences due to file locking occurring within Harmony.
 
 ### Apply (Single Entry)
-This test was performed by calling `apply()` after each entry was placed in the editor. Source code for test found in [`HarmonyPrefsApplyActivity`](./app/src/main/java/com/frybits/harmony/app/test/singleentry/apply/HarmonyPrefsApplyActivity.kt)
+Test setup:
+- Each test creates a single `Editor` object
+- Each time an entry is set on the `Editor`, `apply()` was called immediately
+- Each test inserted 1k `long` values
+- The time measured is the duration it took to complete all 1k inserts
+- Test was run 10 times
+- **NOTE: This is the worst case scenario for multiprocess replication, and not recommended for production use!**
 
-**NOTE: This is the worst case scenario for multiprocess**
+The source code for test found in [`HarmonyPrefsApplyActivity`](./app/src/main/java/com/frybits/harmony/app/test/singleentry/apply/HarmonyPrefsApplyActivity.kt)
 
-![Apply Single Entry Test](./graphics/apply_single_entry.png)
+![Apply Single Entry Test](./graphics/apply_test.png)
 
-### Apply (Bulk Entry)
-This test was performed by calling `apply()` after all 1k entries were placed in the editor. Source code for test found in [`HarmonyPrefsBulkApplyActivity`](./app/src/main/java/com/frybits/harmony/app/test/bulkentry/apply/HarmonyPrefsBulkApplyActivity.kt)
-
-![Apply Bulk Entry Test](./graphics/apply_bulk_entry.png)
-
-**Summary:** A lot of work has gone to improve the memory commit speed when calling `apply()`. However, the vanilla SharedPreferences is still faster. Although we are talking about nanoseconds difference here, this means that Harmony still has room to improve when calling `apply()`.
-
-___
+**Summary:** A lot of work has gone to improve the memory commit speed when calling `apply()`. However, the vanilla SharedPreferences is still faster, meaning that Harmony still has room to improve when calling `apply()`.
 
 ## Inter-Process Replication
-This test is slightly different, and uses the `OnSharedPreferenceChangeListener` for listening for when the data was made available.
-
-To test how long it took to get the data to replicate, each data entry stages the current time in the `Editor`. This is then inserted using the `commit()` function, which forces the file write (this triggers other processes to read the file). In the other process, the current time is taken, and compared to what was inserted, which gives the duration to write/read the data across the process. This was done 10k times, with the following results:
-- Min time: 4 ms
-- Max time: 102 ms
-- Average time: 25.7527 ms
+Test Setup:
+- Uses the `HarmonyPrefsCommitActivity` test
+- Each entry is the current time on the activity process right before `commit()` is called
+- A service called `HarmonyPrefsReceiveService` is listening on another processes using the `OnSharedPreferenceChangeListener`
+- On every key change, the current time is taken on the service process, and compared against the received time from the activity process
+- Results (sorry, no pretty graph):
+  - **Min time:** `4 ms`
+  - **Max time:** `102 ms`
+  - **Average time:** `25.7527 ms`
 
 ## Change Log
-### Version 1.0.0 / YYYY-MM-DD
+### Version 1.0.0 / 2020-05-23
 - **FIRST MAJOR RELEASE!**
 - Fixes a bug where `getAll()` only holds `long` numbers, instead of `int` and `float`
 - Fixes a but where lock files could be deleted but not recreated, causing a crash
