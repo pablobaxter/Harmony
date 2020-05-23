@@ -74,6 +74,16 @@ This test was performed by calling `apply()` after all 1k entries were placed in
 
 **Summary:** A lot of work has gone to improve the memory commit speed when calling `apply()`. However, the vanilla SharedPreferences is still faster. Although we are talking about nanoseconds difference here, this means that Harmony still has room to improve when calling `apply()`.
 
+___
+
+## Inter-Process Replication
+This test is slightly different, and uses the `OnSharedPreferenceChangeListener` for listening for when the data was made available.
+
+To test how long it took to get the data to replicate, each data entry stages the current time in the `Editor`. This is then inserted using the `commit()` function, which forces the file write (this triggers other processes to read the file). In the other process, the current time is taken, and compared to what was inserted, which gives the duration to write/read the data across the process. This was done 10k times, with the following results:
+- Min time: 4 ms
+- Max time: 102 ms
+- Average time: 25.7527 ms
+
 ## Change Log
 ### Version 1.0.0 / YYYY-MM-DD
 - **FIRST MAJOR RELEASE!**
