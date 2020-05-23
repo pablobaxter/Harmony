@@ -106,6 +106,7 @@ workflows:
           filters:
             branches:
               only:
+                - develop
                 - master
       - Android-Library-Upload:
           requires:
@@ -113,5 +114,6 @@ workflows:
           filters:
             branches:
               only:
+                - develop
                 - master
 
