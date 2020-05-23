@@ -9,6 +9,7 @@ Harmony is a thread-safe, process-safe, full [`SharedPreferences`](https://devel
 
 ## Features
 - Built to support multiprocess apps
+- Each process can open a Harmony `SharedPreference` object, without requiring another process to start
 - Full [`SharedPreferences`](https://developer.android.com/reference/android/content/SharedPreferences) implementation
 - [`OnSharedPreferenceChangeListener`](https://developer.android.com/reference/android/content/SharedPreferences.OnSharedPreferenceChangeListener) emits changes made by other processes
 - Uses no native code (NDK) or any [`ContentProvider`](https://developer.android.com/reference/android/content/ContentProvider), [`Service`](https://developer.android.com/reference/android/app/Service), [`BroadcastReceiver`](https://developer.android.com/reference/android/content/BroadcastReceiver), or [AIDL](https://developer.android.com/guide/components/aidl)
@@ -36,12 +37,42 @@ val prefs: SharedPreferences = context.getHarmonySharedPreferences("PREF_NAME")
 SharedPreferences prefs = Harmony.getSharedPreferences(context, "PREF_NAME")
 ```
 
-Once you have this `SharedPreferences` object, it can be used just like any other `SharedPreferences`. The main difference with `Harmony` is that any changes made to `"PREF_NAME"` using `apply()` or `commit()` is reflected across all processes.
+Once you have this `SharedPreferences` object, it can be used just like any other `SharedPreferences`. The main difference with Harmony` is that any changes made to `"PREF_NAME"` using `apply()` or `commit()` is reflected across all processes.
 
 **NOTE: Changes in Harmony do not reflect in Android SharedPreferences and vice-versa!** 
 
+:warning: **WARNING:** Calling `apply()` in quick succession could create a large enough queue of jobs for writing to the underlying data file, that it will delay the data replication across processes (up to a 25 second delay when calling `apply()` 1k times in a loop). When possible, stage all the data to write in the `Editor` object before calling `apply()` or `commit()`.
+
+## Performance
+The following are 10 tests which inserted/read 1k entries using either `apply()` or `commit()`. All tests were performed on a Samsung Galaxy S9 (SM-G960U) running Android 10.
+
+### Commit (Single Entry)
+This test was performed by calling `commit()` after each entry was placed in the editor. Source code for test found in [`HarmonyPrefsCommitActivity`](./app/src/main/java/com/frybits/harmony/app/test/singleentry/commit/HarmonyPrefsCommitActivity.kt)
+
+![Commit Single Entry Test](./graphics/commit_single_entry.png)
+
+## Commit (Bulk Entry)
+This test was performed by calling `commit()` after 1k entries were placed in the editor. Source code for test found in [`HarmonyPrefsBulkCommitActivity`](./app/src/main/java/com/frybits/harmony/app/test/bulkentry/apply/HarmonyPrefsBulkCommitActivity.kt)
+
+![Commit Bulk Entry Test](./graphics/commit_bulk_entry.png)
+
+**Summary:** This result is expected. Harmony will perform a commit slightly slower than the vanilla SharedPreferences due to file locking occurring within Harmony.
+
+### Apply (Single Entry)
+This test was performed by calling `apply()` after each entry was placed in the editor. Source code for test found in [`HarmonyPrefsApplyActivity`](./app/src/main/java/com/frybits/harmony/app/test/singleentry/apply/HarmonyPrefsApplyActivity.kt)
+
+![Apply Single Entry Test](./graphics/apply_single_entry.png)
+
+### Apply (Bulk Entry)
+This test was performed by calling `apply()` after 1k entries were placed in the editor. Source code for test found in [`HarmonyPrefsBulkApplyActivity`](./app/src/main/java/com/frybits/harmony/app/test/bulkentry/apply/HarmonyPrefsBulkApplyActivity.kt)
+
+![Apply Bulk Entry Test](./graphics/apply_bulk_entry.png)
+
+**Summary:** A lot of work has gone to improve the memory commit speed when calling `apply()`. However, the vanilla SharedPreferences is still faster. Although we are talking about nanoseconds difference here, this means that Harmony still has room to improve when calling `apply()`.
+
 ## Change Log
-### Version 0.0.8 / YYYY-MM-DD
+### Version 1.0.0 / YYYY-MM-DD
+- **FIRST MAJOR RELEASE!**
 - Fixes a bug where `getAll()` only holds `long` numbers, instead of `int` and `float`
 - Fixes a but where lock files could be deleted but not recreated, causing a crash
 - Changes underlying data structure (BREAKING CHANGE)
