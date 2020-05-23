@@ -100,7 +100,7 @@ Test Setup:
 - Updates min Android SDK to API 14
 - Adds instrumented tests via Firebase Test Lab
 - Added additional tests, especially around testing Harmony in multiprocess
-- Change to underlying cast, to match documentation of [SharedPreferences](https://developer.android.com/reference/android/content/SharedPreferences)
+- Change to casting logic from in-memory map, to match documentation of [SharedPreferences](https://developer.android.com/reference/android/content/SharedPreferences)
 
 ### Version 0.0.7 / 2020-05-20
 - Slight improvement to `apply()` performance
