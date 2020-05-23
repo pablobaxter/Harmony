@@ -44,43 +44,47 @@ Once you have this `SharedPreferences` object, it can be used just like any othe
 :warning: **WARNING:** Calling `apply()` in quick succession could create a large enough queue of jobs for writing to the underlying data file, that it will delay the data replication across processes (up to a 25 second delay when calling `apply()` 1k times in a loop). When possible, put all the data to write in the `Editor` object before calling `apply()` or `commit()`.
 
 ## Performance
-The following are 10 tests, with each test inserting 1k entries using either `apply()` or `commit()`. All tests were performed on a Samsung Galaxy S9 (SM-G960U) running Android 10.
+All tests were performed on a Samsung Galaxy S9 (SM-G960U) running Android 10.
 
-### Commit (Single Entry)
+### Commit (Single Entry) Test
 Test setup:
+- Harmony preferences are cleared before the start of the test
 - Each test creates a single `Editor` object
 - Each time an entry is set on the `Editor`, `commit()` was called immediately
 - Each test inserted 1k `long` values
 - The time measured is the duration it took to complete all 1k inserts
-- Test was run 10 times
+- This test was run 10 times, with the results based off of all 10k entries
 
-The source code for test found in [`HarmonyPrefsCommitActivity`](./app/src/main/java/com/frybits/harmony/app/test/singleentry/commit/HarmonyPrefsCommitActivity.kt)
+The source code for this test can be found in [`HarmonyPrefsCommitActivity`](./app/src/main/java/com/frybits/harmony/app/test/singleentry/commit/HarmonyPrefsCommitActivity.kt)
 
 ![Commit Single Entry Test](./graphics/commit_test.png)
 
 **Summary:** This result is expected. Harmony will perform a commit that is slightly slower than the vanilla SharedPreferences due to file locking occurring within Harmony.
 
-### Apply (Single Entry)
+### Apply (Single Entry) Test
 Test setup:
+- Harmony preferences are cleared before the start of the test
 - Each test creates a single `Editor` object
 - Each time an entry is set on the `Editor`, `apply()` was called immediately
 - Each test inserted 1k `long` values
 - The time measured is the duration it took to complete all 1k inserts
-- Test was run 10 times
+- This test was run 10 times, with the results based off of all 10k entries
 - **NOTE: This is the worst case scenario for multiprocess replication, and not recommended for production use!**
 
-The source code for test found in [`HarmonyPrefsApplyActivity`](./app/src/main/java/com/frybits/harmony/app/test/singleentry/apply/HarmonyPrefsApplyActivity.kt)
+The source code for this test can be found in [`HarmonyPrefsApplyActivity`](./app/src/main/java/com/frybits/harmony/app/test/singleentry/apply/HarmonyPrefsApplyActivity.kt)
 
 ![Apply Single Entry Test](./graphics/apply_test.png)
 
 **Summary:** A lot of work has gone to improve the memory commit speed when calling `apply()`. However, the vanilla SharedPreferences is still faster, meaning that Harmony still has room to improve when calling `apply()`.
 
-## Inter-Process Replication
+## Inter-Process Replication Test
 Test Setup:
 - Uses the `HarmonyPrefsCommitActivity` test
+- Harmony preferences are cleared before the start of the test
 - Each entry is the current time on the activity process right before `commit()` is called
 - A service called `HarmonyPrefsReceiveService` is listening on another processes using the `OnSharedPreferenceChangeListener`
 - On every key change, the current time is taken on the service process, and compared against the received time from the activity process
+- This test was run 10 times, with the results based off of all 10k entries
 - Results (sorry, no pretty graph):
   - **Min time:** `4 ms`
   - **Max time:** `102 ms`
