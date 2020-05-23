@@ -95,8 +95,9 @@ workflows:
       - Android-Library-Test:
           filters:
             branches:
-              - develop
-              - master
+              only:
+                - develop
+                - master
       - Upload-Approval:
           type: approval
           requires:
