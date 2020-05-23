@@ -53,7 +53,7 @@ Test setup:
 - Each time an entry is set on the `Editor`, `commit()` was called immediately
 - Each test inserted 1k `long` values
 - The time measured is the duration it took to complete all 1k inserts
-- This test was run 10 times, with the results based off of all 10k entries
+- This test was performed 10 times
 
 The source code for this test can be found in [`HarmonyPrefsCommitActivity`](./app/src/main/java/com/frybits/harmony/app/test/singleentry/commit/HarmonyPrefsCommitActivity.kt)
 
@@ -68,7 +68,7 @@ Test setup:
 - Each time an entry is set on the `Editor`, `apply()` was called immediately
 - Each test inserted 1k `long` values
 - The time measured is the duration it took to complete all 1k inserts
-- This test was run 10 times, with the results based off of all 10k entries
+- This test was performed 10 times
 - **NOTE: This is the worst case scenario for multiprocess replication, and not recommended for production use!**
 
 The source code for this test can be found in [`HarmonyPrefsApplyActivity`](./app/src/main/java/com/frybits/harmony/app/test/singleentry/apply/HarmonyPrefsApplyActivity.kt)
@@ -84,7 +84,7 @@ Test Setup:
 - Each entry is the current time on the activity process right before `commit()` is called
 - A service called `HarmonyPrefsReceiveService` is listening on another processes using the `OnSharedPreferenceChangeListener`
 - On every key change, the current time is taken on the service process, and compared against the received time from the activity process
-- This test was run 10 times, with the results based off of all 10k entries
+- This test was performed 10 times, with the results based off of all 10k entries
 - Results (sorry, no pretty graph):
   - **Min time:** `4 ms`
   - **Max time:** `102 ms`
