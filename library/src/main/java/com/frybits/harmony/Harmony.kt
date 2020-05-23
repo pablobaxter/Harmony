@@ -578,7 +578,6 @@ private fun Context.harmonyPrefsFolder() = File(filesDir, HARMONY_PREFS_FOLDER)
 
 private val posixRegex = "[^-_.A-Za-z0-9]".toRegex()
 private const val LOG_TAG = "Harmony"
-private const val DATA_KEY = "data"
 
 private const val PREFS_DATA = "prefs.data"
 private const val PREFS_DATA_LOCK = "prefs.data.lock"
