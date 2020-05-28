@@ -366,6 +366,32 @@ class HarmonyProcessTest {
         runBlocking { testDeferred.await() }?.let { throw it }
         assertTrue("Test Map was not empty!") { testMap.isEmpty() }
     }
+
+    @Test
+    fun reinsert_of_old_data_test() {
+        // Setup test
+        val application = InstrumentationRegistry.getInstrumentation().targetContext
+
+        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME)
+
+        sharedPreferences.edit { putString("test", "test") }
+
+        assertTrue("Test insert failed") { sharedPreferences.contains("test") }
+
+        val serviceIntent = Intent(application, MassInputService::class.java)
+        serviceRule.startService(serviceIntent)
+
+        Thread.sleep(100)
+
+        assertTrue("Alternate service did not insert any data!") { sharedPreferences.all.size > 1 }
+
+        sharedPreferences.edit { remove("test") }
+
+        // Give the service enough time to setup
+        Thread.sleep(1000)
+
+        assertFalse("Shared preferences still contains old data!") { sharedPreferences.contains("test") }
+    }
 }
 
 class AlternateProcessService : Service() {
@@ -403,6 +429,41 @@ class AlternateProcessService : Service() {
         super.onDestroy()
         testPrefs.unregisterOnSharedPreferenceChangeListener(sharedPreferenceChangeListener)
     }
+
+    private fun getServiceProcess(): String {
+        val pid = Process.myPid()
+        val manager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        for (processInfo in manager.runningAppProcesses) {
+            if (processInfo.pid == pid) {
+                return processInfo.processName
+            }
+        }
+        return ""
+    }
+}
+
+class MassInputService : Service() {
+
+    private lateinit var testPrefs: SharedPreferences
+
+    override fun onCreate() {
+        super.onCreate()
+        assertTrue("Service is not running in alternate process!") { getServiceProcess().endsWith(ALTERNATE_PROCESS_NAME) }
+
+        testPrefs = getHarmonySharedPreferences(PREF_NAME)
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent != null) {
+            repeat(10_000) {
+                testPrefs.edit { putString("$it", "${Random.nextLong()}") }
+            }
+        }
+        return START_NOT_STICKY
+    }
+
+    // Binder cannot be null. Returning NoOp instead
+    override fun onBind(intent: Intent?): IBinder? = Binder()
 
     private fun getServiceProcess(): String {
         val pid = Process.myPid()

@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest package="com.frybits.harmony"
-    xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.frybits.harmony">
 
     <application>
-        <service android:name=".AlternateProcessService"
-            android:process=":alternate"/>
+        <service
+            android:name=".AlternateProcessService"
+            android:process=":alternate" />
+        <service
+            android:name=".MassInputService"
+            android:process=":alternate" />
     </application>
 </manifest>
