@@ -1,14 +1,34 @@
 package com.frybits.harmony
 
+import android.app.ActivityManager
+import android.app.Service
+import android.content.Context
+import android.content.Intent
+import android.os.Binder
+import android.os.IBinder
+import android.os.Process
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.rule.ServiceTestRule
+import com.frybits.harmony.core.withFileLock
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
+import java.io.RandomAccessFile
+import java.nio.channels.FileChannel
+import java.nio.channels.FileLock
+import java.util.concurrent.Executors
 import kotlin.random.Random
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 /**
@@ -20,6 +40,7 @@ private const val PREFS_DATA = "prefs.data"
 private const val PREFS_BACKUP = "prefs.backup"
 
 private const val TEST_PREFS = "testPrefs"
+private const val ALTERNATE_PROCESS_NAME = ":alternate"
 
 private const val TEST_PREFS_JSON = """
     {
@@ -60,6 +81,9 @@ private val TEST_PREFS_MAP = mapOf<String, Any?>(
 
 @RunWith(AndroidJUnit4::class)
 class HarmonyFileTest {
+
+    @get:Rule
+    val serviceRule = ServiceTestRule()
 
     @Before
     fun setup() {
@@ -118,5 +142,160 @@ class HarmonyFileTest {
         assertTrue("Prefs file should still exist!") { prefsDataFile.exists() }
 
         assertEquals(TEST_PREFS_MAP + mapOf("someValue" to true), sharedPreferences.all, "Prefs map was not equal!")
+    }
+
+    @Test
+    fun testSharedFileLock() {
+        // Setup test
+        val application = InstrumentationRegistry.getInstrumentation().targetContext
+
+        val executor = Executors.newCachedThreadPool()
+
+        val serviceIntent = Intent(application, SharedFileLockService::class.java).apply {
+            putExtra("test", "start")
+            putExtra("shared", true)
+        }
+        serviceRule.startService(serviceIntent)
+
+        val testFile = File(application.filesDir, TEST_PREFS)
+
+        // Give service time to setup
+        Thread.sleep(1000)
+
+        val sharedAsync = executor.submit {
+            testFile.withFileLock(true) {
+
+            }
+        }
+
+        Thread.sleep(1000)
+
+        assertTrue("Shared job has not completed, when it should be!") { sharedAsync.isDone }
+
+        val lockedAsync = executor.submit {
+            testFile.withFileLock {
+
+            }
+        }
+
+        Thread.sleep(1000)
+
+        assertFalse("Locked job was completed, when it was not supposed to be yet!") { lockedAsync.isDone }
+
+        val stopServiceIntent = Intent(application, SharedFileLockService::class.java).apply {
+            putExtra("test", "stop")
+            putExtra("shared", false)
+        }
+        serviceRule.startService(stopServiceIntent)
+
+        Thread.sleep(1000)
+
+        assertTrue("Locked job has not completed, when it should be!") { lockedAsync.isDone }
+    }
+
+    @Test
+    fun testUnsharedFileLock() {
+        // Setup test
+        val application = InstrumentationRegistry.getInstrumentation().targetContext
+
+        val executor = Executors.newCachedThreadPool()
+
+        val serviceIntent = Intent(application, LockedFileLockService::class.java).apply {
+            putExtra("test", "start")
+            putExtra("shared", true)
+        }
+        serviceRule.startService(serviceIntent)
+
+        val testFile = File(application.filesDir, TEST_PREFS)
+
+        // Give service time to setup
+        Thread.sleep(1000)
+
+        val sharedAsync = executor.submit {
+            testFile.withFileLock(true) {
+
+            }
+        }
+
+        Thread.sleep(1000)
+
+        assertFalse("Shared job was completed, when it was not supposed to be yet!") { sharedAsync.isDone }
+
+        val lockedAsync = executor.submit {
+            testFile.withFileLock {
+
+            }
+        }
+
+        Thread.sleep(1000)
+
+        assertFalse("Locked job was completed, when it was not supposed to be yet!") { lockedAsync.isDone }
+
+        val stopServiceIntent = Intent(application, LockedFileLockService::class.java).apply {
+            putExtra("test", "stop")
+            putExtra("shared", false)
+        }
+        serviceRule.startService(stopServiceIntent)
+
+        Thread.sleep(1000)
+
+        assertTrue("Locked job has not completed, when it should be!") { lockedAsync.isDone }
+        assertTrue("Shared job has not completed, when it should be!") { sharedAsync.isDone }
+    }
+}
+
+class SharedFileLockService: FileLockService(true)
+class LockedFileLockService: FileLockService(false)
+
+abstract class FileLockService(val shared: Boolean) : Service() {
+
+    var channel: FileChannel? = null
+    var lock: FileLock? = null
+
+    override fun onCreate() {
+        super.onCreate()
+        assertTrue("Service is not running in alternate process!") { getServiceProcess().endsWith(ALTERNATE_PROCESS_NAME) }
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent != null) {
+            val action = intent.getStringExtra("test")
+            if (action == "start") {
+                channel = RandomAccessFile(File(filesDir, TEST_PREFS), "rw").channel
+                lock = channel?.lock(0L, Long.MAX_VALUE, shared)
+            }
+            if (action == "stop") {
+                assertNotNull(channel, "FileChannel was null!")
+                assertNotNull(lock, "FileLock was null!") {
+                    assertTrue("FileLock was not valid!") { it.isValid }
+                    assertEquals(shared, it.isShared, "FileLock was not shared!")
+                }
+                lock?.release()
+                channel?.close()
+            }
+        }
+        return START_NOT_STICKY
+    }
+
+    // Binder cannot be null. Returning NoOp instead
+    override fun onBind(intent: Intent?): IBinder? = Binder()
+
+    override fun onDestroy() {
+        super.onDestroy()
+        lock?.let {
+            if (it.isValid) it.release()
+        }
+        channel?.close()
+    }
+
+    private fun getServiceProcess(): String {
+        val pid = Process.myPid()
+        val manager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        for (processInfo in manager.runningAppProcesses) {
+            if (processInfo.pid == pid) {
+                return processInfo.processName
+            }
+        }
+        return ""
     }
 }

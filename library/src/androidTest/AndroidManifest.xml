@@ -9,5 +9,11 @@
         <service
             android:name=".MassInputService"
             android:process=":alternate" />
+        <service
+            android:name=".SharedFileLockService"
+            android:process=":alternate" />
+        <service
+            android:name=".LockedFileLockService"
+            android:process=":alternate" />
     </application>
 </manifest>
