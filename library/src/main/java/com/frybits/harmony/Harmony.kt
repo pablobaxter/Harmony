@@ -242,13 +242,8 @@ private class HarmonyImpl internal constructor(
 
     private fun readHarmonyMapFromStream(prefsInputStream: InputStream): Pair<String?, Map<String, Any?>> {
         return try {
-            if (harmonyPrefsFile.length() > 0) {
-                _InternalHarmonyLog.v(LOG_TAG, "File exists! Reading json...")
-                JsonReader(prefsInputStream.bufferedReader()).readHarmony()
-            } else {
-                _InternalHarmonyLog.v(LOG_TAG, "File doesn't exist!")
-                null to emptyMap()
-            }
+            _InternalHarmonyLog.v(LOG_TAG, "File exists! Reading json...")
+            JsonReader(prefsInputStream.bufferedReader()).readHarmony()
         } catch (e: IllegalStateException) {
             _InternalHarmonyLog.e(LOG_TAG, "IllegalStateException while reading data file", e)
             null to emptyMap()
@@ -297,7 +292,12 @@ private class HarmonyImpl internal constructor(
                 ParcelFileDescriptor.MODE_CREATE or ParcelFileDescriptor.MODE_READ_ONLY
             )
             val prefsInputStream = ParcelFileDescriptor.AutoCloseInputStream(pfd)
-            return@withFileLock readHarmonyMapFromStream(prefsInputStream)
+            return@withFileLock if (harmonyPrefsFile.length() > 0) {
+                readHarmonyMapFromStream(prefsInputStream)
+            } else {
+                _InternalHarmonyLog.v(LOG_TAG, "File doesn't exist!")
+                null to emptyMap()
+            }
         } ?: null to emptyMap()
 
         if (prefsName == name) {
@@ -455,8 +455,9 @@ private class HarmonyImpl internal constructor(
                 }
 
                 val transactionInFlight = synchronized(this@HarmonyEditor) {
+                    val copy = harmonyTransaction.copy()
                     harmonyTransaction.commitTransaction(mapToWrite, keysModified)
-                    return@synchronized harmonyTransaction.copy()
+                    return@synchronized copy
                 }
                 return Triple(transactionInFlight, keysModified, listeners)
             }
@@ -483,6 +484,15 @@ private class HarmonyImpl internal constructor(
                 // We don't want to observe the changes happening in our own process for this file
                 harmonyFileObserver.stopWatching()
 
+                // Copy the file to memory
+                val pfdReader = ParcelFileDescriptor.open(
+                    harmonyPrefsFile,
+                    ParcelFileDescriptor.MODE_CREATE or ParcelFileDescriptor.MODE_READ_ONLY
+                )
+
+                val (_, filePrefs) = readHarmonyMapFromStream(ParcelFileDescriptor.AutoCloseInputStream(pfdReader))
+
+                // Then we delete the file and create a backup
                 if (!harmonyPrefsBackupFile.exists()) { // Back up file doesn't need to be locked, as the data lock already restricts concurrent modifications
                     // No backup file exists. Let's create one
                     if (!harmonyPrefsFile.renameTo(harmonyPrefsBackupFile)) {
@@ -492,18 +502,18 @@ private class HarmonyImpl internal constructor(
                     harmonyPrefsFile.delete()
                 }
 
-                val pfd = ParcelFileDescriptor.open(
-                    harmonyPrefsFile,
-                    ParcelFileDescriptor.MODE_CREATE or ParcelFileDescriptor.MODE_READ_WRITE
-                )
-
-                val (_, filePrefs) = readHarmonyMapFromStream(FileInputStream(pfd.fileDescriptor))
-
+                // Generate the map to commit
                 val mapToCommitToFile: HashMap<String, Any?> = (filePrefs as? HashMap<String, Any?>) ?: hashMapOf()
 
                 transactionInFlight.commitTransaction(mapToCommitToFile, null)
 
-                val prefsOutputStream = ParcelFileDescriptor.AutoCloseOutputStream(pfd)
+                // Writing the map to the file
+                val pfdWriter = ParcelFileDescriptor.open(
+                    harmonyPrefsFile,
+                    ParcelFileDescriptor.MODE_CREATE or ParcelFileDescriptor.MODE_WRITE_ONLY
+                )
+
+                val prefsOutputStream = ParcelFileDescriptor.AutoCloseOutputStream(pfdWriter)
                 try {
                     try {
                         _InternalHarmonyLog.v(LOG_TAG, "Begin writing data to file...")
@@ -513,7 +523,7 @@ private class HarmonyImpl internal constructor(
                         _InternalHarmonyLog.v(LOG_TAG, "Finish writing data to file!")
 
                         // Write all changes to the physical storage
-                        pfd.fileDescriptor.sync()
+                        pfdWriter.fileDescriptor.sync()
                     } finally {
                         _InternalHarmonyLog.d(LOG_TAG, "Releasing file lock and closing output stream")
                         prefsOutputStream.close()
@@ -551,14 +561,13 @@ private class HarmonyImpl internal constructor(
 }
 
 private class HarmonyTransaction(
-    private val transactionMap: HashMap<String, Operation> = hashMapOf()
+    private val transactionMap: HashMap<String, Operation> = hashMapOf(),
+    private var cleared: Boolean = false
 ) {
     private sealed class Operation(val data: Any?) {
         class Update(data: Any): Operation(data)
         object Delete: Operation(null)
     }
-
-    private var cleared = false
 
     fun update(key: String, value: Any?) {
         transactionMap[key] = value?.let { Operation.Update(it) } ?: Operation.Delete
@@ -573,7 +582,7 @@ private class HarmonyTransaction(
     }
 
     fun copy(): HarmonyTransaction {
-        return HarmonyTransaction(transactionMap)
+        return HarmonyTransaction(transactionMap, cleared)
     }
 
     fun commitTransaction(dataMap: HashMap<String, Any?>, modifiedKeys: ArrayList<String>?) {

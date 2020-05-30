@@ -368,7 +368,7 @@ class HarmonyProcessTest {
     }
 
     @Test
-    fun reinsert_of_old_data_test() {
+    fun testOldDataIsNotReinserted() {
         // Setup test
         val application = InstrumentationRegistry.getInstrumentation().targetContext
 
