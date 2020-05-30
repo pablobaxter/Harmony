@@ -10,8 +10,6 @@ import java.nio.channels.FileLock
  * Created by Pablo Baxter (Github: pablobaxter)
  */
 
-// String source: https://github.com/aosp-mirror/platform_prebuilt/blob/master/ndk/android-ndk-r7/platforms/android-14/arch-arm/usr/include/sys/_errdefs.h#L73
-private const val RESOURCE_DEADLOCK_ERROR = "Resource deadlock would occur"
 private const val LOG_TAG = "HarmonyFileUtils"
 
 @JvmSynthetic

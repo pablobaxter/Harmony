@@ -11,11 +11,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.ServiceTestRule
 import com.frybits.harmony.core.withFileLock
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.asCoroutineDispatcher
-import kotlinx.coroutines.async
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -247,10 +242,10 @@ class HarmonyFileTest {
 class SharedFileLockService: FileLockService(true)
 class LockedFileLockService: FileLockService(false)
 
-abstract class FileLockService(val shared: Boolean) : Service() {
+abstract class FileLockService(private val shared: Boolean) : Service() {
 
-    var channel: FileChannel? = null
-    var lock: FileLock? = null
+    private var channel: FileChannel? = null
+    private var lock: FileLock? = null
 
     override fun onCreate() {
         super.onCreate()

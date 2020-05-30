@@ -34,17 +34,9 @@ internal object _InternalHarmonyLog {
     @JvmSynthetic
     internal fun v(tag: String, msg: String, throwable: Throwable? = null) {
         if (LOG) {
-            log(
-                Log.VERBOSE,
-                tag,
-                msg
-            )
+            log(Log.VERBOSE, tag, msg)
             throwable?.let {
-                log(
-                    Log.VERBOSE,
-                    tag,
-                    Log.getStackTraceString(it)
-                )
+                log(Log.VERBOSE, tag, Log.getStackTraceString(it))
             }
         }
     }
@@ -54,11 +46,7 @@ internal object _InternalHarmonyLog {
         if (LOG) {
             log(Log.DEBUG, tag, msg)
             throwable?.let {
-                log(
-                    Log.DEBUG,
-                    tag,
-                    Log.getStackTraceString(it)
-                )
+                log(Log.DEBUG, tag, Log.getStackTraceString(it))
             }
         }
     }
@@ -68,11 +56,7 @@ internal object _InternalHarmonyLog {
         if (LOG) {
             log(Log.INFO, tag, msg)
             throwable?.let {
-                log(
-                    Log.INFO,
-                    tag,
-                    Log.getStackTraceString(it)
-                )
+                log(Log.INFO, tag, Log.getStackTraceString(it))
             }
         }
     }
@@ -82,11 +66,7 @@ internal object _InternalHarmonyLog {
         if (LOG) {
             log(Log.WARN, tag, msg)
             throwable?.let {
-                log(
-                    Log.WARN,
-                    tag,
-                    Log.getStackTraceString(it)
-                )
+                log(Log.WARN, tag, Log.getStackTraceString(it))
             }
         }
     }
@@ -96,11 +76,7 @@ internal object _InternalHarmonyLog {
         if (LOG) {
             log(Log.ERROR, tag, msg)
             throwable?.let {
-                log(
-                    Log.ERROR,
-                    tag,
-                    Log.getStackTraceString(it)
-                )
+                log(Log.ERROR, tag, Log.getStackTraceString(it))
             }
         }
     }
@@ -108,17 +84,9 @@ internal object _InternalHarmonyLog {
     @JvmSynthetic
     internal fun wtf(tag: String, msg: String, throwable: Throwable? = null) {
         if (LOG) {
-            log(
-                Log.ASSERT,
-                tag,
-                msg
-            )
+            log(Log.ASSERT, tag, msg)
             throwable?.let {
-                log(
-                    Log.ASSERT,
-                    tag,
-                    Log.getStackTraceString(it)
-                )
+                log(Log.ASSERT, tag, Log.getStackTraceString(it))
             }
         }
     }
