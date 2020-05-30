@@ -338,7 +338,7 @@ private class HarmonyImpl internal constructor(
         }
     }
 
-    inner class HarmonyEditor : SharedPreferences.Editor {
+    private inner class HarmonyEditor : SharedPreferences.Editor {
 
         // Container for our current changes
         private val harmonyTransaction = HarmonyTransaction()

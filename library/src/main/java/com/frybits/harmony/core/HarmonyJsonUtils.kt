@@ -32,7 +32,7 @@ import java.io.IOException
 private const val LOG_TAG = "HarmonyUtils"
 
 private const val METADATA = "metaData"
-internal const val DATA = "data"
+private const val DATA = "data"
 private const val NAME_KEY = "name"
 
 private const val TYPE = "type"
