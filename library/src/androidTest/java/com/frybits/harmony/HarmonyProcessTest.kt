@@ -381,15 +381,19 @@ class HarmonyProcessTest {
         val serviceIntent = Intent(application, MassInputService::class.java)
         serviceRule.startService(serviceIntent)
 
-        Thread.sleep(100)
+        // Give the service enough time to setup
+        Thread.sleep(1000)
 
         assertTrue("Alternate service did not insert any data!") { sharedPreferences.all.size > 1 }
 
         sharedPreferences.edit { remove("test") }
 
-        // Give the service enough time to setup
+        assertFalse("Shared preferences still contains old data!") { sharedPreferences.contains("test") }
+
+        // Give the preferences time make any in-flight commits
         Thread.sleep(1000)
 
+        // Check again to ensure data was not re-inserted
         assertFalse("Shared preferences still contains old data!") { sharedPreferences.contains("test") }
     }
 }

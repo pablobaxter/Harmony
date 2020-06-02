@@ -30,7 +30,7 @@ internal fun harmonyFileObserver(file: File, block: (event: Int, path: String?) 
 }
 
 @Suppress("DEPRECATION")
-private class HarmonyFileObserver(file: File, private val block: (event: Int, path: String?) -> Unit) : FileObserver(file.path) {
+private class HarmonyFileObserver(file: File, private val block: (event: Int, path: String?) -> Unit) : FileObserver(file.path, CLOSE_WRITE) {
 
     override fun onEvent(event: Int, path: String?) {
         block(event, path)

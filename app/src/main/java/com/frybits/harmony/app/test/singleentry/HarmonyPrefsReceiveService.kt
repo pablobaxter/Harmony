@@ -42,7 +42,7 @@ class HarmonyPrefsReceiveService : Service() {
         if (activityTestTime > -1L) {
             timeCaptureList.add(now - activityTestTime)
         } else {
-            Log.e("Trial", "${this::class.java.simpleName}: Got default long value!")
+            Log.e("Trial", "${this::class.java.simpleName}: Got default long value! Key=$key")
         }
     }
 
