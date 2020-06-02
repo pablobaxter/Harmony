@@ -26,11 +26,11 @@ import java.io.File
 
 @JvmSynthetic
 internal fun harmonyFileObserver(file: File, block: (event: Int, path: String?) -> Unit): FileObserver {
-    return HarmonyFileObserver(file, block).apply { startWatching() } // Start watching as soon as the watcher is created
+    return HarmonyFileObserver(file, block)
 }
 
 @Suppress("DEPRECATION")
-private class HarmonyFileObserver(file: File, private val block: (event: Int, path: String?) -> Unit) : FileObserver(file.path, CLOSE_WRITE) {
+private class HarmonyFileObserver(file: File, private val block: (event: Int, path: String?) -> Unit) : FileObserver(file.path) {
 
     override fun onEvent(event: Int, path: String?) {
         block(event, path)
