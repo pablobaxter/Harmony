@@ -1,14 +1,17 @@
 package com.frybits.harmony
 
 import android.content.SharedPreferences
+import android.os.FileObserver
 import androidx.core.content.edit
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.frybits.harmony.core.harmonyFileObserver
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.io.File
 import kotlin.random.Random
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
