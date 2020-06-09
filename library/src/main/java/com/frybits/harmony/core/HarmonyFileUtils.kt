@@ -29,6 +29,7 @@ internal inline fun <T> File.withFileLock(shared: Boolean = false, block: () -> 
         } catch (e: Error) {
             _InternalHarmonyLog.w(LOG_TAG, "Error while obtaining file lock", e)
         } finally {
+            _InternalHarmonyLog.w(LOG_TAG, "Unlocking file lock! $name")
             lock?.release()
             lockFileChannel?.close()
         }

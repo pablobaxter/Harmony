@@ -23,7 +23,6 @@ import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 import org.json.JSONException
 import java.io.DataInputStream
 import java.io.DataOutputStream
@@ -73,23 +72,17 @@ private class HarmonyImpl internal constructor(
     // NOTE: This folder can only be observed on if it exists before observer is started
     private val harmonyPrefsFolder = File(context.harmonyPrefsFolder(), prefsName)
 
-    // Data file
-    private val harmonyPrefsFile = File(harmonyPrefsFolder, PREFS_DATA)
+    // Master file file
+    private val harmonyMasterFile = File(harmonyPrefsFolder, PREFS_DATA)
 
     // Lock file to prevent multiple processes from writing and reading to the data file
-    private val harmonyPrefsLockFile = File(harmonyPrefsFolder, PREFS_DATA_LOCK)
+    private val harmonyMasterLockFile = File(harmonyPrefsFolder, PREFS_DATA_LOCK)
 
     // Transaction file
     private val harmonyTransactionsFile = File(harmonyPrefsFolder, PREFS_TRANSACTIONS)
 
-    // Transaction lock file
-    private val harmonyTransactionLockFile = File(harmonyPrefsFolder, PREFS_TRANSACTIONS_LOCK)
-
     // Backup file
-    private val harmonyPrefsBackupFile = File(harmonyPrefsFolder, PREFS_BACKUP)
-
-    // Lock file to prevent manipulation of backup file while it is restored
-    private val harmonyPrefsBackupLockFile = File(harmonyPrefsFolder, PREFS_BACKUP_LOCK)
+    private val harmonyMasterBackupFile = File(harmonyPrefsFolder, PREFS_BACKUP)
 
     // Single thread dispatcher, to serialize any calls to read/write the prefs
     private val harmonySingleThreadDispatcher = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
@@ -106,11 +99,15 @@ private class HarmonyImpl internal constructor(
     // Observes changes that occur to the backing file of this preference
     private val harmonyFileObserver =
         harmonyFileObserver(harmonyPrefsFolder) { event, path ->
+            if (path.isNullOrBlank()) return@harmonyFileObserver
             if (event == FileObserver.CLOSE_WRITE) { // We only really care if this file has been closed to writing
-                val isPrefsData = path?.endsWith(PREFS_DATA) ?: false
-                if (isPrefsData) { // Ignore everything but the prefs data file
-                    harmonyCoroutineScope.launch(Dispatchers.IO) {
-                        loadFromDisk(true)
+                if (path.endsWith(PREFS_TRANSACTIONS)) {
+                    harmonyCoroutineScope.launch(harmonySingleThreadDispatcher) {
+                        handleTransactionUpdate()
+                    }
+                } else if (path.endsWith(PREFS_DATA)) {
+                    harmonyCoroutineScope.launch(harmonySingleThreadDispatcher) {
+                        handleMasterUpdate()
                     }
                 }
             }
@@ -118,6 +115,9 @@ private class HarmonyImpl internal constructor(
 
     // In-memory map. Read and modified only under a reentrant lock
     private var harmonyMap: HashMap<String, Any?> = hashMapOf()
+
+    // Current snapshot of master that all transactions will apply to
+    private var masterSnapshot: HashMap<String, Any?> = hashMapOf()
 
     // Pref change listener map
     private val listenerMap = WeakHashMap<SharedPreferences.OnSharedPreferenceChangeListener, Any>()
@@ -130,10 +130,8 @@ private class HarmonyImpl internal constructor(
 
         // Run the load of the file in a different thread
         // This deferred job wil block any reads of the preferences until it is complete
-        isLoadedDeferred = harmonyCoroutineScope.async(Dispatchers.IO) {
-            commitToDisk() // Commit to disk any pending transactions
-            loadFromDisk(false)
-
+        isLoadedDeferred = harmonyCoroutineScope.async(harmonySingleThreadDispatcher) {
+            initialLoad()
             // Start the file observer on the the prefs folder for this Harmony object
             harmonyFileObserver.startWatching()
         }
@@ -241,6 +239,18 @@ private class HarmonyImpl internal constructor(
         }
     }
 
+    private fun checkForRequiredFiles() {
+        if (!harmonyPrefsFolder.exists()) {
+            _InternalHarmonyLog.e(LOG_TAG, "Harmony folder does not exist! Creating...")
+            harmonyPrefsFolder.mkdirs()
+        }
+
+        if (!harmonyMasterLockFile.exists()) {
+            _InternalHarmonyLog.e(LOG_TAG, "Harmony master lock file does not exist! Creating...")
+            harmonyMasterLockFile.createNewFile()
+        }
+    }
+
     private fun readHarmonyMapFromStream(prefsReader: Reader): Pair<String?, Map<String, Any?>> {
         return try {
             _InternalHarmonyLog.v(LOG_TAG, "File exists! Reading json...")
@@ -251,23 +261,123 @@ private class HarmonyImpl internal constructor(
         } catch (e: JSONException) {
             _InternalHarmonyLog.e(LOG_TAG, "JSONException while reading data file", e)
             null to emptyMap()
+        } catch (e: IOException) {
+            _InternalHarmonyLog.e(LOG_TAG, "IOException occurred while reading json", e)
+            null to emptyMap()
         }
     }
 
-    private fun refreshMemory(name: String?, map: Map<String, Any?>, shouldNotifyListeners: Boolean) {
-        if (prefsName == name) {
+    private fun initialLoad() {
+        checkForRequiredFiles()
+        val memoryMap = harmonyMasterLockFile.withFileLock masterLock@{
+
+            val transactionListJob = harmonyCoroutineScope.async(Dispatchers.IO) {
+                if (!harmonyTransactionsFile.createNewFile()) {
+                    try {
+                        return@async harmonyTransactionsFile.inputStream().buffered()
+                            .use { HarmonyTransaction.generateHarmonyTransactions(it) }
+                    } catch (e: IOException) {
+                        _InternalHarmonyLog.w(LOG_TAG, "Unable to read transaction during load")
+                    }
+                }
+                return@async emptyList<HarmonyTransaction>()
+            }
+
+            // This backup mechanism was inspired by the SharedPreferencesImpl source code
+            // Check for backup file
+            if (harmonyMasterBackupFile.exists()) {
+                _InternalHarmonyLog.d(LOG_TAG, "Backup exists!")
+                harmonyMasterFile.delete()
+                harmonyMasterBackupFile.renameTo(harmonyMasterFile)
+            }
+
+            if (!harmonyMasterFile.createNewFile()) {
+                // Get master file
+                val (_, map) = harmonyMasterFile.bufferedReader().use { readHarmonyMapFromStream(it) } // TODO ensure map name matches file
+                masterSnapshot = HashMap(map)
+            }
+
+            val transactions = runBlocking { transactionListJob.await() }
+            val masterCopy = HashMap(masterSnapshot)
+            transactions.sortedBy { it.memoryCommitTime }
+                .forEach { it.commitTransaction(masterCopy) }
+            return@masterLock masterCopy
+        } ?: hashMapOf()
+
+        mapReentrantReadWriteLock.write {
+            harmonyMap = memoryMap
+        }
+    }
+
+    private fun handleTransactionUpdate() {
+        checkForRequiredFiles()
+        val memoryMap = harmonyMasterLockFile.withFileLock(shared = true) masterLock@{
+            val transactions = try {
+                harmonyTransactionsFile.inputStream().buffered().use { HarmonyTransaction.generateHarmonyTransactions(it) }
+            } catch (e: IOException) {
+                _InternalHarmonyLog.w(LOG_TAG, "Unable to read transactions during update")
+                emptyList<HarmonyTransaction>()
+            }
+
+            val masterCopy = HashMap(masterSnapshot)
+            transactions.sortedBy { it.memoryCommitTime }
+                .forEach { it.commitTransaction(masterCopy) }
+            return@masterLock masterCopy
+        } ?: hashMapOf()
+
+        var notifyListeners = false
+        var keysModified: ArrayList<String>? = null
+        var listeners: Set<SharedPreferences.OnSharedPreferenceChangeListener>? = null
+
+        mapReentrantReadWriteLock.write {
+            notifyListeners = listenerMap.isNotEmpty()
+            keysModified = if (notifyListeners) arrayListOf() else null
+            listeners = if (notifyListeners) listenerMap.keys.toHashSet() else null
+
+            val oldMap = harmonyMap
+            @Suppress("UNCHECKED_CAST")
+            harmonyMap = memoryMap
+            if (harmonyMap.isNotEmpty()) {
+                harmonyMap.forEach { (k, v) ->
+                    if (!oldMap.containsKey(k) || oldMap[k] != v) {
+                        keysModified?.add(k)
+                    }
+                    oldMap.remove(k)
+                }
+                keysModified?.addAll(oldMap.keys)
+            }
+        }
+
+        // The variable 'shouldNotifyListeners' is only true if this read is due to a file update
+        if (notifyListeners) {
+            requireNotNull(keysModified)
+            harmonyCoroutineScope.launch(Dispatchers.Main) {
+                keysModified?.asReversed()?.forEach { key ->
+                    listeners?.forEach { listener ->
+                        listener.onSharedPreferenceChanged(this@HarmonyImpl, key)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun handleMasterUpdate() {
+        checkForRequiredFiles()
+        harmonyMasterLockFile.withFileLock(shared = true) {
+            val memoryMap = HashMap(masterSnapshot)
+
             var notifyListeners = false
             var keysModified: ArrayList<String>? = null
             var listeners: Set<SharedPreferences.OnSharedPreferenceChangeListener>? = null
 
             mapReentrantReadWriteLock.write {
-                notifyListeners = shouldNotifyListeners && listenerMap.isNotEmpty()
+                notifyListeners = listenerMap.isNotEmpty()
                 keysModified = if (notifyListeners) arrayListOf() else null
                 listeners = if (notifyListeners) listenerMap.keys.toHashSet() else null
 
                 val oldMap = harmonyMap
                 @Suppress("UNCHECKED_CAST")
-                harmonyMap = (map as? HashMap<String, Any?>) ?: hashMapOf()
+                harmonyMap = memoryMap
                 if (harmonyMap.isNotEmpty()) {
                     harmonyMap.forEach { (k, v) ->
                         if (!oldMap.containsKey(k) || oldMap[k] != v) {
@@ -293,203 +403,91 @@ private class HarmonyImpl internal constructor(
         }
     }
 
-    // Load from disk logic
-    private fun loadFromDisk(shouldNotifyListeners: Boolean) {
-        if (!harmonyPrefsFolder.exists()) {
-            _InternalHarmonyLog.e(LOG_TAG, "Harmony folder does not exist! Creating...")
-            harmonyPrefsFolder.mkdirs()
-        }
-
-        if (!harmonyPrefsLockFile.exists()) {
-            _InternalHarmonyLog.e(LOG_TAG, "Harmony lock file does not exist! Creating...")
-            harmonyPrefsLockFile.createNewFile()
-        }
-
-        if (!harmonyPrefsBackupLockFile.exists()) {
-            _InternalHarmonyLog.e(LOG_TAG, "Harmony backup lock file does not exist! Creating...")
-            harmonyPrefsBackupLockFile.createNewFile()
-        }
-
-        val (name: String?, map: Map<String, Any?>) = harmonyPrefsLockFile.withFileLock(true) {
-            // This backup mechanism was inspired by the SharedPreferencesImpl source code
-            // Check for backup file
-            if (harmonyPrefsBackupFile.exists()) {
-                _InternalHarmonyLog.d(LOG_TAG, "Backup exists!")
-                // Exclusively lock the backup file
-                harmonyPrefsBackupLockFile.withFileLock { // Because the data lock is reentrant, we need to do an exclusive lock on backup file here
-                    if (harmonyPrefsBackupFile.exists()) { // Check again if file exists
-                        harmonyPrefsFile.delete()
-                        harmonyPrefsBackupFile.renameTo(harmonyPrefsFile)
-                    }
-                }
-            }
-
-            val pfd = ParcelFileDescriptor.open(harmonyPrefsFile, ParcelFileDescriptor.MODE_CREATE or ParcelFileDescriptor.MODE_READ_ONLY)
-            return@withFileLock ParcelFileDescriptor.AutoCloseInputStream(pfd).bufferedReader().use {
-                if (harmonyPrefsFile.length() > 0) {
-                    return@use readHarmonyMapFromStream(it)
-                } else {
-                    _InternalHarmonyLog.v(LOG_TAG, "File doesn't exist!")
-                    return@use null to emptyMap<String, Any?>()
-                }
-            }
-        } ?: null to emptyMap()
-
-        refreshMemory(name, map, shouldNotifyListeners)
-    }
-
     // Write the transactions to a file
-    private fun commitTransactionToDisk(transactionInFlight: HarmonyTransaction) {
+    private fun commitTransactionToDisk(transactionInFlight: HarmonyTransaction, sync: Boolean = false): Boolean {
+        checkForRequiredFiles()
 
-        if (!harmonyPrefsFolder.exists()) {
-            _InternalHarmonyLog.e(LOG_TAG, "Harmony folder does not exist! Creating...")
-            harmonyPrefsFolder.mkdirs()
-        }
-
-        if (!harmonyPrefsLockFile.exists()) {
-            _InternalHarmonyLog.e(LOG_TAG, "Harmony lock file does not exist! Creating...")
-            harmonyPrefsLockFile.createNewFile()
-        }
-
-        if (!harmonyTransactionLockFile.exists()) {
-            _InternalHarmonyLog.e(LOG_TAG, "Harmony transaction lock does not exist! Creating...")
-            harmonyTransactionLockFile.createNewFile()
-        }
-
-        // The file lock is shared, as we're writing to unique files in the file system, not the same one.
-        // We only expect this lock to pause the thread if the main preference file is being written to
-        harmonyTransactionLockFile.withFileLock {
-            try {
-                FileOutputStream(harmonyTransactionsFile, true).buffered().use { outputStream ->
-                    transactionInFlight.commitTransactionToOutputStream(outputStream)
-                    outputStream.flush()
+        harmonyMasterLockFile.withFileLock {
+            if (harmonyMasterFile.length() >= MEGABYTE || sync) {
+                return commitTransactionsToMaster(transactionInFlight)
+            } else {
+                try {
+                    FileOutputStream(harmonyTransactionsFile, true).buffered().use { outputStream ->
+                        transactionInFlight.commitTransactionToOutputStream(outputStream)
+                        outputStream.flush()
+                    }
+                } catch (e: IOException) {
+                    _InternalHarmonyLog.w(LOG_TAG, "Unable to write transaction", e)
                 }
-            } catch (e: IOException) {
-                _InternalHarmonyLog.w(LOG_TAG, "Unable to write transaction", e)
             }
         }
+        return false
     }
 
     // Function to commit all transactions to the prefs file
-    private fun commitToDisk(): Boolean {
-        var committedToDisk = false
+    private fun commitTransactionsToMaster(currentTransaction: HarmonyTransaction): Boolean {
+        val transactionList = try {
+            harmonyTransactionsFile.inputStream().buffered().use { inputStream ->
+                HarmonyTransaction.generateHarmonyTransactions(inputStream)
+            }
+        } catch (e: IOException) {
+            _InternalHarmonyLog.w(LOG_TAG, "Unable to read transaction file", e)
+            emptyList<HarmonyTransaction>()
+        } + currentTransaction
 
-        if (!harmonyPrefsFolder.exists()) {
-            _InternalHarmonyLog.e(LOG_TAG, "Harmony folder does not exist! Creating...")
-            harmonyPrefsFolder.mkdirs()
+        if (transactionList.isNullOrEmpty()) return false
+
+        // Then we delete the file and create a backup
+        if (!harmonyMasterBackupFile.exists()) { // Back up file doesn't need to be locked, as the data lock already restricts concurrent modifications
+            // No backup file exists. Let's create one
+            if (!harmonyMasterFile.renameTo(harmonyMasterBackupFile)) {
+                return false // Couldn't create a backup!
+            }
+        } else {
+            harmonyMasterFile.delete()
         }
 
-        if (!harmonyPrefsLockFile.exists()) {
-            _InternalHarmonyLog.e(LOG_TAG, "Harmony lock file does not exist! Creating...")
-            @Suppress("BlockingMethodInNonBlockingContext")
-            harmonyPrefsLockFile.createNewFile()
+        // Get the current preferences
+        val (_, prefs) = harmonyMasterBackupFile.bufferedReader().use { readHarmonyMapFromStream(it) }
+
+        val currentPrefs = HashMap(prefs)
+
+        transactionList.sortedBy { it.memoryCommitTime }.forEach { it.commitTransaction(currentPrefs) }
+
+        val masterWriter = ParcelFileDescriptor.open(harmonyMasterFile, ParcelFileDescriptor.MODE_CREATE or ParcelFileDescriptor.MODE_WRITE_ONLY)
+
+        try {
+            ParcelFileDescriptor.AutoCloseOutputStream(masterWriter).use { masterOutputStream ->
+                _InternalHarmonyLog.v(LOG_TAG, "Begin writing data to file...")
+                JsonWriter(masterOutputStream.bufferedWriter())
+                    .putHarmony(prefsName, currentPrefs)
+                    .flush()
+                _InternalHarmonyLog.v(LOG_TAG, "Finish writing data to file!")
+                // Write all changes to the physical storage
+                masterWriter.fileDescriptor.sync()
+                _InternalHarmonyLog.d(LOG_TAG, "Releasing file lock and closing output stream")
+            }
+
+            harmonyTransactionsFile.writer().close() // Clears the file without the need to delete/recreate
+
+            // Delete the backup file
+            harmonyMasterBackupFile.delete()
+
+            masterSnapshot = currentPrefs
+
+            return true
+        } catch (e: IOException) {
+            _InternalHarmonyLog.e(LOG_TAG, "commitToDisk got exception:", e)
         }
 
-        if (!harmonyTransactionLockFile.exists()) {
-            _InternalHarmonyLog.e(LOG_TAG, "Harmony transaction lock does not exist! Creating...")
-            harmonyTransactionLockFile.createNewFile()
+        // We should reach this if there was a failure writing to the prefs file.
+        if (harmonyMasterFile.exists()) {
+            if (!harmonyMasterFile.delete()) {
+                _InternalHarmonyLog.w(LOG_TAG, "Couldn't cleanup partially-written preference")
+            }
         }
 
-        // Lock the file for writes across all processes. This is an exclusive lock
-        harmonyPrefsLockFile.withFileLock {
-
-            // Copy the current prefs file to memory
-            val pfdReader =
-                if (harmonyPrefsBackupFile.exists()) { // Use the backup if it exists
-                    ParcelFileDescriptor.open(
-                        harmonyPrefsBackupFile,
-                        ParcelFileDescriptor.MODE_CREATE or ParcelFileDescriptor.MODE_READ_ONLY
-                    )
-                } else { // Backup file should not typically exist. We should read prefs directly from source
-                    ParcelFileDescriptor.open(
-                        harmonyPrefsFile,
-                        ParcelFileDescriptor.MODE_CREATE or ParcelFileDescriptor.MODE_READ_ONLY
-                    )
-                }
-
-            // Get the current preferences
-            val (_, prefs) = ParcelFileDescriptor.AutoCloseInputStream(pfdReader)
-                .bufferedReader().use {
-                    if (harmonyPrefsFile.length() > 0) {
-                        return@use readHarmonyMapFromStream(it)
-                    } else {
-                        _InternalHarmonyLog.v(LOG_TAG, "File doesn't exist!")
-                        return@use null to emptyMap<String, Any?>()
-                    }
-                }
-
-            // Then we delete the file and create a backup
-            if (!harmonyPrefsBackupFile.exists()) { // Back up file doesn't need to be locked, as the data lock already restricts concurrent modifications
-                // No backup file exists. Let's create one
-                if (!harmonyPrefsFile.renameTo(harmonyPrefsBackupFile)) {
-                    return@withFileLock // Couldn't create a backup!
-                }
-            } else {
-                harmonyPrefsFile.delete()
-            }
-
-            val transactionList = harmonyTransactionLockFile.withFileLock {
-                try {
-                    val list = harmonyTransactionsFile.inputStream().buffered().use { inputStream ->
-                        HarmonyTransaction.generateHarmonyTransactions(inputStream)
-                    }
-                    harmonyTransactionsFile.writer().close() // Clears the file without the need to delete/recreate
-                    list
-                } catch (e: IOException) {
-                    _InternalHarmonyLog.w(LOG_TAG, "Unable to read transaction file", e)
-                    emptyList<HarmonyTransaction>()
-                }
-            }
-
-            val currentPrefs = HashMap(prefs)
-
-            // Commit all the transactions to the current prefs source
-            transactionList?.sortedBy { it.memoryCommitTime }
-                ?.forEach {
-                    it.commitTransaction(currentPrefs)
-                } ?: return@withFileLock
-
-            // Writing the map to the file
-            val pfdWriter = ParcelFileDescriptor.open(
-                harmonyPrefsFile,
-                ParcelFileDescriptor.MODE_CREATE or ParcelFileDescriptor.MODE_WRITE_ONLY
-            )
-
-            val prefsOutputStream = ParcelFileDescriptor.AutoCloseOutputStream(pfdWriter)
-            try {
-                try {
-                    _InternalHarmonyLog.v(LOG_TAG, "Begin writing data to file...")
-                    JsonWriter(prefsOutputStream.bufferedWriter())
-                        .putHarmony(prefsName, currentPrefs)
-                        .flush()
-                    _InternalHarmonyLog.v(LOG_TAG, "Finish writing data to file!")
-
-                    // Write all changes to the physical storage
-                    pfdWriter.fileDescriptor.sync()
-                } finally {
-                    _InternalHarmonyLog.d(LOG_TAG, "Releasing file lock and closing output stream")
-                    prefsOutputStream.close()
-                }
-
-                // We wrote to file. We can delete the backup
-                harmonyPrefsBackupFile.delete()
-
-                committedToDisk = true
-                return@withFileLock
-            } catch (e: IOException) {
-                _InternalHarmonyLog.e(LOG_TAG, "commitToDisk got exception:", e)
-            }
-
-            // We should reach this if there was a failure writing to the prefs file.
-            if (harmonyPrefsFile.exists()) {
-                if (!harmonyPrefsFile.delete()) {
-                    _InternalHarmonyLog.w(LOG_TAG, "Couldn't cleanup partially-written preference")
-                }
-            }
-            return@withFileLock
-        }
-
-        return committedToDisk
+        return false
     }
 
     private inner class HarmonyEditor : SharedPreferences.Editor {
@@ -560,19 +558,13 @@ private class HarmonyImpl internal constructor(
             val transaction = commitToMemory()
             harmonyCoroutineScope.launch(harmonySingleThreadDispatcher) { // Apply and commits should be run sequentially in the order received
                 commitTransactionToDisk(transaction)
-                launch(Dispatchers.IO) {
-                    commitToDisk()
-                }
             }
         }
 
         override fun commit(): Boolean {
             val transaction = commitToMemory()
             return runBlocking(harmonySingleThreadDispatcher) { // Apply and commits should be run sequentially in the order received
-                commitTransactionToDisk(transaction)
-                return@runBlocking withContext(Dispatchers.IO) {
-                    return@withContext commitToDisk()
-                }
+                commitTransactionToDisk(transaction, sync = true)
             }
         }
 
@@ -632,7 +624,7 @@ private class HarmonyTransaction {
         cleared = true
     }
 
-    fun commitTransaction(dataMap: HashMap<String, Any?>, modifiedKeys: ArrayList<String>? = null) {
+    fun commitTransaction(dataMap: HashMap<String, Any?>, keysModified: MutableList<String>? = null) {
         if (cleared) {
             if (dataMap.isNotEmpty()) {
                 dataMap.clear()
@@ -652,7 +644,7 @@ private class HarmonyTransaction {
                 }
                 dataMap[k] = v.data
             }
-            modifiedKeys?.add(k)
+            keysModified?.add(k)
         }
     }
 
@@ -762,10 +754,9 @@ private const val LOG_TAG = "Harmony"
 
 private const val PREFS_DATA = "prefs.data"
 private const val PREFS_TRANSACTIONS = "prefs.transaction.data"
-private const val PREFS_TRANSACTIONS_LOCK = "prefs.transaction.lock"
 private const val PREFS_DATA_LOCK = "prefs.data.lock"
 private const val PREFS_BACKUP = "prefs.backup"
-private const val PREFS_BACKUP_LOCK = "prefs.backup.lock"
+private const val MEGABYTE = 1024L * 1024L
 
 // Empty singleton to support WeakHashmap
 private object CONTENT

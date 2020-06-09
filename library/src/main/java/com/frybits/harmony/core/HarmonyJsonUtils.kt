@@ -47,16 +47,13 @@ private const val STRING = "string"
 private const val SET = "set"
 
 @JvmSynthetic
+@Throws(IOException::class)
 internal fun JsonReader.readHarmony(): Pair<String?, HashMap<String, Any?>> {
     var prefsName: String? = null
     var currName: String? = null
     val map = hashMapOf<String, Any?>()
-    try {
-        if (this.peek() == JsonToken.END_DOCUMENT) return prefsName to map
-    } catch (e: IOException) {
-        _InternalHarmonyLog.e(LOG_TAG, "IOException occurred while reading json", e)
-        return prefsName to map
-    }
+
+    if (this.peek() == JsonToken.END_DOCUMENT) return prefsName to map
 
     beginObject()
     while (hasNext()) {
