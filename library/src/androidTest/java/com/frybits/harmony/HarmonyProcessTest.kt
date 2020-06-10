@@ -24,6 +24,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.lang.Exception
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.random.Random
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -67,13 +68,13 @@ class HarmonyProcessTest {
         val application = InstrumentationRegistry.getInstrumentation().targetContext
 
         // 5 entries to test
-        val testMap = mutableMapOf(
+        val testMap = ConcurrentHashMap(mutableMapOf(
             "test-${Random.nextInt()}" to Random.nextInt(),
             "test-${Random.nextInt()}" to Random.nextInt(),
             "test-${Random.nextInt()}" to Random.nextInt(),
             "test-${Random.nextInt()}" to Random.nextInt(),
             "test-${Random.nextInt()}" to Random.nextInt()
-        )
+        ))
 
         // Setup new looper
         val handlerThread = HandlerThread("test").apply { start() }
@@ -118,13 +119,13 @@ class HarmonyProcessTest {
         val application = InstrumentationRegistry.getInstrumentation().targetContext
 
         // 5 entries to test
-        val testMap = mutableMapOf(
+        val testMap = ConcurrentHashMap(mutableMapOf(
             "test-${Random.nextInt()}" to Random.nextLong(),
             "test-${Random.nextInt()}" to Random.nextLong(),
             "test-${Random.nextInt()}" to Random.nextLong(),
             "test-${Random.nextInt()}" to Random.nextLong(),
             "test-${Random.nextInt()}" to Random.nextLong()
-        )
+        ))
 
         // Setup new looper
         val handlerThread = HandlerThread("test").apply { start() }
@@ -169,13 +170,13 @@ class HarmonyProcessTest {
         val application = InstrumentationRegistry.getInstrumentation().targetContext
 
         // 5 entries to test
-        val testMap = mutableMapOf(
+        val testMap = ConcurrentHashMap(mutableMapOf(
             "test-${Random.nextInt()}" to Random.nextFloat(),
             "test-${Random.nextInt()}" to Random.nextFloat(),
             "test-${Random.nextInt()}" to Random.nextFloat(),
             "test-${Random.nextInt()}" to Random.nextFloat(),
             "test-${Random.nextInt()}" to Random.nextFloat()
-        )
+        ))
 
         // Setup new looper
         val handlerThread = HandlerThread("test").apply { start() }
@@ -220,13 +221,13 @@ class HarmonyProcessTest {
         val application = InstrumentationRegistry.getInstrumentation().targetContext
 
         // 5 entries to test
-        val testMap = mutableMapOf(
+        val testMap = ConcurrentHashMap(mutableMapOf(
             "test-${Random.nextInt()}" to Random.nextBoolean(),
             "test-${Random.nextInt()}" to Random.nextBoolean(),
             "test-${Random.nextInt()}" to Random.nextBoolean(),
             "test-${Random.nextInt()}" to Random.nextBoolean(),
             "test-${Random.nextInt()}" to Random.nextBoolean()
-        )
+        ))
 
         // Setup new looper
         val handlerThread = HandlerThread("test").apply { start() }
@@ -271,13 +272,13 @@ class HarmonyProcessTest {
         val application = InstrumentationRegistry.getInstrumentation().targetContext
 
         // 5 entries to test
-        val testMap = mutableMapOf(
+        val testMap = ConcurrentHashMap(mutableMapOf(
             "test-${Random.nextInt()}" to "${Random.nextInt()}",
             "test-${Random.nextInt()}" to "${Random.nextInt()}",
             "test-${Random.nextInt()}" to "${Random.nextInt()}",
             "test-${Random.nextInt()}" to "${Random.nextInt()}",
             "test-${Random.nextInt()}" to "${Random.nextInt()}"
-        )
+        ))
 
         // Setup new looper
         val handlerThread = HandlerThread("test").apply { start() }
@@ -322,13 +323,13 @@ class HarmonyProcessTest {
         val application = InstrumentationRegistry.getInstrumentation().targetContext
 
         // 5 entries to test
-        val testMap = mutableMapOf(
+        val testMap = ConcurrentHashMap(mutableMapOf(
             "test-${Random.nextInt()}" to Array(5) { "${Random.nextInt()}" }.toSet(),
             "test-${Random.nextInt()}" to Array(5) { "${Random.nextInt()}" }.toSet(),
             "test-${Random.nextInt()}" to Array(5) { "${Random.nextInt()}" }.toSet(),
             "test-${Random.nextInt()}" to Array(5) { "${Random.nextInt()}" }.toSet(),
             "test-${Random.nextInt()}" to Array(5) { "${Random.nextInt()}" }.toSet()
-        )
+        ))
 
         // Setup new looper
         val handlerThread = HandlerThread("test").apply { start() }

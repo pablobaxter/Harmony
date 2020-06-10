@@ -32,6 +32,7 @@ import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 import java.io.Reader
+import java.util.UUID
 import java.util.WeakHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.locks.ReentrantReadWriteLock
@@ -118,6 +119,9 @@ private class HarmonyImpl internal constructor(
 
     // Current snapshot of master that all transactions will apply to
     private var masterSnapshot: HashMap<String, Any?> = hashMapOf()
+
+    // Transactions in-flight but not yet written to the file
+    private val transactionSet = hashSetOf<HarmonyTransaction>()
 
     // Pref change listener map
     private val listenerMap = WeakHashMap<SharedPreferences.OnSharedPreferenceChangeListener, Any>()
@@ -269,7 +273,7 @@ private class HarmonyImpl internal constructor(
 
     private fun initialLoad() {
         checkForRequiredFiles()
-        val memoryMap = harmonyMasterLockFile.withFileLock masterLock@{
+        harmonyMasterLockFile.withFileLock masterLock@{
 
             val transactionListJob = harmonyCoroutineScope.async(Dispatchers.IO) {
                 if (!harmonyTransactionsFile.createNewFile()) {
@@ -280,7 +284,7 @@ private class HarmonyImpl internal constructor(
                         _InternalHarmonyLog.w(LOG_TAG, "Unable to read transaction during load")
                     }
                 }
-                return@async emptyList<HarmonyTransaction>()
+                return@async emptySet<HarmonyTransaction>()
             }
 
             // This backup mechanism was inspired by the SharedPreferencesImpl source code
@@ -301,83 +305,38 @@ private class HarmonyImpl internal constructor(
             val masterCopy = HashMap(masterSnapshot)
             transactions.sortedBy { it.memoryCommitTime }
                 .forEach { it.commitTransaction(masterCopy) }
-            return@masterLock masterCopy
-        } ?: hashMapOf()
 
-        mapReentrantReadWriteLock.write {
-            harmonyMap = memoryMap
+            mapReentrantReadWriteLock.write {
+                harmonyMap = masterCopy
+            }
         }
     }
 
     private fun handleTransactionUpdate() {
         checkForRequiredFiles()
-        val memoryMap = harmonyMasterLockFile.withFileLock(shared = true) masterLock@{
+        harmonyMasterLockFile.withFileLock(shared = true) masterLock@{
             val transactions = try {
                 harmonyTransactionsFile.inputStream().buffered().use { HarmonyTransaction.generateHarmonyTransactions(it) }
             } catch (e: IOException) {
                 _InternalHarmonyLog.w(LOG_TAG, "Unable to read transactions during update")
-                emptyList<HarmonyTransaction>()
+                emptySet<HarmonyTransaction>()
             }
 
-            val masterCopy = HashMap(masterSnapshot)
-            transactions.sortedBy { it.memoryCommitTime }
-                .forEach { it.commitTransaction(masterCopy) }
-            return@masterLock masterCopy
-        } ?: hashMapOf()
-
-        var notifyListeners = false
-        var keysModified: ArrayList<String>? = null
-        var listeners: Set<SharedPreferences.OnSharedPreferenceChangeListener>? = null
-
-        mapReentrantReadWriteLock.write {
-            notifyListeners = listenerMap.isNotEmpty()
-            keysModified = if (notifyListeners) arrayListOf() else null
-            listeners = if (notifyListeners) listenerMap.keys.toHashSet() else null
-
-            val oldMap = harmonyMap
-            @Suppress("UNCHECKED_CAST")
-            harmonyMap = memoryMap
-            if (harmonyMap.isNotEmpty()) {
-                harmonyMap.forEach { (k, v) ->
-                    if (!oldMap.containsKey(k) || oldMap[k] != v) {
-                        keysModified?.add(k)
-                    }
-                    oldMap.remove(k)
-                }
-                keysModified?.addAll(oldMap.keys)
-            }
-        }
-
-        // The variable 'shouldNotifyListeners' is only true if this read is due to a file update
-        if (notifyListeners) {
-            requireNotNull(keysModified)
-            harmonyCoroutineScope.launch(Dispatchers.Main) {
-                keysModified?.asReversed()?.forEach { key ->
-                    listeners?.forEach { listener ->
-                        listener.onSharedPreferenceChanged(this@HarmonyImpl, key)
-                    }
-                }
-            }
-        }
-    }
-
-    private fun handleMasterUpdate() {
-        checkForRequiredFiles()
-        harmonyMasterLockFile.withFileLock(shared = true) {
-            val memoryMap = HashMap(masterSnapshot)
-
-            var notifyListeners = false
-            var keysModified: ArrayList<String>? = null
-            var listeners: Set<SharedPreferences.OnSharedPreferenceChangeListener>? = null
-
+            // Remove any transactions that were in flight for this process
             mapReentrantReadWriteLock.write {
-                notifyListeners = listenerMap.isNotEmpty()
-                keysModified = if (notifyListeners) arrayListOf() else null
-                listeners = if (notifyListeners) listenerMap.keys.toHashSet() else null
+                transactionSet.removeAll(transactions)
+                val combinedTransactions = transactions + transactionSet
+
+                val masterCopy = HashMap(masterSnapshot)
+                combinedTransactions.sortedBy { it.memoryCommitTime }
+                    .forEach { it.commitTransaction(masterCopy) }
+
+                val notifyListeners = listenerMap.isNotEmpty()
+                val keysModified = if (notifyListeners) arrayListOf<String>() else null
+                val listeners = if (notifyListeners) listenerMap.keys.toHashSet() else null
 
                 val oldMap = harmonyMap
-                @Suppress("UNCHECKED_CAST")
-                harmonyMap = memoryMap
+                harmonyMap = masterCopy
                 if (harmonyMap.isNotEmpty()) {
                     harmonyMap.forEach { (k, v) ->
                         if (!oldMap.containsKey(k) || oldMap[k] != v) {
@@ -387,13 +346,54 @@ private class HarmonyImpl internal constructor(
                     }
                     keysModified?.addAll(oldMap.keys)
                 }
+
+                // The variable 'shouldNotifyListeners' is only true if this read is due to a file update
+                if (notifyListeners) {
+                    requireNotNull(keysModified)
+                    harmonyCoroutineScope.launch(Dispatchers.Main) {
+                        keysModified.asReversed().forEach { key ->
+                            listeners?.forEach { listener ->
+                                listener.onSharedPreferenceChanged(this@HarmonyImpl, key)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun handleMasterUpdate() {
+        checkForRequiredFiles()
+        val mapToCopy = harmonyMasterLockFile.withFileLock(shared = true) {
+            return@withFileLock HashMap(masterSnapshot)
+        } ?: hashMapOf()
+
+        mapReentrantReadWriteLock.write {
+            val masterCopy = HashMap(masterSnapshot)
+            transactionSet.sortedBy { it.memoryCommitTime }
+                .forEach { it.commitTransaction(masterCopy) }
+
+            val notifyListeners = listenerMap.isNotEmpty()
+            val keysModified = if (notifyListeners) arrayListOf<String>() else null
+            val listeners = if (notifyListeners) listenerMap.keys.toHashSet() else null
+
+            val oldMap = harmonyMap
+            harmonyMap = mapToCopy
+            if (harmonyMap.isNotEmpty()) {
+                harmonyMap.forEach { (k, v) ->
+                    if (!oldMap.containsKey(k) || oldMap[k] != v) {
+                        keysModified?.add(k)
+                    }
+                    oldMap.remove(k)
+                }
+                keysModified?.addAll(oldMap.keys)
             }
 
             // The variable 'shouldNotifyListeners' is only true if this read is due to a file update
             if (notifyListeners) {
                 requireNotNull(keysModified)
                 harmonyCoroutineScope.launch(Dispatchers.Main) {
-                    keysModified?.asReversed()?.forEach { key ->
+                    keysModified.asReversed().forEach { key ->
                         listeners?.forEach { listener ->
                             listener.onSharedPreferenceChanged(this@HarmonyImpl, key)
                         }
@@ -408,7 +408,8 @@ private class HarmonyImpl internal constructor(
         checkForRequiredFiles()
 
         harmonyMasterLockFile.withFileLock {
-            if (harmonyMasterFile.length() >= MEGABYTE || sync) {
+            if (harmonyTransactionsFile.length() >= (MEGABYTE / 10000) || sync) {
+                _InternalHarmonyLog.i("Trial", "Committing master to the disk! sync = $sync, file size = ${harmonyTransactionsFile.length()}")
                 return commitTransactionsToMaster(transactionInFlight)
             } else {
                 try {
@@ -432,8 +433,11 @@ private class HarmonyImpl internal constructor(
             }
         } catch (e: IOException) {
             _InternalHarmonyLog.w(LOG_TAG, "Unable to read transaction file", e)
-            emptyList<HarmonyTransaction>()
+            emptySet<HarmonyTransaction>()
         } + currentTransaction
+
+        // Remove this current transaction as it won't be written to the transaction file
+        mapReentrantReadWriteLock.write { transactionSet.remove(currentTransaction) }
 
         if (transactionList.isNullOrEmpty()) return false
 
@@ -571,38 +575,35 @@ private class HarmonyImpl internal constructor(
         // Credit for most of this code goes to whomever wrote this "apply()" for the current (as of 5/20/2020) SharedPreferencesImpl source
         private fun commitToMemory(): HarmonyTransaction {
             mapReentrantReadWriteLock.write {
-                var keysModified: ArrayList<String>? = null
-                var listeners: HashSet<SharedPreferences.OnSharedPreferenceChangeListener>? = null
-                val listenersNotEmpty = listenerMap.size > 0
-
-                if (listenersNotEmpty) {
-                    keysModified = arrayListOf()
-                    listeners = HashSet(listenerMap.keys)
-                }
+                val notifyListeners = listenerMap.isNotEmpty()
+                val keysModified = if (notifyListeners) arrayListOf<String>() else null
+                val listeners = if (notifyListeners) listenerMap.keys.toHashSet() else null
 
                 val transactionInFlight = synchronized(this@HarmonyEditor) {
                     val transaction = harmonyTransaction
-                    transaction.memoryCommitTime = SystemClock.elapsedRealtime() // The current time this "apply()" was called
+                    transaction.memoryCommitTime =
+                        SystemClock.elapsedRealtime() // The current time this "apply()" was called
+                    transactionSet.add(transaction)
                     harmonyTransaction = HarmonyTransaction()
                     transaction.commitTransaction(harmonyMap, keysModified)
                     return@synchronized transaction
                 }
 
                 if (!keysModified.isNullOrEmpty() && !listeners.isNullOrEmpty())
-                harmonyCoroutineScope.launch(Dispatchers.Main) {
-                    keysModified.asReversed().forEach { key ->
-                        listeners.forEach { listener ->
-                            listener.onSharedPreferenceChanged(this@HarmonyImpl, key)
+                    harmonyCoroutineScope.launch(Dispatchers.Main) {
+                        keysModified.asReversed().forEach { key ->
+                            listeners.forEach { listener ->
+                                listener.onSharedPreferenceChanged(this@HarmonyImpl, key)
+                            }
                         }
                     }
-                }
                 return transactionInFlight
             }
         }
     }
 }
 
-private class HarmonyTransaction {
+private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) {
     private sealed class Operation(val data: Any?) {
         class Update(data: Any): Operation(data)
         object Delete: Operation(null)
@@ -651,6 +652,7 @@ private class HarmonyTransaction {
     fun commitTransactionToOutputStream(outputStream: OutputStream) {
         val dataOutputStream = DataOutputStream(outputStream)
         dataOutputStream.writeByte(Byte.MAX_VALUE.toInt())
+        dataOutputStream.writeUTF(uuid.toString())
         dataOutputStream.writeBoolean(cleared)
         dataOutputStream.writeLong(memoryCommitTime)
         transactionMap.forEach { (k, v) ->
@@ -699,14 +701,31 @@ private class HarmonyTransaction {
         dataOutputStream.writeBoolean(false)
     }
 
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is HarmonyTransaction) return false
+        return uuid == other.uuid
+            && transactionMap == other.transactionMap
+            && cleared == other.cleared
+            && memoryCommitTime == other.memoryCommitTime
+    }
+
+    override fun hashCode(): Int {
+        var result = uuid.hashCode()
+        result = 31 * result + transactionMap.hashCode()
+        result = 31 * result + cleared.hashCode()
+        result = 31 * result + memoryCommitTime.hashCode()
+        return result
+    }
+
     companion object {
 
-        fun generateHarmonyTransactions(inputStream: InputStream): List<HarmonyTransaction> {
-            val transactionList = arrayListOf<HarmonyTransaction>()
+        fun generateHarmonyTransactions(inputStream: InputStream): Set<HarmonyTransaction> {
+            val transactionList = hashSetOf<HarmonyTransaction>()
             val dataInputStream = DataInputStream(inputStream)
 
             while (dataInputStream.read() != -1) {
-                val transaction = HarmonyTransaction().apply {
+                val transaction = HarmonyTransaction(UUID.fromString(dataInputStream.readUTF())).apply {
                     cleared = dataInputStream.readBoolean()
                     memoryCommitTime = dataInputStream.readLong()
                 }
