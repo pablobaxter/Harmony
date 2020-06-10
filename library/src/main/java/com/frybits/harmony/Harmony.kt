@@ -329,7 +329,7 @@ private class HarmonyImpl internal constructor(
 
                 if (!harmonyMasterBackupFile.exists()) { // Back up file doesn't need to be locked, as the data lock already restricts concurrent modifications
                     // No backup file exists. Let's create one
-                    _InternalHarmonyLog.i(LOG_TAG, "initialLoad() - Creating master backup file")
+                    _InternalHarmonyLog.d(LOG_TAG, "initialLoad() - Creating master backup file")
                     if (!harmonyMasterFile.renameTo(harmonyMasterBackupFile)) {
                         return // Couldn't create a backup!
                     }
@@ -353,10 +353,10 @@ private class HarmonyImpl internal constructor(
                             _InternalHarmonyLog.d(LOG_TAG, "initialLoad() - Finished syncing master file to disk")
                         }
 
-                    _InternalHarmonyLog.i(LOG_TAG, "initialLoad() - Clearing transaction file")
+                    _InternalHarmonyLog.d(LOG_TAG, "initialLoad() - Clearing transaction file")
                     harmonyTransactionsFile.writer().close() // Clears the file without the need to delete/recreate
 
-                    _InternalHarmonyLog.i(LOG_TAG, "initialLoad() - Deleting master backup file")
+                    _InternalHarmonyLog.d(LOG_TAG, "initialLoad() - Deleting master backup file")
                     // Delete the backup file
                     harmonyMasterBackupFile.delete()
 
@@ -375,17 +375,17 @@ private class HarmonyImpl internal constructor(
 
     private suspend fun handleTransactionUpdate() {
         checkForRequiredFiles()
-        _InternalHarmonyLog.i(LOG_TAG, "handleTransactionUpdate() - Attempting to get master file lock...")
+        _InternalHarmonyLog.d(LOG_TAG, "handleTransactionUpdate() - Attempting to get master file lock...")
         suspendCancellableCoroutine<Unit> { continuation ->
             harmonyMasterLockFile.withFileLock(shared = true) masterLock@{
                 // Remove any transactions that were in flight for this process
                 mapReentrantReadWriteLock.write {
                     if (continuation.isCancelled) {
-                        _InternalHarmonyLog.i(LOG_TAG, "handleTransactionUpdate() - master file update came in!")
-                        _InternalHarmonyLog.i(LOG_TAG, "handleTransactionUpdate() - exiting master file lock")
+                        _InternalHarmonyLog.d(LOG_TAG, "handleTransactionUpdate() - master file update came in!")
+                        _InternalHarmonyLog.d(LOG_TAG, "handleTransactionUpdate() - exiting master file lock")
                         return@suspendCancellableCoroutine
                     }
-                    _InternalHarmonyLog.i(LOG_TAG, "handleTransactionUpdate() - obtained master file lock")
+                    _InternalHarmonyLog.d(LOG_TAG, "handleTransactionUpdate() - obtained master file lock")
                     val transactions = try {
                         harmonyTransactionsFile.inputStream().buffered()
                             .use { HarmonyTransaction.generateHarmonyTransactions(it) }
@@ -394,37 +394,37 @@ private class HarmonyImpl internal constructor(
                         emptySet<HarmonyTransaction>()
                     }
 
-                    _InternalHarmonyLog.i(LOG_TAG, "handleTransactionUpdate() - current transactions: $transactions")
+                    _InternalHarmonyLog.d(LOG_TAG, "handleTransactionUpdate() - current transactions: $transactions")
 
                     // Cancellation came in while reading transactions, early exit
                     if (continuation.isCancelled) {
-                        _InternalHarmonyLog.i(LOG_TAG, "handleTransactionUpdate() - master file update came in!")
-                        _InternalHarmonyLog.i(LOG_TAG, "handleTransactionUpdate() - exiting master file lock")
+                        _InternalHarmonyLog.d(LOG_TAG, "handleTransactionUpdate() - master file update came in!")
+                        _InternalHarmonyLog.d(LOG_TAG, "handleTransactionUpdate() - exiting master file lock")
                         continuation.resume(Unit)
                         return@suspendCancellableCoroutine
                     }
 
-                    _InternalHarmonyLog.i(LOG_TAG, "handleTransactionUpdate() - current in process transactions: $transactionSet")
+                    _InternalHarmonyLog.d(LOG_TAG, "handleTransactionUpdate() - current in process transactions: $transactionSet")
                     transactionSet.removeAll(transactions)
                     val combinedTransactions = transactions + transactionSet
 
-                    _InternalHarmonyLog.i(LOG_TAG, "handleTransactionUpdate() - combined transactions: $combinedTransactions")
+                    _InternalHarmonyLog.d(LOG_TAG, "handleTransactionUpdate() - combined transactions: $combinedTransactions")
 
                     // Empty transactions, early exit
                     if (combinedTransactions.isEmpty()) {
-                        _InternalHarmonyLog.i(LOG_TAG, "handleTransactionUpdate() - there are no transactions to write!")
-                        _InternalHarmonyLog.i(LOG_TAG, "handleTransactionUpdate() - exiting master file lock")
+                        _InternalHarmonyLog.d(LOG_TAG, "handleTransactionUpdate() - there are no transactions to write!")
+                        _InternalHarmonyLog.d(LOG_TAG, "handleTransactionUpdate() - exiting master file lock")
                         continuation.resume(Unit)
                         return@suspendCancellableCoroutine
                     }
 
-                    _InternalHarmonyLog.i(LOG_TAG, "handleTransactionUpdate() - masterSnapshot: $masterSnapshot")
+                    _InternalHarmonyLog.d(LOG_TAG, "handleTransactionUpdate() - masterSnapshot: $masterSnapshot")
 
                     val masterCopy = HashMap(masterSnapshot)
                     combinedTransactions.sortedBy { it.memoryCommitTime }
                         .forEach { it.commitTransaction(masterCopy) }
 
-                    _InternalHarmonyLog.i(LOG_TAG, "handleTransactionUpdate() - master copy after transactions: $masterCopy")
+                    _InternalHarmonyLog.d(LOG_TAG, "handleTransactionUpdate() - master copy after transactions: $masterCopy")
 
                     val notifyListeners = listenerMap.isNotEmpty()
                     val keysModified = if (notifyListeners) arrayListOf<String>() else null
@@ -454,7 +454,7 @@ private class HarmonyImpl internal constructor(
                         }
                     }
                 }
-                _InternalHarmonyLog.i(LOG_TAG, "handleTransactionUpdate() - exiting master file lock")
+                _InternalHarmonyLog.d(LOG_TAG, "handleTransactionUpdate() - exiting master file lock")
                 continuation.resume(Unit)
             }
         }
@@ -462,10 +462,10 @@ private class HarmonyImpl internal constructor(
 
     private fun handleMasterUpdate() {
         checkForRequiredFiles()
-        _InternalHarmonyLog.i(LOG_TAG, "handleMasterUpdate() - Attempting to get master file lock...")
+        _InternalHarmonyLog.d(LOG_TAG, "handleMasterUpdate() - Attempting to get master file lock...")
         harmonyMasterLockFile.withFileLock {
             mapReentrantReadWriteLock.write {
-                _InternalHarmonyLog.i(LOG_TAG, "handleMasterUpdate() - obtained master file lock")
+                _InternalHarmonyLog.d(LOG_TAG, "handleMasterUpdate() - obtained master file lock")
 
                 // This backup mechanism was inspired by the SharedPreferencesImpl source code
                 // Check for backup file
@@ -481,15 +481,15 @@ private class HarmonyImpl internal constructor(
                     masterSnapshot = HashMap(map)
                 }
 
-                _InternalHarmonyLog.i(LOG_TAG, "handleMasterUpdate() - current in process transactions: $transactionSet")
+                _InternalHarmonyLog.d(LOG_TAG, "handleMasterUpdate() - current in process transactions: $transactionSet")
 
-                _InternalHarmonyLog.i(LOG_TAG, "handleMasterUpdate() - masterSnapshot: $masterSnapshot")
+                _InternalHarmonyLog.d(LOG_TAG, "handleMasterUpdate() - masterSnapshot: $masterSnapshot")
 
                 val masterCopy = HashMap(masterSnapshot)
                 transactionSet.sortedBy { it.memoryCommitTime }
                     .forEach { it.commitTransaction(masterCopy) }
 
-                _InternalHarmonyLog.i(LOG_TAG, "handleMasterUpdate() - master copy after transactions: $masterCopy")
+                _InternalHarmonyLog.d(LOG_TAG, "handleMasterUpdate() - master copy after transactions: $masterCopy")
 
                 val notifyListeners = listenerMap.isNotEmpty()
                 val keysModified = if (notifyListeners) arrayListOf<String>() else null
@@ -519,7 +519,7 @@ private class HarmonyImpl internal constructor(
                     }
                 }
             }
-            _InternalHarmonyLog.i(LOG_TAG, "handleMasterUpdate() - exiting master file lock")
+            _InternalHarmonyLog.d(LOG_TAG, "handleMasterUpdate() - exiting master file lock")
         }
     }
 
@@ -527,27 +527,27 @@ private class HarmonyImpl internal constructor(
     private fun commitTransactionToDisk(transactionInFlight: HarmonyTransaction, sync: Boolean = false): Boolean {
         checkForRequiredFiles()
 
-        _InternalHarmonyLog.i(LOG_TAG, "commitTransactionToDisk() - Attempting to get master file lock...")
+        _InternalHarmonyLog.d(LOG_TAG, "commitTransactionToDisk() - Attempting to get master file lock...")
         harmonyMasterLockFile.withFileLock {
-            _InternalHarmonyLog.i(LOG_TAG, "commitTransactionToDisk() - obtained master file lock")
+            _InternalHarmonyLog.d(LOG_TAG, "commitTransactionToDisk() - obtained master file lock")
             if (harmonyTransactionsFile.length() >= transactionMaxSize || sync) { // TODO We should also do a checksum of the transaction file, to ensure it is not corrupted
-                _InternalHarmonyLog.i(LOG_TAG, "Committing master to the disk! sync = $sync, file size = ${harmonyTransactionsFile.length()}")
+                _InternalHarmonyLog.d(LOG_TAG, "Committing master to the disk! sync = $sync, file size = ${harmonyTransactionsFile.length()}")
                 val result = commitTransactionsToMaster(transactionInFlight)
-                _InternalHarmonyLog.i(LOG_TAG, "commitTransactionToDisk() - exiting master file lock")
+                _InternalHarmonyLog.d(LOG_TAG, "commitTransactionToDisk() - exiting master file lock")
                 return result
             } else {
                 try {
-                    _InternalHarmonyLog.i(LOG_TAG, "commitTransactionToDisk() - Writing transaction to file")
+                    _InternalHarmonyLog.d(LOG_TAG, "commitTransactionToDisk() - Writing transaction to file")
                     FileOutputStream(harmonyTransactionsFile, true).buffered().use { outputStream ->
                         transactionInFlight.commitTransactionToOutputStream(outputStream)
                         outputStream.flush()
                     }
-                    _InternalHarmonyLog.i(LOG_TAG, "commitTransactionToDisk() - completed writing transaction file")
+                    _InternalHarmonyLog.d(LOG_TAG, "commitTransactionToDisk() - completed writing transaction file")
                 } catch (e: IOException) {
                     _InternalHarmonyLog.w(LOG_TAG, "Unable to write transaction", e)
                 }
             }
-            _InternalHarmonyLog.i(LOG_TAG, "commitTransactionToDisk() - exiting master file lock")
+            _InternalHarmonyLog.d(LOG_TAG, "commitTransactionToDisk() - exiting master file lock")
         }
         return false
     }
@@ -563,19 +563,19 @@ private class HarmonyImpl internal constructor(
             emptySet<HarmonyTransaction>()
         } + currentTransaction
 
-        _InternalHarmonyLog.i(LOG_TAG, "Committing transactions to master: $transactionList")
+        _InternalHarmonyLog.d(LOG_TAG, "Committing transactions to master: $transactionList")
 
         // Remove this current transaction as it won't be written to the transaction file
         val removed = mapReentrantReadWriteLock.write { transactionSet.remove(currentTransaction) }
 
-        _InternalHarmonyLog.i(LOG_TAG, "Removed current transaction from list? $removed")
+        _InternalHarmonyLog.d(LOG_TAG, "Removed current transaction from list? $removed")
 
         if (transactionList.isNullOrEmpty()) return false
 
         // Then we delete the file and create a backup
         if (!harmonyMasterBackupFile.exists()) { // Back up file doesn't need to be locked, as the data lock already restricts concurrent modifications
             // No backup file exists. Let's create one
-            _InternalHarmonyLog.i(LOG_TAG, "Creating master backup file")
+            _InternalHarmonyLog.d(LOG_TAG, "Creating master backup file")
             if (!harmonyMasterFile.renameTo(harmonyMasterBackupFile)) {
                 return false // Couldn't create a backup!
             }
@@ -588,11 +588,11 @@ private class HarmonyImpl internal constructor(
 
         val currentPrefs = HashMap(prefs)
 
-        _InternalHarmonyLog.i(LOG_TAG, "Current snapshot from disk (backup): $currentPrefs")
+        _InternalHarmonyLog.d(LOG_TAG, "Current snapshot from disk (backup): $currentPrefs")
 
         transactionList.sortedBy { it.memoryCommitTime }.forEach { it.commitTransaction(currentPrefs) }
 
-        _InternalHarmonyLog.i(LOG_TAG, "Prefs after committing all transactions: $currentPrefs")
+        _InternalHarmonyLog.d(LOG_TAG, "Prefs after committing all transactions: $currentPrefs")
 
         val masterWriter = ParcelFileDescriptor.open(harmonyMasterFile, ParcelFileDescriptor.MODE_CREATE or ParcelFileDescriptor.MODE_WRITE_ONLY)
 
@@ -608,10 +608,10 @@ private class HarmonyImpl internal constructor(
                 _InternalHarmonyLog.d(LOG_TAG, "Finished syncing master file to disk")
             }
 
-            _InternalHarmonyLog.i(LOG_TAG, "Clearing transaction file")
+            _InternalHarmonyLog.d(LOG_TAG, "Clearing transaction file")
             harmonyTransactionsFile.writer().close() // Clears the file without the need to delete/recreate
 
-            _InternalHarmonyLog.i(LOG_TAG, "Deleting master backup file")
+            _InternalHarmonyLog.d(LOG_TAG, "Deleting master backup file")
             // Delete the backup file
             harmonyMasterBackupFile.delete()
 
@@ -715,11 +715,11 @@ private class HarmonyImpl internal constructor(
                 val listeners = if (notifyListeners) listenerMap.keys.toHashSet() else null
 
                 val transactionInFlight = synchronized(this@HarmonyEditor) {
-                    _InternalHarmonyLog.i(LOG_TAG, "Applying transaction to harmony map: $harmonyTransaction")
+                    _InternalHarmonyLog.d(LOG_TAG, "Applying transaction to harmony map: $harmonyTransaction")
                     val transaction = harmonyTransaction
                     transaction.memoryCommitTime = SystemClock.elapsedRealtime() // The current time this "apply()" was called
                     transactionSet.add(transaction)
-                    _InternalHarmonyLog.i(LOG_TAG, "Added to transaction set. transactionSet=$transactionSet")
+                    _InternalHarmonyLog.d(LOG_TAG, "Added to transaction set. transactionSet=$transactionSet")
                     harmonyTransaction = HarmonyTransaction()
                     transaction.commitTransaction(harmonyMap, keysModified)
                     return@synchronized transaction
