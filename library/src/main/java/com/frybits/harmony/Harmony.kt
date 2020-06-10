@@ -71,7 +71,7 @@ import kotlin.coroutines.resume
 private class HarmonyImpl internal constructor(
     context: Context,
     private val prefsName: String,
-    private val transactionMaxSize: Long = 100L * Byte.SIZE_BYTES
+    private val transactionMaxSize: Long = 128 * KILOBYTE // TODO make this adjustable by user
 ) : SharedPreferences {
 
     // Folder containing all harmony preference files
