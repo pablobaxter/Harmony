@@ -9,7 +9,6 @@ import android.os.ParcelFileDescriptor
 import android.os.SystemClock
 import android.util.JsonReader
 import android.util.JsonWriter
-import android.util.Log
 import com.frybits.harmony.core._InternalHarmonyLog
 import com.frybits.harmony.core.harmonyFileObserver
 import com.frybits.harmony.core.putHarmony
@@ -25,16 +24,15 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.json.JSONException
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.File
+import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.IOException
 import java.io.InputStream
-import java.io.ObjectOutputStream
 import java.io.OutputStream
+import java.io.RandomAccessFile
 import java.io.Reader
 import java.util.UUID
 import java.util.WeakHashMap
@@ -71,7 +69,7 @@ import kotlin.concurrent.write
 private class HarmonyImpl internal constructor(
     context: Context,
     private val prefsName: String,
-    private val transactionMaxSize: Long = 512 * KILOBYTE // TODO make this adjustable by user
+    private val transactionMaxSize: Long = 128 * KILOBYTE // TODO make this adjustable by user
 ) : SharedPreferences {
 
     // Folder containing all harmony preference files
@@ -101,6 +99,9 @@ private class HarmonyImpl internal constructor(
 
     // Prevents multiple threads from editing the in-memory map at once
     private val mapReentrantReadWriteLock = ReentrantReadWriteLock()
+
+    private val lastReadTransactions = hashSetOf<HarmonyTransaction>()
+    private var lastTransactionPosition = 0L
 
     // Observes changes that occur to the backing file of this preference
     private val harmonyFileObserver =
@@ -355,12 +356,23 @@ private class HarmonyImpl internal constructor(
     private fun handleTransactionUpdate() {
         checkForRequiredFiles()
         harmonyMasterLockFile.withFileLock(shared = true) masterLock@{
-            val transactions = try {
-                harmonyTransactionsFile.inputStream().buffered()
-                    .use { HarmonyTransaction.generateHarmonyTransactions(it) }
-            } catch (e: IOException) {
-                _InternalHarmonyLog.w(LOG_TAG, "Unable to read transactions during update")
-                emptySet<HarmonyTransaction>()
+            val transactions = RandomAccessFile(harmonyTransactionsFile, "r").use { accessFile ->
+                if (accessFile.length() == 0L) {
+                    lastReadTransactions.clear()
+                    lastTransactionPosition = 0L
+                    return@use lastReadTransactions.toHashSet()
+                }
+                accessFile.seek(lastTransactionPosition)
+                try {
+                    val readTransactions = FileInputStream(accessFile.fd).buffered()
+                        .use { HarmonyTransaction.generateHarmonyTransactions(it) }
+                    lastTransactionPosition = accessFile.length()
+                    lastReadTransactions.addAll(readTransactions)
+                    return@use lastReadTransactions.toHashSet()
+                } catch (e: IOException) {
+                    _InternalHarmonyLog.w(LOG_TAG, "Unable to read transactions during update")
+                    return@use emptySet<HarmonyTransaction>()
+                }
             }
 
             // Remove any transactions that were in flight for this process
@@ -465,8 +477,6 @@ private class HarmonyImpl internal constructor(
             }
         }
     }
-
-    private var counter = 0
 
     // Write the transactions to a file, appended to the end of the file
     private fun commitTransactionToDisk(transactionInFlight: HarmonyTransaction, sync: Boolean = false): Boolean {
