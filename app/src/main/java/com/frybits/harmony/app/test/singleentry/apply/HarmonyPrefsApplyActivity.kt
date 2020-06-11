@@ -170,7 +170,7 @@ class HarmonyPrefsApplyActivity : AppCompatActivity() {
                 harmonyTotalApplyTimeSpent[testCount] = time
                 // Due to the quick successions of "apply()" called, as well as the data being reloaded ITERATION times on the other process,
                 // we need to let the other process "catch up". This test is the worst case scenario for multi-process replication!
-                delay(10000)
+                delay(5000)
                 startService(Intent(this@HarmonyPrefsApplyActivity, HarmonyPrefsReceiveService::class.java).apply { putExtra("STOP", true) })
                 delay(1000) // Give ample time for service to perform read test
                 activityHarmonyPrefs.edit(true) { clear() }

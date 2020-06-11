@@ -18,6 +18,7 @@ import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.async
@@ -69,7 +70,7 @@ import kotlin.concurrent.write
 private class HarmonyImpl internal constructor(
     context: Context,
     private val prefsName: String,
-    private val transactionMaxSize: Long = 128 * KILOBYTE // TODO make this adjustable by user
+    private val transactionMaxSize: Long = 32 * KILOBYTE // TODO make this adjustable by user
 ) : SharedPreferences {
 
     // Folder containing all harmony preference files
@@ -102,20 +103,29 @@ private class HarmonyImpl internal constructor(
 
     private val lastReadTransactions = hashSetOf<HarmonyTransaction>()
     private var lastTransactionPosition = 0L
+    private var currentJob: Job = Job()
 
     // Observes changes that occur to the backing file of this preference
     private val harmonyFileObserver =
-        harmonyFileObserver(harmonyPrefsFolder) { event, path ->
+        harmonyFileObserver(harmonyPrefsFolder, FileObserver.CLOSE_WRITE or FileObserver.DELETE) { event, path ->
             if (path.isNullOrBlank()) return@harmonyFileObserver
             if (event == FileObserver.CLOSE_WRITE) { // We only really care if this file has been closed to writing
                 if (path.endsWith(PREFS_TRANSACTIONS)) {
-                    harmonyCoroutineScope.launch(harmonySingleThreadDispatcher) {
+                    currentJob.cancel()
+                    currentJob = harmonyCoroutineScope.launch(harmonySingleThreadDispatcher) {
                         handleTransactionUpdate()
                     }
                 } else if (path.endsWith(PREFS_DATA)) {
+                    currentJob.cancel()
                     harmonyCoroutineScope.launch(harmonySingleThreadDispatcher) {
                         handleMasterUpdate()
                     }
+                }
+            } else if (event == FileObserver.DELETE && path.endsWith(PREFS_TRANSACTIONS)) {
+                currentJob.cancel()
+                synchronized(harmonyMasterLockFile) {
+                    lastReadTransactions.clear()
+                    lastTransactionPosition = 0L
                 }
             }
         }
@@ -325,20 +335,19 @@ private class HarmonyImpl internal constructor(
                     harmonyMasterFile.delete()
                 }
 
-                val masterWriter =
-                    ParcelFileDescriptor.open(harmonyMasterFile, ParcelFileDescriptor.MODE_CREATE or ParcelFileDescriptor.MODE_WRITE_ONLY)
+                val masterWriter = ParcelFileDescriptor.open(harmonyMasterFile, ParcelFileDescriptor.MODE_CREATE or ParcelFileDescriptor.MODE_WRITE_ONLY)
 
                 try {
-                    ParcelFileDescriptor.AutoCloseOutputStream(masterWriter)
-                        .use { masterOutputStream ->
-                            JsonWriter(masterOutputStream.bufferedWriter())
-                                .putHarmony(prefsName, masterCopy)
-                                .flush()
-                            // Write all changes to the physical storage
-                            masterWriter.fileDescriptor.sync()
-                        }
+                    ParcelFileDescriptor.AutoCloseOutputStream(masterWriter).use { masterOutputStream ->
+                        JsonWriter(masterOutputStream.bufferedWriter())
+                            .putHarmony(prefsName, masterCopy)
+                            .flush()
+                        // Write all changes to the physical storage
+                        masterWriter.fileDescriptor.sync()
+                    }
 
-                    harmonyTransactionsFile.writer().close() // Clears the file without the need to delete/recreate
+                    harmonyTransactionsFile.delete()
+                    harmonyTransactionsFile.createNewFile()
 
                     // Delete the backup file
                     harmonyMasterBackupFile.delete()
@@ -382,9 +391,7 @@ private class HarmonyImpl internal constructor(
                 val combinedTransactions = transactions + transactionSet
 
                 // Empty transactions, early exit
-                if (combinedTransactions.isEmpty()) {
-                    return@masterLock
-                }
+                if (combinedTransactions.isEmpty()) return@masterLock
 
                 val masterCopy = HashMap(masterSnapshot)
                 combinedTransactions.sortedBy { it.memoryCommitTime }
@@ -423,7 +430,7 @@ private class HarmonyImpl internal constructor(
 
     private fun handleMasterUpdate() {
         checkForRequiredFiles()
-        harmonyMasterLockFile.withFileLock(shared = true) {
+        harmonyMasterLockFile.withFileLock {
 
             // This backup mechanism was inspired by the SharedPreferencesImpl source code
             // Check for backup file
@@ -543,7 +550,8 @@ private class HarmonyImpl internal constructor(
                 masterWriter.fileDescriptor.sync()
             }
 
-            harmonyTransactionsFile.writer().close() // Clears the file without the need to delete/recreate
+            harmonyTransactionsFile.delete()
+            harmonyTransactionsFile.createNewFile()
 
             // Delete the backup file
             harmonyMasterBackupFile.delete()
@@ -734,7 +742,8 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) {
     fun commitTransactionToOutputStream(outputStream: OutputStream) {
         val dataOutputStream = DataOutputStream(outputStream)
         dataOutputStream.writeByte(Byte.MAX_VALUE.toInt())
-        dataOutputStream.writeUTF(uuid.toString())
+        dataOutputStream.writeLong(uuid.mostSignificantBits)
+        dataOutputStream.writeLong(uuid.leastSignificantBits)
         dataOutputStream.writeBoolean(cleared)
         dataOutputStream.writeLong(memoryCommitTime)
         transactionMap.forEach { (k, v) ->
@@ -805,7 +814,7 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) {
             while (dataInputStream.read() != -1) {
                 try {
                     val transaction =
-                        HarmonyTransaction(UUID.fromString(dataInputStream.readUTF())).apply {
+                        HarmonyTransaction(UUID(dataInputStream.readLong(), dataInputStream.readLong())).apply {
                             cleared = dataInputStream.readBoolean()
                             memoryCommitTime = dataInputStream.readLong()
                         }

@@ -40,7 +40,11 @@ class HarmonyPrefsReceiveService : Service() {
         require(prefs === harmonyActivityPrefs)
         val activityTestTime = prefs.getLong(key, -1L)
         if (activityTestTime > -1L) {
-            timeCaptureList.add(now - activityTestTime)
+            if (timeCaptureMap.containsKey(key)) {
+                Log.e("Trial", "${this::class.java.simpleName}: Time result changed! Key=$key")
+            } else {
+                timeCaptureMap[key] = now - activityTestTime
+            }
         } else {
             Log.e("Trial", "${this::class.java.simpleName}: Got default long value! Key=$key")
         }
@@ -52,6 +56,7 @@ class HarmonyPrefsReceiveService : Service() {
     private val testKeyArray = Array(ITERATIONS) { i -> "test$i" }
 
     private val timeCaptureList = ArrayList<Long>(ITERATIONS * NUM_TESTS)
+    private val timeCaptureMap = HashMap<String, Long>(ITERATIONS * NUM_TESTS)
     private val singleReadTimeCaptureList = ArrayList<Long>(ITERATIONS * NUM_TESTS)
     private val totalReadTimeCaptureList = ArrayList<Long>(NUM_TESTS)
 
@@ -59,6 +64,7 @@ class HarmonyPrefsReceiveService : Service() {
         super.onCreate()
         harmonyActivityPrefs = getHarmonySharedPreferences(PREFS_NAME)
         timeCaptureList.clear()
+        timeCaptureMap.clear()
         singleReadTimeCaptureList.clear()
         totalReadTimeCaptureList.clear()
     }
@@ -76,6 +82,8 @@ class HarmonyPrefsReceiveService : Service() {
         }
         if (isStarted && endCommand) {
             Log.i("Trial", "${this::class.java.simpleName}: Stopping service to receive from main process!")
+            timeCaptureList.addAll(timeCaptureMap.values)
+            timeCaptureMap.clear()
             val measure = measureTimeMillis {
                 testKeyArray.forEach { s ->
                     val readTime = measureTimeMillis {
