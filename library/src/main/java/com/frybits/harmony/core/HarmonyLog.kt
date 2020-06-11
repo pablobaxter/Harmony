@@ -27,7 +27,7 @@ import com.frybits.harmony.BuildConfig
  * Logger tool
  */
 
-private val LOG = BuildConfig.DEBUG || true
+private val LOG = BuildConfig.DEBUG && false
 
 internal object _InternalHarmonyLog {
 
