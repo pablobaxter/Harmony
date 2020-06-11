@@ -299,11 +299,14 @@ private class HarmonyImpl internal constructor(
             }
 
             if (!harmonyMasterFile.createNewFile()) {
-                // Get master file
-                val (_, map) = harmonyMasterFile.bufferedReader().use { readHarmonyMapFromStream(it) } // TODO ensure map name matches file
-                masterSnapshot = HashMap(map)
+                try {
+                    // Get master file
+                    val (_, map) = harmonyMasterFile.bufferedReader().use { readHarmonyMapFromStream(it) } // TODO ensure map name matches file
+                    masterSnapshot = HashMap(map)
+                } catch (e: IOException) {
+                    _InternalHarmonyLog.e(LOG_TAG, "Unable to read harmony master file on init", e)
+                }
             }
-
 
             val transactions = runBlocking { transactionListJob.await() }
             val masterCopy = HashMap(masterSnapshot)
@@ -328,11 +331,9 @@ private class HarmonyImpl internal constructor(
                 try {
                     ParcelFileDescriptor.AutoCloseOutputStream(masterWriter)
                         .use { masterOutputStream ->
-                            _InternalHarmonyLog.v(LOG_TAG, "initialLoad() - Begin writing data to master file...")
                             JsonWriter(masterOutputStream.bufferedWriter())
                                 .putHarmony(prefsName, masterCopy)
                                 .flush()
-                            _InternalHarmonyLog.v(LOG_TAG, "initialLoad() - Finish writing data to master file!")
                             // Write all changes to the physical storage
                             masterWriter.fileDescriptor.sync()
                         }
@@ -481,7 +482,6 @@ private class HarmonyImpl internal constructor(
     // Write the transactions to a file, appended to the end of the file
     private fun commitTransactionToDisk(transactionInFlight: HarmonyTransaction, sync: Boolean = false): Boolean {
         checkForRequiredFiles()
-
         harmonyMasterLockFile.withFileLock {
             if (harmonyTransactionsFile.length() >= transactionMaxSize || sync) { // TODO We should also do a checksum of the transaction file, to ensure it is not corrupted
                 return commitTransactionsToMaster(transactionInFlight)
@@ -536,11 +536,9 @@ private class HarmonyImpl internal constructor(
 
         try {
             ParcelFileDescriptor.AutoCloseOutputStream(masterWriter).use { masterOutputStream ->
-                _InternalHarmonyLog.v(LOG_TAG, "Begin writing data to master file...")
                 JsonWriter(masterOutputStream.bufferedWriter())
                     .putHarmony(prefsName, currentPrefs)
                     .flush()
-                _InternalHarmonyLog.v(LOG_TAG, "Finish writing data to master file!")
                 // Write all changes to the physical storage
                 masterWriter.fileDescriptor.sync()
             }
@@ -841,6 +839,10 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) {
                     }
                     transactionList.add(transaction)
                 } catch (e: IOException) {
+                    // This is expected if the transaction file write was not complete
+                    _InternalHarmonyLog.e(LOG_TAG, "Unable to read current transaction in file", e)
+                    return transactionList
+                } catch (e: IllegalArgumentException) {
                     // This is expected if the transaction file write was not complete
                     _InternalHarmonyLog.e(LOG_TAG, "Unable to read current transaction in file", e)
                     return transactionList
