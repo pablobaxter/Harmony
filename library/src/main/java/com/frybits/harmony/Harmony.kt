@@ -11,7 +11,6 @@ import android.util.JsonReader
 import android.util.JsonWriter
 import android.util.Log
 import com.frybits.harmony.internal._InternalHarmonyLog
-import com.frybits.harmony.internal.harmonyChecksum
 import com.frybits.harmony.internal.harmonyFileObserver
 import com.frybits.harmony.internal.putHarmony
 import com.frybits.harmony.internal.readHarmony
@@ -42,6 +41,7 @@ import java.util.UUID
 import java.util.WeakHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.locks.ReentrantReadWriteLock
+import java.util.zip.Adler32
 import java.util.zip.CheckedInputStream
 import java.util.zip.CheckedOutputStream
 import kotlin.concurrent.read
@@ -771,7 +771,7 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) {
     }
 
     fun commitTransactionToOutputStream(outputStream: OutputStream) {
-        val checkSum = harmonyChecksum()
+        val checkSum = Adler32()
         val dataOutputStream = DataOutputStream(CheckedOutputStream(outputStream, checkSum))
         dataOutputStream.writeByte(Byte.MAX_VALUE.toInt())
         dataOutputStream.writeLong(uuid.mostSignificantBits)
@@ -843,7 +843,7 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) {
     companion object {
         fun generateHarmonyTransactions(inputStream: InputStream): Pair<Set<HarmonyTransaction>, Boolean> {
             val transactionList = hashSetOf<HarmonyTransaction>()
-            val checksum = harmonyChecksum()
+            val checksum = Adler32()
             val dataInputStream = DataInputStream(CheckedInputStream(inputStream, checksum))
 
             while (dataInputStream.read() != -1) {
@@ -870,7 +870,8 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) {
                                 }
                                 set
                             }
-                            else -> null
+                            6.toByte() -> null
+                            else -> return transactionList to true
                         }
                         val operation = when (dataInputStream.readByte()) {
                             0.toByte() -> data?.let { Operation.Update(data) }
@@ -879,10 +880,11 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) {
                         }
                         operation?.let { op ->
                             transaction.transactionMap[key] = op
-                        } ?: continue
+                        } ?: return transactionList to true
                     }
                     val checkSum = checksum.value
-                    if (checkSum == dataInputStream.readLong()) {
+                    val expected = dataInputStream.readLong()
+                    if (checkSum == expected) {
                         transactionList.add(transaction)
                     } else {
                         return transactionList to true
