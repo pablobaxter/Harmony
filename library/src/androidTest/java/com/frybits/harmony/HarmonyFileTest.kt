@@ -10,7 +10,7 @@ import android.os.Process
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.ServiceTestRule
-import com.frybits.harmony.core.withFileLock
+import com.frybits.harmony.internal.withFileLock
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test

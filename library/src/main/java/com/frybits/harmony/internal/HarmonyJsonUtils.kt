@@ -1,7 +1,7 @@
 @file:JvmName("_InternalCoreHarmony")
 @file:JvmMultifileClass
 
-package com.frybits.harmony.core
+package com.frybits.harmony.internal
 
 import android.util.JsonReader
 import android.util.JsonToken

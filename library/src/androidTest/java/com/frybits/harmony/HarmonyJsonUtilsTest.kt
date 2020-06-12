@@ -3,8 +3,8 @@ package com.frybits.harmony
 import android.util.JsonReader
 import android.util.JsonWriter
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.frybits.harmony.core.putHarmony
-import com.frybits.harmony.core.readHarmony
+import com.frybits.harmony.internal.putHarmony
+import com.frybits.harmony.internal.readHarmony
 import org.json.JSONObject
 import org.junit.Test
 import org.junit.runner.RunWith

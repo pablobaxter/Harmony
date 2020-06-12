@@ -9,11 +9,13 @@ import android.os.ParcelFileDescriptor
 import android.os.SystemClock
 import android.util.JsonReader
 import android.util.JsonWriter
-import com.frybits.harmony.core._InternalHarmonyLog
-import com.frybits.harmony.core.harmonyFileObserver
-import com.frybits.harmony.core.putHarmony
-import com.frybits.harmony.core.readHarmony
-import com.frybits.harmony.core.withFileLock
+import android.util.Log
+import com.frybits.harmony.internal._InternalHarmonyLog
+import com.frybits.harmony.internal.harmonyChecksum
+import com.frybits.harmony.internal.harmonyFileObserver
+import com.frybits.harmony.internal.putHarmony
+import com.frybits.harmony.internal.readHarmony
+import com.frybits.harmony.internal.withFileLock
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
@@ -40,6 +42,8 @@ import java.util.UUID
 import java.util.WeakHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.locks.ReentrantReadWriteLock
+import java.util.zip.CheckedInputStream
+import java.util.zip.CheckedOutputStream
 import kotlin.concurrent.read
 import kotlin.concurrent.thread
 import kotlin.concurrent.write
@@ -308,7 +312,7 @@ private class HarmonyImpl internal constructor(
                         _InternalHarmonyLog.w(LOG_TAG, "Unable to read transaction during load")
                     }
                 }
-                return@async emptySet<HarmonyTransaction>()
+                return@async emptySet<HarmonyTransaction>() to false
             }
 
             // This backup mechanism was inspired by the SharedPreferencesImpl source code
@@ -328,7 +332,7 @@ private class HarmonyImpl internal constructor(
                 }
             }
 
-            val transactions = runBlocking { transactionListJob.await() }
+            val transactions = runBlocking { transactionListJob.await().first }
             val masterCopy = HashMap(masterSnapshot)
 
             // We want to commit any pending transactions to the master file on startup
@@ -376,25 +380,32 @@ private class HarmonyImpl internal constructor(
     private suspend fun handleTransactionUpdate() {
         checkForRequiredFiles()
         suspendCancellableCoroutine<Unit> { cont ->
-            harmonyMasterLockFile.withFileLock(shared = true) masterLock@{
+            harmonyMasterLockFile.withFileLock masterLock@{
                 if (cont.isCancelled) return@masterLock
-                val transactions = RandomAccessFile(harmonyTransactionsFile, "r").use { accessFile ->
+                val (transactions, isCorrupted) = RandomAccessFile(harmonyTransactionsFile, "r").use { accessFile ->
                     if (accessFile.length() == 0L) {
                         lastReadTransactions.clear()
                         lastTransactionPosition = 0L
-                        return@use lastReadTransactions.toHashSet()
+                        return@use lastReadTransactions.toHashSet() to false
                     }
                     accessFile.seek(lastTransactionPosition)
                     try {
-                        val readTransactions = FileInputStream(accessFile.fd).buffered()
+                        val (readTransactions, isCorrupted) = FileInputStream(accessFile.fd).buffered()
                             .use { HarmonyTransaction.generateHarmonyTransactions(it) }
                         lastTransactionPosition = accessFile.length()
                         lastReadTransactions.addAll(readTransactions)
-                        return@use lastReadTransactions.toHashSet()
+                        return@use lastReadTransactions.toHashSet() to isCorrupted
                     } catch (e: IOException) {
                         _InternalHarmonyLog.w(LOG_TAG, "Unable to read transactions during update")
-                        return@use emptySet<HarmonyTransaction>()
+                        return@use emptySet<HarmonyTransaction>() to false
                     }
+                }
+
+                // The file was corrupted somehow. Commit everything to master and recreate the transaction file.
+                if (isCorrupted) {
+                    Log.e("Trial", "Data was corrupted!")
+                    commitTransactionsToMaster(null)
+                    return@masterLock
                 }
 
                 // Remove any transactions that were in flight for this process
@@ -504,7 +515,7 @@ private class HarmonyImpl internal constructor(
     private fun commitTransactionToDisk(transactionInFlight: HarmonyTransaction, sync: Boolean = false): Boolean {
         checkForRequiredFiles()
         harmonyMasterLockFile.withFileLock {
-            if (harmonyTransactionsFile.length() >= transactionMaxSize || sync) { // TODO We should also do a checksum of the transaction file, to ensure it is not corrupted
+            if (harmonyTransactionsFile.length() >= transactionMaxSize || sync) {
                 return commitTransactionsToMaster(transactionInFlight)
             } else {
                 try {
@@ -521,25 +532,26 @@ private class HarmonyImpl internal constructor(
     }
 
     // Function to commit all transactions to the prefs file
-    private fun commitTransactionsToMaster(currentTransaction: HarmonyTransaction): Boolean {
+    private fun commitTransactionsToMaster(currentTransaction: HarmonyTransaction?): Boolean {
         val transactionList = try {
             RandomAccessFile(harmonyTransactionsFile, "r").use { accessFile ->
                 accessFile.seek(lastTransactionPosition)
-                val readTransactions =
-                    FileInputStream(accessFile.fd).buffered().use { inputStream ->
-                        HarmonyTransaction.generateHarmonyTransactions(inputStream)
-                    }
+                val (readTransactions) = FileInputStream(accessFile.fd).buffered().use { inputStream ->
+                    HarmonyTransaction.generateHarmonyTransactions(inputStream)
+                }
                 return@use lastReadTransactions + readTransactions
             }
         } catch (e: IOException) {
             _InternalHarmonyLog.w(LOG_TAG, "Unable to read transaction file", e)
             emptySet<HarmonyTransaction>()
-        } + currentTransaction
+        }
+
+        val combinedTransactions = currentTransaction?.let { transactionList + it } ?: transactionList
 
         // Remove this current transaction as it won't be written to the transaction file
         mapReentrantReadWriteLock.write { transactionSet.remove(currentTransaction) }
 
-        if (transactionList.isNullOrEmpty()) return false
+        if (combinedTransactions.isNullOrEmpty()) return false
 
         // Then we delete the file and create a backup
         if (!harmonyMasterBackupFile.exists()) { // Back up file doesn't need to be locked, as the data lock already restricts concurrent modifications
@@ -556,7 +568,7 @@ private class HarmonyImpl internal constructor(
 
         val currentPrefs = HashMap(prefs)
 
-        transactionList.sortedBy { it.memoryCommitTime }.forEach { it.commitTransaction(currentPrefs) }
+        combinedTransactions.sortedBy { it.memoryCommitTime }.forEach { it.commitTransaction(currentPrefs) }
 
         val masterWriter = ParcelFileDescriptor.open(harmonyMasterFile, ParcelFileDescriptor.MODE_CREATE or ParcelFileDescriptor.MODE_WRITE_ONLY)
 
@@ -759,7 +771,8 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) {
     }
 
     fun commitTransactionToOutputStream(outputStream: OutputStream) {
-        val dataOutputStream = DataOutputStream(outputStream)
+        val checkSum = harmonyChecksum()
+        val dataOutputStream = DataOutputStream(CheckedOutputStream(outputStream, checkSum))
         dataOutputStream.writeByte(Byte.MAX_VALUE.toInt())
         dataOutputStream.writeLong(uuid.mostSignificantBits)
         dataOutputStream.writeLong(uuid.leastSignificantBits)
@@ -809,6 +822,8 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) {
             )
         }
         dataOutputStream.writeBoolean(false)
+        val checkSumValue = checkSum.value
+        dataOutputStream.writeLong(checkSumValue)
     }
 
     override fun toString(): String {
@@ -826,9 +841,10 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) {
     }
 
     companion object {
-        fun generateHarmonyTransactions(inputStream: InputStream): Set<HarmonyTransaction> {
+        fun generateHarmonyTransactions(inputStream: InputStream): Pair<Set<HarmonyTransaction>, Boolean> {
             val transactionList = hashSetOf<HarmonyTransaction>()
-            val dataInputStream = DataInputStream(inputStream)
+            val checksum = harmonyChecksum()
+            val dataInputStream = DataInputStream(CheckedInputStream(inputStream, checksum))
 
             while (dataInputStream.read() != -1) {
                 try {
@@ -865,18 +881,24 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) {
                             transaction.transactionMap[key] = op
                         } ?: continue
                     }
-                    transactionList.add(transaction)
+                    val checkSum = checksum.value
+                    if (checkSum == dataInputStream.readLong()) {
+                        transactionList.add(transaction)
+                    } else {
+                        return transactionList to true
+                    }
+                    checksum.reset()
                 } catch (e: IOException) {
                     // This is expected if the transaction file write was not complete
                     _InternalHarmonyLog.e(LOG_TAG, "Unable to read current transaction in file", e)
-                    return transactionList
+                    return transactionList to true
                 } catch (e: IllegalArgumentException) {
                     // This is expected if the transaction file write was not complete
                     _InternalHarmonyLog.e(LOG_TAG, "Unable to read current transaction in file", e)
-                    return transactionList
+                    return transactionList to true
                 }
             }
-            return transactionList
+            return transactionList to false
         }
     }
 }

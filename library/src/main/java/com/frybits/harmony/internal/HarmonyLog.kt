@@ -2,7 +2,7 @@
 @file:JvmName("_InternalCoreHarmony")
 @file:JvmMultifileClass
 
-package com.frybits.harmony.core
+package com.frybits.harmony.internal
 
 import android.util.Log
 import com.frybits.harmony.BuildConfig
@@ -27,7 +27,7 @@ import com.frybits.harmony.BuildConfig
  * Logger tool
  */
 
-private val LOG = BuildConfig.DEBUG && false
+private val LOG = BuildConfig.DEBUG
 
 internal object _InternalHarmonyLog {
 

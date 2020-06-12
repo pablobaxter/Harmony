@@ -1,7 +1,7 @@
 @file:JvmName("_InternalCoreHarmony")
 @file:JvmMultifileClass
 
-package com.frybits.harmony.core
+package com.frybits.harmony.internal
 
 import android.os.FileObserver
 import java.io.File
