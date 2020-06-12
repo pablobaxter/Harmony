@@ -41,6 +41,7 @@ import java.util.WeakHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
+import kotlin.concurrent.thread
 import kotlin.concurrent.write
 import kotlin.coroutines.resume
 
@@ -72,7 +73,7 @@ import kotlin.coroutines.resume
 private class HarmonyImpl internal constructor(
     context: Context,
     private val prefsName: String,
-    private val transactionMaxSize: Long = 128 * KILOBYTE // TODO make this adjustable by user
+    private val transactionMaxSize: Long = 128 * KILOBYTE // TODO make this adjustable by user?
 ) : SharedPreferences {
 
     // Folder containing all harmony preference files
@@ -92,7 +93,14 @@ private class HarmonyImpl internal constructor(
     private val harmonyMasterBackupFile = File(harmonyPrefsFolder, PREFS_BACKUP)
 
     // Single thread dispatcher, to serialize any calls to read/write the prefs
-    private val harmonySingleThreadDispatcher = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
+    private val harmonySingleThreadDispatcher = Executors.newSingleThreadExecutor {
+        thread(
+            start = false,
+            isDaemon = false,
+            name = "$LOG_TAG-$prefsName",
+            priority = Thread.NORM_PRIORITY
+        ) { it.run() }
+    }.asCoroutineDispatcher()
 
     // Scope for all coroutines launched from this Harmony object
     private val harmonyCoroutineScope = CoroutineScope(SupervisorJob() + CoroutineName(LOG_TAG))
@@ -313,7 +321,7 @@ private class HarmonyImpl internal constructor(
             if (!harmonyMasterFile.createNewFile()) {
                 try {
                     // Get master file
-                    val (_, map) = harmonyMasterFile.bufferedReader().use { readHarmonyMapFromStream(it) } // TODO ensure map name matches file
+                    val (_, map) = harmonyMasterFile.bufferedReader().use { readHarmonyMapFromStream(it) }
                     masterSnapshot = HashMap(map)
                 } catch (e: IOException) {
                     _InternalHarmonyLog.e(LOG_TAG, "Unable to read harmony master file on init", e)
@@ -448,7 +456,7 @@ private class HarmonyImpl internal constructor(
             // Get master file
             try {
                 val (_, map) = harmonyMasterFile.bufferedReader()
-                    .use { readHarmonyMapFromStream(it) } // TODO ensure map name matches file
+                    .use { readHarmonyMapFromStream(it) }
                 masterSnapshot = HashMap(map)
             } catch (e: IOException) {
                 _InternalHarmonyLog.e(LOG_TAG, "Unable to get master file.", e)
@@ -515,8 +523,13 @@ private class HarmonyImpl internal constructor(
     // Function to commit all transactions to the prefs file
     private fun commitTransactionsToMaster(currentTransaction: HarmonyTransaction): Boolean {
         val transactionList = try {
-            harmonyTransactionsFile.inputStream().buffered().use { inputStream ->
-                HarmonyTransaction.generateHarmonyTransactions(inputStream)
+            RandomAccessFile(harmonyTransactionsFile, "r").use { accessFile ->
+                accessFile.seek(lastTransactionPosition)
+                val readTransactions =
+                    FileInputStream(accessFile.fd).buffered().use { inputStream ->
+                        HarmonyTransaction.generateHarmonyTransactions(inputStream)
+                    }
+                return@use lastReadTransactions + readTransactions
             }
         } catch (e: IOException) {
             _InternalHarmonyLog.w(LOG_TAG, "Unable to read transaction file", e)
@@ -686,8 +699,8 @@ private class HarmonyImpl internal constructor(
 
 private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) {
     private sealed class Operation(val data: Any?) {
-        class Update(data: Any): Operation(data)
-        object Delete: Operation(null)
+        class Update(data: Any) : Operation(data)
+        object Delete : Operation(null)
 
         override fun hashCode(): Int {
             return data.hashCode()
