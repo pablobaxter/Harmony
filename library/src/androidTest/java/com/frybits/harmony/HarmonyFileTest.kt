@@ -7,6 +7,8 @@ import android.content.Intent
 import android.os.Binder
 import android.os.IBinder
 import android.os.Process
+import android.util.Log
+import androidx.core.content.edit
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.ServiceTestRule
@@ -24,6 +26,7 @@ import kotlin.random.Random
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -33,6 +36,7 @@ import kotlin.test.assertTrue
 private const val HARMONY_PREFS_FOLDER = "harmony_prefs"
 private const val PREFS_DATA = "prefs.data"
 private const val PREFS_BACKUP = "prefs.backup"
+private const val PREFS_TRANSACTION_DATA = "prefs.transaction.data"
 
 private const val TEST_PREFS = "testPrefs"
 private const val ALTERNATE_PROCESS_NAME = ":alternate"
@@ -74,6 +78,9 @@ private val TEST_PREFS_MAP = mapOf<String, Any?>(
     "count" to 3
 )
 
+// Byte array that is the following transaction: UPDATE("testKey":"testValue", cleared=false)
+private val TEST_TRANSACTION_DATA = byteArrayOf(127, -91, -85, 82, 118, 5, 86, 77, 106, -113, 39, 6, -52, -29, -123, -107, -55, 0, 0, 0, 0, 0, 5, -37, -6, -121, 1, 0, 7, 116, 101, 115, 116, 75, 101, 121, 4, 0, 9, 116, 101, 115, 116, 86, 97, 108, 117, 101, 0, 0, 0, 0, 0, 0, -40, 24, 17, 20)
+
 @RunWith(AndroidJUnit4::class)
 class HarmonyFileTest {
 
@@ -104,6 +111,69 @@ class HarmonyFileTest {
         val result = editor.putString("testKey", "testValue").commit()
         assertTrue("Key was not stored in shared prefs") { result }
         assertEquals("testValue", sharedPreferences.getString("testKey", null), "Value was not stored!")
+    }
+
+    @Test
+    fun testCorruptedTransactionFile() {
+        // Test Prep
+        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+        val sharedPreferences = appContext.getHarmonySharedPreferences(TEST_PREFS)
+        sharedPreferences.all // Dummy call to wait for shared prefs to load
+        val harmonyFolder = File(appContext.filesDir, HARMONY_PREFS_FOLDER)
+        harmonyFolder.mkdirs()
+        val prefsFolder = File(harmonyFolder, TEST_PREFS).apply { mkdirs() }
+        val transactionFile = File(prefsFolder, PREFS_TRANSACTION_DATA)
+        val randomBytes = Random.nextBytes(10)
+        transactionFile.writeBytes(randomBytes) // Triggers the file observer
+
+        Thread.sleep(1000)
+
+        // Harmony should clear the bad transaction data that came in by deleting the entire transaction file
+        assertEquals(0L, transactionFile.length(), "Transaction file was not cleared correctly")
+        assertTrue("Shared preferences were not empty!") { sharedPreferences.all.isEmpty() }
+
+        val tmpFile = File.createTempFile("blah", "foo")
+        tmpFile.writeBytes(randomBytes)
+        tmpFile.renameTo(transactionFile) // This avoids calling the file observer
+
+        assertEquals(10L, transactionFile.length(), "Transaction file was not updated correctly")
+
+        // Attempt to put a new value in after corrupt data
+        sharedPreferences.edit { putString("testKey", "testValue") }
+
+        Thread.sleep(1000) // Sleep to give Harmony chance to cleanup corrupt data
+
+        assertEquals(0L, transactionFile.length(), "Transaction file was not cleared correctly")
+        assertNull(sharedPreferences.getString("testKey", null), "Value data was kept!")
+    }
+
+    @Test
+    fun testPartialCorruptedTransactionFile() {
+        // Test Prep
+        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+        val sharedPreferences = appContext.getHarmonySharedPreferences(TEST_PREFS)
+        sharedPreferences.all // Dummy call to wait for shared prefs to load
+        val harmonyFolder = File(appContext.filesDir, HARMONY_PREFS_FOLDER)
+        harmonyFolder.mkdirs()
+        val prefsFolder = File(harmonyFolder, TEST_PREFS).apply { mkdirs() }
+        val transactionFile = File(prefsFolder, PREFS_TRANSACTION_DATA)
+        transactionFile.writeBytes(TEST_TRANSACTION_DATA)
+
+        assertEquals(TEST_TRANSACTION_DATA.size.toLong(), transactionFile.length(), "Transaction data was modified!")
+
+        Thread.sleep(1000) // Give Harmony time to replicate data from external change
+
+        assertEquals("testValue", sharedPreferences.getString("testKey", null), "Value was not stored!")
+
+        transactionFile.appendBytes(Random.nextBytes(10)) // Introduce corrupted data
+
+        Thread.sleep(1000) // Give Harmony time to replicate data from external change
+
+        // Data should not be changed
+        assertEquals("testValue", sharedPreferences.getString("testKey", null), "Value was not stored!")
+
+        // Transaction file should be cleared
+        assertEquals(0L, transactionFile.length(), "Transaction data was not cleared!")
     }
 
     @Test
@@ -236,6 +306,30 @@ class HarmonyFileTest {
 
         assertTrue("Locked job has not completed, when it should be!") { lockedAsync.isDone }
         assertTrue("Shared job has not completed, when it should be!") { sharedAsync.isDone }
+    }
+
+    // This tests for a bug where a transaction update at first launch cleared the map
+    @Test
+    fun testTransactionUpdateDoesNotClearMap() {
+        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+        val harmonyFolder = File(appContext.filesDir, HARMONY_PREFS_FOLDER)
+        harmonyFolder.mkdirs()
+        val prefsFolder = File(harmonyFolder, TEST_PREFS).apply { mkdirs() }
+        val prefsDataFile = File(prefsFolder, PREFS_DATA)
+        prefsDataFile.writeText(TEST_PREFS_JSON)
+
+        val sharedPreferences = appContext.getHarmonySharedPreferences(TEST_PREFS)
+        assertEquals(TEST_PREFS_MAP, sharedPreferences.all, "Prefs map was not equal!")
+        assertNull(sharedPreferences.getString("testKey", null), "Value data should not exist yet!")
+
+        val transactionFile = File(prefsFolder, PREFS_TRANSACTION_DATA)
+        transactionFile.writeBytes(TEST_TRANSACTION_DATA)
+
+        Thread.sleep(1000) // Give Harmony time to replicate data change from external source
+
+        Log.d("Harmony", "${sharedPreferences.all}")
+        val expectedMap = TEST_PREFS_MAP + ("testKey" to "testValue")
+        assertEquals(expectedMap, sharedPreferences.all, "Prefs map was not equal!")
     }
 }
 

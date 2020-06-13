@@ -9,6 +9,7 @@ import android.os.ParcelFileDescriptor
 import android.os.SystemClock
 import android.util.JsonReader
 import android.util.JsonWriter
+import androidx.annotation.VisibleForTesting
 import com.frybits.harmony.internal._InternalHarmonyLog
 import com.frybits.harmony.internal.harmonyFileObserver
 import com.frybits.harmony.internal.putHarmony
@@ -73,10 +74,10 @@ import kotlin.coroutines.resume
  * Parts of this code loosely replicates code in SharedPreferencesImpl.
  * Source code here: https://android.googlesource.com/platform/frameworks/base.git/+/master/core/java/android/app/SharedPreferencesImpl.java
  */
-private class HarmonyImpl internal constructor(
+private class HarmonyImpl constructor(
     context: Context,
     private val prefsName: String,
-    private val transactionMaxSize: Long = 128 * KILOBYTE // TODO make this adjustable by user?
+    private val transactionMaxSize: Long
 ) : SharedPreferences {
 
     // Folder containing all harmony preference files
@@ -131,7 +132,7 @@ private class HarmonyImpl internal constructor(
                 } else if (path.endsWith(PREFS_DATA)) {
                     currentJob.cancel()
                     harmonyCoroutineScope.launch(harmonySingleThreadDispatcher) {
-                        handleMasterUpdate()
+                        handleMasterUpdateWithFileLock()
                     }
                 }
             } else if (event == FileObserver.DELETE && path.endsWith(PREFS_TRANSACTIONS)) {
@@ -405,7 +406,15 @@ private class HarmonyImpl internal constructor(
                 // The file was corrupted somehow. Commit everything to master and recreate the transaction file.
                 if (isCorrupted) {
                     _InternalHarmonyLog.e(LOG_TAG, "Data was corrupted! Storing valid transactions to disk, and resetting.")
-                    commitTransactionsToMaster(null)
+                    if (!commitTransactionsToMaster(null)) { // If nothing was committed, delete the transaction file anyways
+                        harmonyTransactionsFile.delete()
+                        harmonyTransactionsFile.createNewFile()
+                        lastReadTransactions.clear()
+                        lastTransactionPosition = 0L
+                        // Clear the transaction set for this process too, as we have no guarantee it was written to disk
+                        mapReentrantReadWriteLock.write { transactionSet.clear() }
+                        handleMasterUpdate() // Re-update the map from the master snapshot
+                    }
                     return@masterLock
                 }
 
@@ -455,49 +464,52 @@ private class HarmonyImpl internal constructor(
         }
     }
 
-    private fun handleMasterUpdate() {
+    private fun handleMasterUpdateWithFileLock() {
         checkForRequiredFiles()
         harmonyMasterLockFile.withFileLock {
+            handleMasterUpdate()
+        }
+    }
 
-            // Get master file
-            val (_, map) = try {
-                harmonyMasterFile.bufferedReader()
-                    .use { readHarmonyMapFromStream(it) }
-            } catch (e: IOException) {
-                _InternalHarmonyLog.e(LOG_TAG, "Unable to get master file.", e)
-                return
+    private fun handleMasterUpdate() {
+        // Get master file
+        val (_, map) = try {
+            harmonyMasterFile.bufferedReader()
+                .use { readHarmonyMapFromStream(it) }
+        } catch (e: IOException) {
+            _InternalHarmonyLog.e(LOG_TAG, "Unable to get master file.", e)
+            return
+        }
+
+        mapReentrantReadWriteLock.write {
+            masterSnapshot = HashMap(map)
+            val masterCopy = HashMap(masterSnapshot)
+            transactionSet.sortedBy { it.memoryCommitTime }
+                .forEach { it.commitTransaction(masterCopy) }
+
+            val notifyListeners = listenerMap.isNotEmpty()
+            val keysModified = if (notifyListeners) arrayListOf<String>() else null
+            val listeners = if (notifyListeners) listenerMap.keys.toHashSet() else null
+
+            val oldMap = harmonyMap
+            harmonyMap = masterCopy
+            if (harmonyMap.isNotEmpty()) {
+                harmonyMap.forEach { (k, v) ->
+                    if (!oldMap.containsKey(k) || oldMap[k] != v) {
+                        keysModified?.add(k)
+                    }
+                    oldMap.remove(k)
+                }
+                keysModified?.addAll(oldMap.keys)
             }
 
-            mapReentrantReadWriteLock.write {
-                masterSnapshot = HashMap(map)
-                val masterCopy = HashMap(masterSnapshot)
-                transactionSet.sortedBy { it.memoryCommitTime }
-                    .forEach { it.commitTransaction(masterCopy) }
-
-                val notifyListeners = listenerMap.isNotEmpty()
-                val keysModified = if (notifyListeners) arrayListOf<String>() else null
-                val listeners = if (notifyListeners) listenerMap.keys.toHashSet() else null
-
-                val oldMap = harmonyMap
-                harmonyMap = masterCopy
-                if (harmonyMap.isNotEmpty()) {
-                    harmonyMap.forEach { (k, v) ->
-                        if (!oldMap.containsKey(k) || oldMap[k] != v) {
-                            keysModified?.add(k)
-                        }
-                        oldMap.remove(k)
-                    }
-                    keysModified?.addAll(oldMap.keys)
-                }
-
-                // The variable 'shouldNotifyListeners' is only true if this read is due to a file update
-                if (notifyListeners) {
-                    requireNotNull(keysModified)
-                    harmonyCoroutineScope.launch(Dispatchers.Main) {
-                        keysModified.asReversed().forEach { key ->
-                            listeners?.forEach { listener ->
-                                listener.onSharedPreferenceChanged(this@HarmonyImpl, key)
-                            }
+            // The variable 'shouldNotifyListeners' is only true if this read is due to a file update
+            if (notifyListeners) {
+                requireNotNull(keysModified)
+                harmonyCoroutineScope.launch(Dispatchers.Main) {
+                    keysModified.asReversed().forEach { key ->
+                        listeners?.forEach { listener ->
+                            listener.onSharedPreferenceChanged(this@HarmonyImpl, key)
                         }
                     }
                 }
@@ -527,7 +539,7 @@ private class HarmonyImpl internal constructor(
 
     // Function to commit all transactions to the prefs file
     private fun commitTransactionsToMaster(currentTransaction: HarmonyTransaction?): Boolean {
-        val transactionList = try {
+        val transactionList: Set<HarmonyTransaction> = try {
             RandomAccessFile(harmonyTransactionsFile, "r").use { accessFile ->
                 accessFile.seek(lastTransactionPosition)
                 val (readTransactions) = FileInputStream(accessFile.fd).buffered().use { inputStream ->
@@ -537,7 +549,7 @@ private class HarmonyImpl internal constructor(
             }
         } catch (e: IOException) {
             _InternalHarmonyLog.w(LOG_TAG, "Unable to read transaction file", e)
-            emptySet<HarmonyTransaction>()
+            emptySet()
         }
 
         val combinedTransactions = currentTransaction?.let { transactionList + it } ?: transactionList
@@ -921,6 +933,16 @@ private object SingletonLockObj
 
 private val SINGLETON_MAP = hashMapOf<String, HarmonyImpl>()
 
+@VisibleForTesting
+@JvmSynthetic
+internal fun Context.getHarmonySharedPreferences(name: String, maxTransactionSize: Long): SharedPreferences {
+    return SINGLETON_MAP[name] ?: synchronized(SingletonLockObj) {
+        SINGLETON_MAP.getOrPut(name) {
+            HarmonyImpl(applicationContext, name, maxTransactionSize)
+        }
+    }
+}
+
 /**
  * Main entry to get Harmony Preferences
  *
@@ -935,9 +957,5 @@ private val SINGLETON_MAP = hashMapOf<String, HarmonyImpl>()
  */
 @JvmName("getSharedPreferences")
 fun Context.getHarmonySharedPreferences(name: String): SharedPreferences {
-    return SINGLETON_MAP[name] ?: synchronized(SingletonLockObj) {
-        SINGLETON_MAP.getOrPut(name) {
-            HarmonyImpl(applicationContext, name)
-        }
-    }
+    return getHarmonySharedPreferences(name, 128 * KILOBYTE)
 }

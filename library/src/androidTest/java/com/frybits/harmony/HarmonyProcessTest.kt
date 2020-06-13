@@ -36,6 +36,7 @@ import kotlin.test.assertTrue
 private const val PREF_NAME = "prefName"
 private const val ALTERNATE_PROCESS_NAME = ":alternate"
 private const val MESSENGER_KEY = "messenger"
+private const val TRANSACTION_SIZE = 4 * 1024L
 
 @RunWith(AndroidJUnit4::class)
 class HarmonyProcessTest {
@@ -47,7 +48,7 @@ class HarmonyProcessTest {
     fun setup() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        appContext.getHarmonySharedPreferences(PREF_NAME).edit(true) { clear() }
+        appContext.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE).edit(true) { clear() }
 
         // Ensure we are in the right process
         val pid = Process.myPid()
@@ -104,7 +105,7 @@ class HarmonyProcessTest {
         // Give the service enough time to setup
         Thread.sleep(1000)
 
-        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME)
+        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
         testMap.forEach { (k, v) ->
             sharedPreferences.edit { putInt(k, v) }
         }
@@ -155,7 +156,7 @@ class HarmonyProcessTest {
         // Give the service enough time to setup
         Thread.sleep(1000)
 
-        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME)
+        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
         testMap.forEach { (k, v) ->
             sharedPreferences.edit { putLong(k, v) }
         }
@@ -206,7 +207,7 @@ class HarmonyProcessTest {
         // Give the service enough time to setup
         Thread.sleep(1000)
 
-        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME)
+        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
         testMap.forEach { (k, v) ->
             sharedPreferences.edit { putFloat(k, v) }
         }
@@ -257,7 +258,7 @@ class HarmonyProcessTest {
         // Give the service enough time to setup
         Thread.sleep(1000)
 
-        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME)
+        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
         testMap.forEach { (k, v) ->
             sharedPreferences.edit { putBoolean(k, v) }
         }
@@ -308,7 +309,7 @@ class HarmonyProcessTest {
         // Give the service enough time to setup
         Thread.sleep(1000)
 
-        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME)
+        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
         testMap.forEach { (k, v) ->
             sharedPreferences.edit { putString(k, v) }
         }
@@ -359,7 +360,7 @@ class HarmonyProcessTest {
         // Give the service enough time to setup
         Thread.sleep(1000)
 
-        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME)
+        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
         testMap.forEach { (k, v) ->
             sharedPreferences.edit { putStringSet(k, v) }
         }
@@ -373,7 +374,7 @@ class HarmonyProcessTest {
         // Setup test
         val application = InstrumentationRegistry.getInstrumentation().targetContext
 
-        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME)
+        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
 
         sharedPreferences.edit { putString("test", "test") }
 
@@ -416,7 +417,7 @@ class AlternateProcessService : Service() {
         super.onCreate()
         assertTrue("Service is not running in alternate process!") { getServiceProcess().endsWith(ALTERNATE_PROCESS_NAME) }
 
-        testPrefs = getHarmonySharedPreferences(PREF_NAME)
+        testPrefs = getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
         testPrefs.registerOnSharedPreferenceChangeListener(sharedPreferenceChangeListener)
     }
 
@@ -455,7 +456,7 @@ class MassInputService : Service() {
         super.onCreate()
         assertTrue("Service is not running in alternate process!") { getServiceProcess().endsWith(ALTERNATE_PROCESS_NAME) }
 
-        testPrefs = getHarmonySharedPreferences(PREF_NAME)
+        testPrefs = getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
