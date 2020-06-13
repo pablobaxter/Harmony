@@ -9,7 +9,6 @@ import android.os.ParcelFileDescriptor
 import android.os.SystemClock
 import android.util.JsonReader
 import android.util.JsonWriter
-import android.util.Log
 import com.frybits.harmony.internal._InternalHarmonyLog
 import com.frybits.harmony.internal.harmonyFileObserver
 import com.frybits.harmony.internal.putHarmony
@@ -137,7 +136,7 @@ private class HarmonyImpl internal constructor(
                 }
             } else if (event == FileObserver.DELETE && path.endsWith(PREFS_TRANSACTIONS)) {
                 currentJob.cancel()
-                synchronized(harmonyMasterLockFile) {
+                harmonyCoroutineScope.launch(harmonySingleThreadDispatcher) {
                     lastReadTransactions.clear()
                     lastTransactionPosition = 0L
                 }
@@ -333,12 +332,11 @@ private class HarmonyImpl internal constructor(
             }
 
             val transactions = runBlocking { transactionListJob.await().first }
-            val masterCopy = HashMap(masterSnapshot)
 
             // We want to commit any pending transactions to the master file on startup
             if (!transactions.isNullOrEmpty()) {
                 transactions.sortedBy { it.memoryCommitTime }
-                    .forEach { it.commitTransaction(masterCopy) }
+                    .forEach { it.commitTransaction(masterSnapshot) }
 
                 if (!harmonyMasterBackupFile.exists()) { // Back up file doesn't need to be locked, as the data lock already restricts concurrent modifications
                     // No backup file exists. Let's create one
@@ -354,7 +352,7 @@ private class HarmonyImpl internal constructor(
                 try {
                     ParcelFileDescriptor.AutoCloseOutputStream(masterWriter).use { masterOutputStream ->
                         JsonWriter(masterOutputStream.bufferedWriter())
-                            .putHarmony(prefsName, masterCopy)
+                            .putHarmony(prefsName, masterSnapshot)
                             .flush()
                         // Write all changes to the physical storage
                         masterWriter.fileDescriptor.sync()
@@ -362,6 +360,8 @@ private class HarmonyImpl internal constructor(
 
                     harmonyTransactionsFile.delete()
                     harmonyTransactionsFile.createNewFile()
+                    lastReadTransactions.clear()
+                    lastTransactionPosition = 0L
 
                     // Delete the backup file
                     harmonyMasterBackupFile.delete()
@@ -371,8 +371,9 @@ private class HarmonyImpl internal constructor(
                 }
             }
 
+
             mapReentrantReadWriteLock.write {
-                harmonyMap = masterCopy
+                harmonyMap = HashMap(masterSnapshot)
             }
         }
     }
@@ -403,7 +404,7 @@ private class HarmonyImpl internal constructor(
 
                 // The file was corrupted somehow. Commit everything to master and recreate the transaction file.
                 if (isCorrupted) {
-                    Log.e("Trial", "Data was corrupted!")
+                    _InternalHarmonyLog.e(LOG_TAG, "Data was corrupted! Storing valid transactions to disk, and resetting.")
                     commitTransactionsToMaster(null)
                     return@masterLock
                 }
@@ -417,6 +418,7 @@ private class HarmonyImpl internal constructor(
                     if (combinedTransactions.isEmpty()) return@masterLock
 
                     val masterCopy = HashMap(masterSnapshot)
+
                     combinedTransactions.sortedBy { it.memoryCommitTime }
                         .forEach { it.commitTransaction(masterCopy) }
 
@@ -457,25 +459,17 @@ private class HarmonyImpl internal constructor(
         checkForRequiredFiles()
         harmonyMasterLockFile.withFileLock {
 
-            // This backup mechanism was inspired by the SharedPreferencesImpl source code
-            // Check for backup file
-            if (harmonyMasterBackupFile.exists()) {
-                harmonyMasterFile.delete()
-                harmonyMasterBackupFile.renameTo(harmonyMasterFile)
-            }
-
             // Get master file
-            try {
-                val (_, map) = harmonyMasterFile.bufferedReader()
+            val (_, map) = try {
+                harmonyMasterFile.bufferedReader()
                     .use { readHarmonyMapFromStream(it) }
-                masterSnapshot = HashMap(map)
             } catch (e: IOException) {
                 _InternalHarmonyLog.e(LOG_TAG, "Unable to get master file.", e)
                 return
             }
 
             mapReentrantReadWriteLock.write {
-
+                masterSnapshot = HashMap(map)
                 val masterCopy = HashMap(masterSnapshot)
                 transactionSet.sortedBy { it.memoryCommitTime }
                     .forEach { it.commitTransaction(masterCopy) }
@@ -485,7 +479,7 @@ private class HarmonyImpl internal constructor(
                 val listeners = if (notifyListeners) listenerMap.keys.toHashSet() else null
 
                 val oldMap = harmonyMap
-                harmonyMap = HashMap(masterSnapshot)
+                harmonyMap = masterCopy
                 if (harmonyMap.isNotEmpty()) {
                     harmonyMap.forEach { (k, v) ->
                         if (!oldMap.containsKey(k) || oldMap[k] != v) {
@@ -583,6 +577,8 @@ private class HarmonyImpl internal constructor(
 
             harmonyTransactionsFile.delete()
             harmonyTransactionsFile.createNewFile()
+            lastReadTransactions.clear()
+            lastTransactionPosition = 0L
 
             // Delete the backup file
             harmonyMasterBackupFile.delete()
