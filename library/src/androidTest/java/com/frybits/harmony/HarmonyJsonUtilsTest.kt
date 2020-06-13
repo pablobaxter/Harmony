@@ -78,7 +78,7 @@ class HarmonyUtilsTest {
     fun basicJsonToHarmonyMapTest() {
         val (name, map) = JsonReader(StringReader(BASIC_JSON)).readHarmony()
         assertEquals(BASIC_NAME, name, "Names were not equal")
-        assertEquals(BASIC_MAP, map,"Maps were not equal")
+        assertEquals(BASIC_MAP, map, "Maps were not equal")
     }
 
     @Test
@@ -93,7 +93,7 @@ class HarmonyUtilsTest {
     fun mixedJsonToHarmonyMapTest() {
         val (name, map) = JsonReader(StringReader(MIXED_JSON)).readHarmony()
         assertEquals(MIXED_NAME, name, "Names were not equal")
-        assertEquals(MIXED_MAP, map,"Maps were not equal")
+        assertEquals(MIXED_MAP, map, "Maps were not equal")
     }
 
     @Test

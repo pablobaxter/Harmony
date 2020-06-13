@@ -29,8 +29,6 @@ import java.io.IOException
  * Helper functions
  */
 
-private const val LOG_TAG = "HarmonyUtils"
-
 private const val METADATA = "metaData"
 private const val DATA = "data"
 private const val NAME_KEY = "name"

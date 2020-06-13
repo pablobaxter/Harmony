@@ -7,7 +7,6 @@ import android.content.Intent
 import android.os.Binder
 import android.os.IBinder
 import android.os.Process
-import android.util.Log
 import androidx.core.content.edit
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -79,7 +78,8 @@ private val TEST_PREFS_MAP = mapOf<String, Any?>(
 )
 
 // Byte array that is the following transaction: UPDATE("testKey":"testValue", cleared=false)
-private val TEST_TRANSACTION_DATA = byteArrayOf(127, -91, -85, 82, 118, 5, 86, 77, 106, -113, 39, 6, -52, -29, -123, -107, -55, 0, 0, 0, 0, 0, 5, -37, -6, -121, 1, 0, 7, 116, 101, 115, 116, 75, 101, 121, 4, 0, 9, 116, 101, 115, 116, 86, 97, 108, 117, 101, 0, 0, 0, 0, 0, 0, -40, 24, 17, 20)
+private val TEST_TRANSACTION_DATA =
+    byteArrayOf(127, -91, -85, 82, 118, 5, 86, 77, 106, -113, 39, 6, -52, -29, -123, -107, -55, 0, 0, 0, 0, 0, 5, -37, -6, -121, 1, 0, 7, 116, 101, 115, 116, 75, 101, 121, 4, 0, 9, 116, 101, 115, 116, 86, 97, 108, 117, 101, 0, 0, 0, 0, 0, 0, -40, 24, 17, 20)
 
 @RunWith(AndroidJUnit4::class)
 class HarmonyFileTest {
@@ -307,34 +307,10 @@ class HarmonyFileTest {
         assertTrue("Locked job has not completed, when it should be!") { lockedAsync.isDone }
         assertTrue("Shared job has not completed, when it should be!") { sharedAsync.isDone }
     }
-
-    // This tests for a bug where a transaction update at first launch cleared the map
-    @Test
-    fun testTransactionUpdateDoesNotClearMap() {
-        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        val harmonyFolder = File(appContext.filesDir, HARMONY_PREFS_FOLDER)
-        harmonyFolder.mkdirs()
-        val prefsFolder = File(harmonyFolder, TEST_PREFS).apply { mkdirs() }
-        val prefsDataFile = File(prefsFolder, PREFS_DATA)
-        prefsDataFile.writeText(TEST_PREFS_JSON)
-
-        val sharedPreferences = appContext.getHarmonySharedPreferences(TEST_PREFS)
-        assertEquals(TEST_PREFS_MAP, sharedPreferences.all, "Prefs map was not equal!")
-        assertNull(sharedPreferences.getString("testKey", null), "Value data should not exist yet!")
-
-        val transactionFile = File(prefsFolder, PREFS_TRANSACTION_DATA)
-        transactionFile.writeBytes(TEST_TRANSACTION_DATA)
-
-        Thread.sleep(1000) // Give Harmony time to replicate data change from external source
-
-        Log.d("Harmony", "${sharedPreferences.all}")
-        val expectedMap = TEST_PREFS_MAP + ("testKey" to "testValue")
-        assertEquals(expectedMap, sharedPreferences.all, "Prefs map was not equal!")
-    }
 }
 
-class SharedFileLockService: FileLockService(true)
-class LockedFileLockService: FileLockService(false)
+class SharedFileLockService : FileLockService(true)
+class LockedFileLockService : FileLockService(false)
 
 abstract class FileLockService(private val shared: Boolean) : Service() {
 
