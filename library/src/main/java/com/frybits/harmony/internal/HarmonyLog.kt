@@ -23,6 +23,7 @@ import com.frybits.harmony.BuildConfig
  *  limitations under the License.
  *
  * Created by Pablo Baxter (Github: pablobaxter)
+ * https://github.com/pablobaxter/Harmony
  *
  * Logger tool
  */

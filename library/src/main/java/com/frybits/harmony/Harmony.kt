@@ -66,6 +66,7 @@ import kotlin.coroutines.resume
  *  limitations under the License.
  *
  * Created by Pablo Baxter (Github: pablobaxter)
+ * https://github.com/pablobaxter/Harmony
  *
  * Harmony is a process-safe, thread-safe [SharedPreferences] implementation.
  *

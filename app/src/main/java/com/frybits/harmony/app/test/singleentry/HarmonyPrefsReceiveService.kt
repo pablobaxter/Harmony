@@ -28,6 +28,7 @@ import kotlin.system.measureTimeMillis
  *  limitations under the License.
  *
  * Created by Pablo Baxter (Github: pablobaxter)
+ * https://github.com/pablobaxter/Harmony
  */
 
 class HarmonyPrefsReceiveService : Service() {
