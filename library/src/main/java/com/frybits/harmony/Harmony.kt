@@ -350,13 +350,14 @@ private class HarmonyImpl constructor(
             }
 
             // Wait for the transactions job to finish if it hasn't yet
-            val (transactions, isCorrupted) = runBlocking { transactionListJob.await() }
+            val (transactions) = runBlocking { transactionListJob.await() }
 
             transactions.sortedBy { it.memoryCommitTime }
                 .forEach { it.commitTransaction(masterSnapshot) }
 
-            // We want to commit any pending transactions to the master file on startup, if transactions are corrupted
-            if (isCorrupted) {
+            // We want to commit any pending transactions to the master file on startup
+            // This is due to how transactions are stored. The system uptime is reset on phone restart, which could cause transactions to be out of sync
+            if (transactions.isNotEmpty()) {
                 // We deleted the backup file earlier. Let's recreate it here as we are updating the master
                 if (!harmonyMasterBackupFile.exists()) {
                     // No backup file exists. Let's create one
