@@ -19,7 +19,7 @@ Harmony is a thread-safe, process-safe, full [`SharedPreferences`](https://devel
 ## Download
 ### Gradle
 ```
-implementation 'com.frybits.harmony:harmony:1.1.0'
+implementation 'com.frybits.harmony:harmony:1.1.1'
 ```
 
 ## Usage
@@ -94,6 +94,9 @@ Inter-Process replication test setup:
 - **NOTE:** Quickly calling `apply()` increases the queue for the underlying disk write, which is why the replication time seems to increase. This is the max and average times when calling `apply()` 1k times in a loop. Consider this a wort case scenario.
 
 ## Change Log
+### Version 1.1.1 / 2020-06-15
+- Fixes minor issue where phone restart could cause transactions to come in out of order
+
 ### Version 1.1.0 / 2020-06-13
 - Fixes a bug where calling `apply()` in both processes at once would potentially cause removed data to be restored
 - Improves in-memory replication time between processes when using `apply()`
