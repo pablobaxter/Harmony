@@ -349,13 +349,13 @@ private class HarmonyImpl constructor(
             }
 
             // Wait for the transactions job to finish if it hasn't yet
-            val transactions = runBlocking { transactionListJob.await().first }
+            val (transactions, isCorrupted) = runBlocking { transactionListJob.await() }
 
-            // We want to commit any pending transactions to the master file on startup
-            if (!transactions.isNullOrEmpty()) {
-                transactions.sortedBy { it.memoryCommitTime }
-                    .forEach { it.commitTransaction(masterSnapshot) }
+            transactions.sortedBy { it.memoryCommitTime }
+                .forEach { it.commitTransaction(masterSnapshot) }
 
+            // We want to commit any pending transactions to the master file on startup, if transactions are corrupted
+            if (isCorrupted) {
                 // We deleted the backup file earlier. Let's recreate it here as we are updating the master
                 if (!harmonyMasterBackupFile.exists()) {
                     // No backup file exists. Let's create one
@@ -402,7 +402,7 @@ private class HarmonyImpl constructor(
     private suspend fun handleTransactionUpdate() {
         checkForRequiredFiles()
         suspendCancellableCoroutine<Unit> { cont ->
-            harmonyMasterLockFile.withFileLock masterLock@{
+            harmonyMasterLockFile.withFileLock(shared = true) masterLock@{
                 if (cont.isCancelled) return@suspendCancellableCoroutine // Early out if this job was cancelled before the lock was obtained
                 val (transactions, isCorrupted) = RandomAccessFile(harmonyTransactionsFile, "r").use { accessFile ->
                     if (accessFile.length() == 0L) { // Don't read the transaction file it it's empty
@@ -426,17 +426,21 @@ private class HarmonyImpl constructor(
 
                 // The file was corrupted somehow. Commit everything to master and recreate the transaction file.
                 if (isCorrupted) {
-                    _InternalHarmonyLog.e(LOG_TAG, "Data was corrupted! Storing valid transactions to disk, and resetting.")
-                    if (!commitTransactionsToMaster(null)) { // If nothing was committed, delete the transaction file anyways
-                        harmonyTransactionsFile.delete()
-                        harmonyTransactionsFile.createNewFile()
-                        lastReadTransactions.clear()
-                        lastTransactionPosition = 0L
-                        // Clear the transaction set for this process too, as we have no guarantee it was written to disk
-                        mapReentrantReadWriteLock.write { transactionSet.clear() }
-                        // Re-update the map from the master snapshot immediately to resync the memory data.
-                        // This is an optimization to avoid waiting for the file observer to trigger this call
-                        handleMasterUpdate()
+                    harmonyCoroutineScope.launch(harmonySingleThreadDispatcher) {
+                        harmonyMasterLockFile.withFileLock {
+                            _InternalHarmonyLog.e(LOG_TAG, "Data was corrupted! Storing valid transactions to disk, and resetting.")
+                            if (!commitTransactionsToMaster(null)) { // If nothing was committed, delete the transaction file anyways
+                                harmonyTransactionsFile.delete()
+                                harmonyTransactionsFile.createNewFile()
+                                lastReadTransactions.clear()
+                                lastTransactionPosition = 0L
+                                // Clear the transaction set for this process too, as we have no guarantee it was written to disk
+                                mapReentrantReadWriteLock.write { transactionSet.clear() }
+                                // Re-update the map from the master snapshot immediately to resync the memory data.
+                                // This is an optimization to avoid waiting for the file observer to trigger this call
+                                handleMasterUpdate()
+                            }
+                        }
                     }
                     return@masterLock
                 }
@@ -493,7 +497,7 @@ private class HarmonyImpl constructor(
     // Helper function to wrap the master update function in a file lock
     private fun handleMasterUpdateWithFileLock() {
         checkForRequiredFiles()
-        harmonyMasterLockFile.withFileLock {
+        harmonyMasterLockFile.withFileLock(shared = true) {
             handleMasterUpdate()
         }
     }
