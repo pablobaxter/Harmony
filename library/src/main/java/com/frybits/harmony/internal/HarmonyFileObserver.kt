@@ -1,7 +1,7 @@
 @file:JvmName("_InternalCoreHarmony")
 @file:JvmMultifileClass
 
-package com.frybits.harmony.core
+package com.frybits.harmony.internal
 
 import android.os.FileObserver
 import java.io.File
@@ -22,15 +22,24 @@ import java.io.File
  *  limitations under the License.
  *
  * Created by Pablo Baxter (Github: pablobaxter)
+ * https://github.com/pablobaxter/Harmony
  */
 
 @JvmSynthetic
-internal fun harmonyFileObserver(file: File, block: (event: Int, path: String?) -> Unit): FileObserver {
-    return HarmonyFileObserver(file, block).apply { startWatching() } // Start watching as soon as the watcher is created
+internal fun harmonyFileObserver(
+    file: File,
+    eventFilter: Int,
+    block: (event: Int, path: String?) -> Unit
+): FileObserver {
+    return HarmonyFileObserver(file, eventFilter, block)
 }
 
 @Suppress("DEPRECATION")
-private class HarmonyFileObserver(file: File, private val block: (event: Int, path: String?) -> Unit) : FileObserver(file.path, CLOSE_WRITE) {
+private class HarmonyFileObserver(
+    file: File,
+    eventFilter: Int,
+    private val block: (event: Int, path: String?) -> Unit
+) : FileObserver(file.path, eventFilter) {
 
     override fun onEvent(event: Int, path: String?) {
         block(event, path)

@@ -25,6 +25,7 @@ import com.frybits.harmony.app.test.singleentry.commit.HarmonyPrefsCommitActivit
  *  limitations under the License.
  *
  * Created by Pablo Baxter (Github: pablobaxter)
+ * https://github.com/pablobaxter/Harmony
  */
 
 class MainActivity : Activity() {
