@@ -12,14 +12,14 @@ Harmony is a thread-safe, process-safe, full [`SharedPreferences`](https://devel
 - Each process can open a Harmony `SharedPreference` object, without requiring another process to start
 - Full [`SharedPreferences`](https://developer.android.com/reference/android/content/SharedPreferences) implementation
 - [`OnSharedPreferenceChangeListener`](https://developer.android.com/reference/android/content/SharedPreferences.OnSharedPreferenceChangeListener) emits changes made by other processes
-- Uses no native code (NDK) or any [`ContentProvider`](https://developer.android.com/reference/android/content/ContentProvider), [`Service`](https://developer.android.com/reference/android/app/Service), [`BroadcastReceiver`](https://developer.android.com/reference/android/content/BroadcastReceiver), or [AIDL](https://developer.android.com/guide/components/aidl)
+- Uses no native code (NDK) or any IPC classes such as [`ContentProvider`](https://developer.android.com/reference/android/content/ContentProvider), [`Service`](https://developer.android.com/reference/android/app/Service), [`BroadcastReceiver`](https://developer.android.com/reference/android/content/BroadcastReceiver), or [AIDL](https://developer.android.com/guide/components/aidl)
 - Built-in failed-write recovery similar to the default [`SharedPreferences`](https://developer.android.com/reference/android/content/SharedPreferences)
 - Supports Android API 14+
 
 ## Download
 ### Gradle
 ```
-implementation 'com.frybits.harmony:harmony:1.0.0'
+implementation 'com.frybits.harmony:harmony:1.1.0'
 ```
 
 ## Usage
@@ -41,8 +41,6 @@ Once you have this `SharedPreferences` object, it can be used just like any othe
 
 **NOTE: Changes in Harmony do not reflect in Android SharedPreferences and vice-versa!** 
 
-:warning: **WARNING:** Calling `apply()` each time in a loop iteration could create a large enough queue of jobs for writing to the underlying data file, that it will delay the data replication across processes (up to a 25 second delay when calling `apply()` 1k times each iteration in a loop). When possible, put all the data to write in the `Editor` object before calling `apply()` or `commit()`.
-
 ## Performance
 All tests were performed on a Samsung Galaxy S9 (SM-G960U) running Android 10.
 
@@ -59,7 +57,16 @@ The source code for this test can be found in [`HarmonyPrefsCommitActivity`](./a
 
 ![Commit Single Entry Test](./graphics/commit_test.png)
 
-**Summary:** This result is expected. Harmony will perform a commit that is slightly slower than the vanilla SharedPreferences due to file locking occurring within Harmony.
+Inter-Process replication test setup:
+- A service called `HarmonyPrefsReceiveService` is listening on another processes using the `OnSharedPreferenceChangeListener`
+- On every key change, the current time is taken on the service process, and compared against the received time from the activity process
+- This test was performed 10 times, with the results based off of all 10k entries
+- Time for `OnSharedPreferenceChangeListener` to be called in other process (Harmony only):
+  - **Min time:** `6 ms`
+  - **Max time:** `190 ms`
+  - **Average time:** `53.4882 ms`
+
+**Summary:** This result is expected. Harmony will perform a commit that is slower than the vanilla SharedPreferences due to file locking occurring, but will quickly emit the changes to any process that is listening.
 
 ### Apply (Single Entry) Test
 Test setup:
@@ -69,28 +76,33 @@ Test setup:
 - Each test inserted 1k `long` values
 - The time measured is the duration it took to complete all 1k inserts
 - This test was performed 10 times
-- **NOTE: This is the worst case scenario for multiprocess replication, and not recommended for production use!**
 
 The source code for this test can be found in [`HarmonyPrefsApplyActivity`](./app/src/main/java/com/frybits/harmony/app/test/singleentry/apply/HarmonyPrefsApplyActivity.kt)
 
 ![Apply Single Entry Test](./graphics/apply_test.png)
 
-**Summary:** A lot of work has gone to improve the memory commit speed when calling `apply()`. However, the vanilla SharedPreferences is still faster, meaning that Harmony still has room to improve when calling `apply()`.
+**Summary:** With the recent changes (v1.1.0), Harmony `apply()` is now as fast as the vanilla `SharedPreferences` implementation. Also, the replication performance across processes has improved, however due to the asynchrnonous nature of the data storage, this is still slower than using `commit()`.
 
-## Inter-Process Replication Test
-Test Setup:
-- Uses the `HarmonyPrefsCommitActivity` test
-- Harmony preferences are cleared before the start of the test
-- Each entry is the current time on the activity process right before `commit()` is called
+Inter-Process replication test setup:
 - A service called `HarmonyPrefsReceiveService` is listening on another processes using the `OnSharedPreferenceChangeListener`
 - On every key change, the current time is taken on the service process, and compared against the received time from the activity process
 - This test was performed 10 times, with the results based off of all 10k entries
-- Results (sorry, no pretty graph):
-  - **Min time:** `4 ms`
-  - **Max time:** `102 ms`
-  - **Average time:** `25.7527 ms`
+- Time for `OnSharedPreferenceChangeListener` to be called in other process (Harmony only):
+  - **Min time:** `9 ms`
+  - **Max time:** `3004 ms`
+  - **Average time:** `805.6435 ms`
+- **NOTE:** Quickly calling `apply()` increases the queue for the underlying disk write, which is why the replication time seems to increase. This is the max and average times when calling `apply()` 1k times in a loop. Consider this a wort case scenario.
 
 ## Change Log
+### Version 1.1.0 / 2020-06-13
+- Fixes a bug where calling `apply()` in both processes at once would potentially cause removed data to be restored
+- Improves in-memory replication time between processes when using `apply()`
+- Creates a transaction file where changes get written to before being written to the master preferences file
+  - Every time `apply()` or `commit()` is called, a new transaction is written to the transaction file
+  - Each time a process restarts and gets an instance of a Harmony preference object, all transactions are flushed and written to the master file
+  - Transactions are also flushed when transaction file grows beyond a certain size (128 KB currently, or about ~3k single key transactions)
+  - All transactions contain a checksum value to validate transaction integrity
+
 ### Version 1.0.0 / 2020-05-23
 - **FIRST MAJOR RELEASE!**
 - Fixes a bug where `getAll()` only holds `long` numbers, instead of `int` and `float`

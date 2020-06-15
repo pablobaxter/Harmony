@@ -24,17 +24,34 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.lang.Exception
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.random.Random
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-/**
+/*
+ *  Copyright 2020 Pablo Baxter
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  * Created by Pablo Baxter (Github: pablobaxter)
+ * https://github.com/pablobaxter/Harmony
  */
 
 private const val PREF_NAME = "prefName"
 private const val ALTERNATE_PROCESS_NAME = ":alternate"
 private const val MESSENGER_KEY = "messenger"
+private const val TRANSACTION_SIZE = 4 * 1024L
 
 @RunWith(AndroidJUnit4::class)
 class HarmonyProcessTest {
@@ -46,7 +63,7 @@ class HarmonyProcessTest {
     fun setup() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        appContext.getHarmonySharedPreferences(PREF_NAME).edit(true) { clear() }
+        appContext.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE).edit(true) { clear() }
 
         // Ensure we are in the right process
         val pid = Process.myPid()
@@ -67,13 +84,13 @@ class HarmonyProcessTest {
         val application = InstrumentationRegistry.getInstrumentation().targetContext
 
         // 5 entries to test
-        val testMap = mutableMapOf(
+        val testMap = ConcurrentHashMap(mutableMapOf(
             "test-${Random.nextInt()}" to Random.nextInt(),
             "test-${Random.nextInt()}" to Random.nextInt(),
             "test-${Random.nextInt()}" to Random.nextInt(),
             "test-${Random.nextInt()}" to Random.nextInt(),
             "test-${Random.nextInt()}" to Random.nextInt()
-        )
+        ))
 
         // Setup new looper
         val handlerThread = HandlerThread("test").apply { start() }
@@ -103,7 +120,7 @@ class HarmonyProcessTest {
         // Give the service enough time to setup
         Thread.sleep(1000)
 
-        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME)
+        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
         testMap.forEach { (k, v) ->
             sharedPreferences.edit { putInt(k, v) }
         }
@@ -118,13 +135,13 @@ class HarmonyProcessTest {
         val application = InstrumentationRegistry.getInstrumentation().targetContext
 
         // 5 entries to test
-        val testMap = mutableMapOf(
+        val testMap = ConcurrentHashMap(mutableMapOf(
             "test-${Random.nextInt()}" to Random.nextLong(),
             "test-${Random.nextInt()}" to Random.nextLong(),
             "test-${Random.nextInt()}" to Random.nextLong(),
             "test-${Random.nextInt()}" to Random.nextLong(),
             "test-${Random.nextInt()}" to Random.nextLong()
-        )
+        ))
 
         // Setup new looper
         val handlerThread = HandlerThread("test").apply { start() }
@@ -154,7 +171,7 @@ class HarmonyProcessTest {
         // Give the service enough time to setup
         Thread.sleep(1000)
 
-        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME)
+        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
         testMap.forEach { (k, v) ->
             sharedPreferences.edit { putLong(k, v) }
         }
@@ -169,13 +186,13 @@ class HarmonyProcessTest {
         val application = InstrumentationRegistry.getInstrumentation().targetContext
 
         // 5 entries to test
-        val testMap = mutableMapOf(
+        val testMap = ConcurrentHashMap(mutableMapOf(
             "test-${Random.nextInt()}" to Random.nextFloat(),
             "test-${Random.nextInt()}" to Random.nextFloat(),
             "test-${Random.nextInt()}" to Random.nextFloat(),
             "test-${Random.nextInt()}" to Random.nextFloat(),
             "test-${Random.nextInt()}" to Random.nextFloat()
-        )
+        ))
 
         // Setup new looper
         val handlerThread = HandlerThread("test").apply { start() }
@@ -205,7 +222,7 @@ class HarmonyProcessTest {
         // Give the service enough time to setup
         Thread.sleep(1000)
 
-        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME)
+        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
         testMap.forEach { (k, v) ->
             sharedPreferences.edit { putFloat(k, v) }
         }
@@ -220,13 +237,13 @@ class HarmonyProcessTest {
         val application = InstrumentationRegistry.getInstrumentation().targetContext
 
         // 5 entries to test
-        val testMap = mutableMapOf(
+        val testMap = ConcurrentHashMap(mutableMapOf(
             "test-${Random.nextInt()}" to Random.nextBoolean(),
             "test-${Random.nextInt()}" to Random.nextBoolean(),
             "test-${Random.nextInt()}" to Random.nextBoolean(),
             "test-${Random.nextInt()}" to Random.nextBoolean(),
             "test-${Random.nextInt()}" to Random.nextBoolean()
-        )
+        ))
 
         // Setup new looper
         val handlerThread = HandlerThread("test").apply { start() }
@@ -256,7 +273,7 @@ class HarmonyProcessTest {
         // Give the service enough time to setup
         Thread.sleep(1000)
 
-        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME)
+        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
         testMap.forEach { (k, v) ->
             sharedPreferences.edit { putBoolean(k, v) }
         }
@@ -271,13 +288,13 @@ class HarmonyProcessTest {
         val application = InstrumentationRegistry.getInstrumentation().targetContext
 
         // 5 entries to test
-        val testMap = mutableMapOf(
+        val testMap = ConcurrentHashMap(mutableMapOf(
             "test-${Random.nextInt()}" to "${Random.nextInt()}",
             "test-${Random.nextInt()}" to "${Random.nextInt()}",
             "test-${Random.nextInt()}" to "${Random.nextInt()}",
             "test-${Random.nextInt()}" to "${Random.nextInt()}",
             "test-${Random.nextInt()}" to "${Random.nextInt()}"
-        )
+        ))
 
         // Setup new looper
         val handlerThread = HandlerThread("test").apply { start() }
@@ -307,7 +324,7 @@ class HarmonyProcessTest {
         // Give the service enough time to setup
         Thread.sleep(1000)
 
-        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME)
+        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
         testMap.forEach { (k, v) ->
             sharedPreferences.edit { putString(k, v) }
         }
@@ -322,13 +339,13 @@ class HarmonyProcessTest {
         val application = InstrumentationRegistry.getInstrumentation().targetContext
 
         // 5 entries to test
-        val testMap = mutableMapOf(
+        val testMap = ConcurrentHashMap(mutableMapOf(
             "test-${Random.nextInt()}" to Array(5) { "${Random.nextInt()}" }.toSet(),
             "test-${Random.nextInt()}" to Array(5) { "${Random.nextInt()}" }.toSet(),
             "test-${Random.nextInt()}" to Array(5) { "${Random.nextInt()}" }.toSet(),
             "test-${Random.nextInt()}" to Array(5) { "${Random.nextInt()}" }.toSet(),
             "test-${Random.nextInt()}" to Array(5) { "${Random.nextInt()}" }.toSet()
-        )
+        ))
 
         // Setup new looper
         val handlerThread = HandlerThread("test").apply { start() }
@@ -358,7 +375,7 @@ class HarmonyProcessTest {
         // Give the service enough time to setup
         Thread.sleep(1000)
 
-        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME)
+        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
         testMap.forEach { (k, v) ->
             sharedPreferences.edit { putStringSet(k, v) }
         }
@@ -372,7 +389,7 @@ class HarmonyProcessTest {
         // Setup test
         val application = InstrumentationRegistry.getInstrumentation().targetContext
 
-        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME)
+        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
 
         sharedPreferences.edit { putString("test", "test") }
 
@@ -381,15 +398,19 @@ class HarmonyProcessTest {
         val serviceIntent = Intent(application, MassInputService::class.java)
         serviceRule.startService(serviceIntent)
 
-        Thread.sleep(100)
+        // Give the service enough time to setup
+        Thread.sleep(1000)
 
         assertTrue("Alternate service did not insert any data!") { sharedPreferences.all.size > 1 }
 
         sharedPreferences.edit { remove("test") }
 
-        // Give the service enough time to setup
+        assertFalse("Shared preferences still contains old data!") { sharedPreferences.contains("test") }
+
+        // Give the preferences time make any in-flight commits
         Thread.sleep(1000)
 
+        // Check again to ensure data was not re-inserted
         assertFalse("Shared preferences still contains old data!") { sharedPreferences.contains("test") }
     }
 }
@@ -411,7 +432,7 @@ class AlternateProcessService : Service() {
         super.onCreate()
         assertTrue("Service is not running in alternate process!") { getServiceProcess().endsWith(ALTERNATE_PROCESS_NAME) }
 
-        testPrefs = getHarmonySharedPreferences(PREF_NAME)
+        testPrefs = getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
         testPrefs.registerOnSharedPreferenceChangeListener(sharedPreferenceChangeListener)
     }
 
@@ -450,7 +471,7 @@ class MassInputService : Service() {
         super.onCreate()
         assertTrue("Service is not running in alternate process!") { getServiceProcess().endsWith(ALTERNATE_PROCESS_NAME) }
 
-        testPrefs = getHarmonySharedPreferences(PREF_NAME)
+        testPrefs = getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {

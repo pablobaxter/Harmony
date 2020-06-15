@@ -9,32 +9,42 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
-        <activity android:name=".MainActivity">
+        <activity
+            android:name=".MainActivity"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <activity android:name=".test.singleentry.commit.HarmonyPrefsCommitActivity" >
+        <activity
+            android:name=".test.singleentry.commit.HarmonyPrefsCommitActivity"
+            android:screenOrientation="portrait">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value=".MainActivity" />
         </activity>
 
-        <activity android:name=".test.singleentry.apply.HarmonyPrefsApplyActivity" >
+        <activity
+            android:name=".test.singleentry.apply.HarmonyPrefsApplyActivity"
+            android:screenOrientation="portrait">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value=".MainActivity" />
         </activity>
 
-        <activity android:name=".test.bulkentry.apply.HarmonyPrefsBulkApplyActivity" >
+        <activity
+            android:name=".test.bulkentry.apply.HarmonyPrefsBulkApplyActivity"
+            android:screenOrientation="portrait">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value=".MainActivity" />
         </activity>
 
-        <activity android:name=".test.bulkentry.commit.HarmonyPrefsBulkCommitActivity" >
+        <activity
+            android:name=".test.bulkentry.commit.HarmonyPrefsBulkCommitActivity"
+            android:screenOrientation="portrait">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value=".MainActivity" />

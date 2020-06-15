@@ -16,6 +16,7 @@ package com.frybits.harmony.app
  *  limitations under the License.
  *
  * Created by Pablo Baxter (Github: pablobaxter)
+ * https://github.com/pablobaxter/Harmony
  */
 
 const val NUM_TESTS = 10

@@ -1,16 +1,12 @@
 @file:JvmName("_InternalCoreHarmony")
 @file:JvmMultifileClass
 
-package com.frybits.harmony.core
+package com.frybits.harmony.internal
 
 import android.util.JsonReader
 import android.util.JsonToken
 import android.util.JsonWriter
-import java.io.File
-import java.io.FileInputStream
-import java.io.FileOutputStream
 import java.io.IOException
-import java.nio.channels.FileLock
 
 /*
  *  Copyright 2020 Pablo Baxter
@@ -29,14 +25,10 @@ import java.nio.channels.FileLock
  *
  *
  * Created by Pablo Baxter (Github: pablobaxter)
+ * https://github.com/pablobaxter/Harmony
  *
  * Helper functions
  */
-
-// String source: https://github.com/aosp-mirror/platform_prebuilt/blob/master/ndk/android-ndk-r7/platforms/android-14/arch-arm/usr/include/sys/_errdefs.h#L73
-private const val RESOURCE_DEADLOCK_ERROR = "Resource deadlock would occur"
-
-private const val LOG_TAG = "HarmonyUtils"
 
 private const val METADATA = "metaData"
 private const val DATA = "data"
@@ -54,16 +46,13 @@ private const val STRING = "string"
 private const val SET = "set"
 
 @JvmSynthetic
+@Throws(IOException::class)
 internal fun JsonReader.readHarmony(): Pair<String?, HashMap<String, Any?>> {
     var prefsName: String? = null
     var currName: String? = null
     val map = hashMapOf<String, Any?>()
-    try {
-        if (this.peek() == JsonToken.END_DOCUMENT) return prefsName to map
-    } catch (e: IOException) {
-        _InternalHarmonyLog.e(LOG_TAG, "IOException occurred while reading json", e)
-        return prefsName to map
-    }
+
+    if (this.peek() == JsonToken.END_DOCUMENT) return prefsName to map
 
     beginObject()
     while (hasNext()) {
@@ -185,32 +174,4 @@ internal fun JsonWriter.putHarmony(prefsName: String, data: Map<String, Any?>): 
     }
     endObject()
     return this
-}
-
-@JvmSynthetic
-internal inline fun <T> File.withFileLock(shared: Boolean = false, block: () -> T): T {
-    // File Channel must be write enabled for exclusive file locking
-    val lockFileChannel =
-        if (shared) FileInputStream(this).channel else FileOutputStream(this).channel
-    // Lock the file to prevent other process from writing to it while this read is occurring. This is reentrant
-    var lock: FileLock? = null
-    try {
-        // Keep retrying to get the lock
-        while (lock == null) {
-            try {
-                // This should block the thread, and prevent misuse of CPU cycles
-                lock = lockFileChannel.lock(0L, Long.MAX_VALUE, shared)
-            } catch (e: IOException) {
-                // This would not actually cause a deadlock
-                // Ignore this specific error and throw all others
-                if (e.message != RESOURCE_DEADLOCK_ERROR) {
-                    throw e
-                }
-            }
-        }
-        return block()
-    } finally {
-        lock?.release()
-        lockFileChannel.close()
-    }
 }
