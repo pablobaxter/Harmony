@@ -19,7 +19,7 @@ Harmony is a thread-safe, process-safe, full [`SharedPreferences`](https://devel
 ## Download
 ### Gradle
 ```
-implementation 'com.frybits.harmony:harmony:1.1.1'
+implementation 'com.frybits.harmony:harmony:1.1.2'
 ```
 
 ## Usage
