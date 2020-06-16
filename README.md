@@ -1,5 +1,5 @@
 # Harmony Preferences
-[![CircleCI](https://circleci.com/gh/pablobaxter/Harmony/tree/master.svg?style=shield)](https://circleci.com/gh/pablobaxter/Harmony/tree/master)
+[![CircleCI](https://circleci.com/gh/pablobaxter/Harmony/tree/main.svg?style=shield)](https://circleci.com/gh/pablobaxter/Harmony/tree/main)
 ![GitHub](https://img.shields.io/github/license/pablobaxter/harmony)
 ![Bintray](https://img.shields.io/bintray/v/soaboz/Harmony/com.frybits.harmony?style=shield) [![API](https://img.shields.io/badge/API-14%2B-brightgreen.svg?style=flat)](https://android-arsenal.com/api?level=14)
 
@@ -19,7 +19,7 @@ Harmony is a thread-safe, process-safe, full [`SharedPreferences`](https://devel
 ## Download
 ### Gradle
 ```
-implementation 'com.frybits.harmony:harmony:1.1.1'
+implementation 'com.frybits.harmony:harmony:1.1.2'
 ```
 
 ## Usage
@@ -94,15 +94,18 @@ Inter-Process replication test setup:
 - **NOTE:** Quickly calling `apply()` increases the queue for the underlying disk write, which is why the replication time seems to increase. This is the max and average times when calling `apply()` 1k times in a loop. Consider this a wort case scenario.
 
 ## Change Log
+### Version 1.1.2 / 2020-06-15
+- Renamed several functions and variables
+
 ### Version 1.1.1 / 2020-06-15
 - Fixes minor issue where phone restart could cause transactions to come in out of order
 
 ### Version 1.1.0 / 2020-06-13
 - Fixes a bug where calling `apply()` in both processes at once would potentially cause removed data to be restored
 - Improves in-memory replication time between processes when using `apply()`
-- Creates a transaction file where changes get written to before being written to the master preferences file
+- Creates a transaction file where changes get written to before being written to the main preferences file
   - Every time `apply()` or `commit()` is called, a new transaction is written to the transaction file
-  - Each time a process restarts and gets an instance of a Harmony preference object, all transactions are flushed and written to the master file
+  - Each time a process restarts and gets an instance of a Harmony preference object, all transactions are flushed and written to the main file
   - Transactions are also flushed when transaction file grows beyond a certain size (128 KB currently, or about ~3k single key transactions)
   - All transactions contain a checksum value to validate transaction integrity
 
