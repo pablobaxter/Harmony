@@ -95,7 +95,7 @@ Inter-Process replication test setup:
 
 ## Change Log
 ### Version 1.1.2 / 2020-06-15
-- Renamed several functions and variables 
+- Renamed several functions and variables
 
 ### Version 1.1.1 / 2020-06-15
 - Fixes minor issue where phone restart could cause transactions to come in out of order
