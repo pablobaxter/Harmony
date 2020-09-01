@@ -576,18 +576,12 @@ private class HarmonyImpl constructor(
                 try {
                     FileOutputStream(harmonyTransactionsFile, true).buffered().use { outputStream ->
                         // Transaction batching to improve cross-process replication
-                        var count = 0
                         var peekedTransaction = transactionQueue.peek()
-                        while (peekedTransaction != null) {
-                            count++
-                            peekedTransaction.commitTransactionToOutputStream(outputStream)
+                        repeat(transactionMaxBatchCount) {
+                            peekedTransaction?.commitTransactionToOutputStream(outputStream) ?: return@use
                             outputStream.flush()
                             transactionQueue.remove(peekedTransaction)
-                            if (count >= transactionMaxBatchCount) {
-                                break
-                            } else {
-                                peekedTransaction = transactionQueue.peek()
-                            }
+                            peekedTransaction = transactionQueue.peek()
                         }
                     }
                 } catch (e: IOException) {
