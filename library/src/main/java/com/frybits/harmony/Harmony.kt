@@ -577,15 +577,16 @@ private class HarmonyImpl constructor(
                     FileOutputStream(harmonyTransactionsFile, true).buffered().use { outputStream ->
                         // Transaction batching to improve cross-process replication
                         var count = 0
-                        var poppedTransaction = transactionQueue.poll()
-                        while (poppedTransaction != null) {
+                        var peekedTransaction = transactionQueue.peek()
+                        while (peekedTransaction != null) {
                             count++
-                            poppedTransaction.commitTransactionToOutputStream(outputStream)
+                            peekedTransaction.commitTransactionToOutputStream(outputStream)
                             outputStream.flush()
+                            transactionQueue.remove(peekedTransaction)
                             if (count >= transactionMaxBatchCount) {
                                 break
                             } else {
-                                poppedTransaction = transactionQueue.poll()
+                                peekedTransaction = transactionQueue.peek()
                             }
                         }
                     }
@@ -614,13 +615,12 @@ private class HarmonyImpl constructor(
             hashSetOf()
         }
 
-        // Add the in-flight transaction to the list, if it exists
-        val transactionsInQueue = hashSetOf<HarmonyTransaction>()
-        transactionQueue.drainTo(transactionsInQueue)
+        // Add the in-flight transactions to the list, if they exist
+        val transactionsInQueue = transactionQueue.toList()
 
         val combinedTransactions = transactionsInQueue + transactionList
 
-        // Remove this current transactions as it won't be written to the transaction file
+        // Remove these transactions as they won't be written to the transaction file
         mapReentrantReadWriteLock.write { transactionSet.removeAll(transactionsInQueue) }
 
         // Early exit if there is nothing to change
@@ -668,6 +668,9 @@ private class HarmonyImpl constructor(
             harmonyTransactionsFile.createNewFile()
             lastReadTransactions.clear()
             lastTransactionPosition = 0L
+
+            // Ensure queue is cleared of all current transactions
+            transactionQueue.removeAll(transactionsInQueue)
 
             // Delete the backup file
             harmonyMainBackupFile.delete()
