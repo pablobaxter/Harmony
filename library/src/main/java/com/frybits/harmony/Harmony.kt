@@ -577,8 +577,8 @@ private class HarmonyImpl constructor(
                     FileOutputStream(harmonyTransactionsFile, true).buffered().use { outputStream ->
                         // Transaction batching to improve cross-process replication
                         repeat(transactionMaxBatchCount) {
-                            val peekedTransaction = transactionQueue.peek()
-                            peekedTransaction?.commitTransactionToOutputStream(outputStream) ?: return@use
+                            val peekedTransaction = transactionQueue.peek() ?: return@use
+                            peekedTransaction.commitTransactionToOutputStream(outputStream)
                             outputStream.flush()
                             transactionQueue.remove(peekedTransaction)
                         }
