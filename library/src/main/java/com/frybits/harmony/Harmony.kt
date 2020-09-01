@@ -576,12 +576,11 @@ private class HarmonyImpl constructor(
                 try {
                     FileOutputStream(harmonyTransactionsFile, true).buffered().use { outputStream ->
                         // Transaction batching to improve cross-process replication
-                        var peekedTransaction = transactionQueue.peek()
                         repeat(transactionMaxBatchCount) {
+                            val peekedTransaction = transactionQueue.peek()
                             peekedTransaction?.commitTransactionToOutputStream(outputStream) ?: return@use
                             outputStream.flush()
                             transactionQueue.remove(peekedTransaction)
-                            peekedTransaction = transactionQueue.peek()
                         }
                     }
                 } catch (e: IOException) {
