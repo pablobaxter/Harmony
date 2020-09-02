@@ -109,21 +109,21 @@ class HarmonyPrefsReceiveService : Service() {
         Log.i("Trial", "${this::class.java.simpleName}: =========================Harmony Single Read=========================")
         Log.i("Trial", "${this::class.java.simpleName}: Harmony - Read count: ${singleReadTimeCaptureList.size}, expecting ${ITERATIONS * NUM_TESTS}")
         Log.i("Trial", "${this::class.java.simpleName}: Harmony - Average to read one item: ${singleReadTimeCaptureList.average()} ms")
-        Log.i("Trial", "${this::class.java.simpleName}: Harmony - Max to read one item: ${singleReadTimeCaptureList.max()} ms")
-        Log.i("Trial", "${this::class.java.simpleName}: Harmony - Min to read one item: ${singleReadTimeCaptureList.min()} ms")
+        Log.i("Trial", "${this::class.java.simpleName}: Harmony - Max to read one item: ${singleReadTimeCaptureList.maxOrNull()} ms")
+        Log.i("Trial", "${this::class.java.simpleName}: Harmony - Min to read one item: ${singleReadTimeCaptureList.minOrNull()} ms")
 
         Log.i("Trial", this::class.java.simpleName)
         Log.i("Trial", "${this::class.java.simpleName}: =========================Harmony Total Read=========================")
         Log.i("Trial", "${this::class.java.simpleName}: Harmony - Read test count: ${totalReadTimeCaptureList.size}, expecting $NUM_TESTS")
         Log.i("Trial", "${this::class.java.simpleName}: Harmony - Average read test time: ${totalReadTimeCaptureList.average()} ms")
-        Log.i("Trial", "${this::class.java.simpleName}: Harmony - Max read test time: ${totalReadTimeCaptureList.max()} ms")
-        Log.i("Trial", "${this::class.java.simpleName}: Harmony - Min read test time: ${totalReadTimeCaptureList.min()} ms")
+        Log.i("Trial", "${this::class.java.simpleName}: Harmony - Max read test time: ${totalReadTimeCaptureList.maxOrNull()} ms")
+        Log.i("Trial", "${this::class.java.simpleName}: Harmony - Min read test time: ${totalReadTimeCaptureList.minOrNull()} ms")
 
         Log.i("Trial", this::class.java.simpleName)
         Log.i("Trial", "${this::class.java.simpleName}: =========================Harmony Total Receive=========================")
         Log.i("Trial", "${this::class.java.simpleName}: Harmony - Receive Capture count: ${timeCaptureList.size}, expecting ${ITERATIONS * NUM_TESTS}")
         Log.i("Trial", "${this::class.java.simpleName}: Harmony - Average time to receive from main process: ${timeCaptureList.average()} ms")
-        Log.i("Trial", "${this::class.java.simpleName}: Harmony - Max time to receive from main process: ${timeCaptureList.max()} ms")
-        Log.i("Trial", "${this::class.java.simpleName}: Harmony - Min time to receive from main process: ${timeCaptureList.min()} ms")
+        Log.i("Trial", "${this::class.java.simpleName}: Harmony - Max time to receive from main process: ${timeCaptureList.maxOrNull()} ms")
+        Log.i("Trial", "${this::class.java.simpleName}: Harmony - Min time to receive from main process: ${timeCaptureList.minOrNull()} ms")
     }
 }
