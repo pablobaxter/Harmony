@@ -12,7 +12,6 @@ import android.util.JsonWriter
 import androidx.annotation.GuardedBy
 import androidx.annotation.VisibleForTesting
 import com.frybits.harmony.internal._InternalHarmonyLog
-import com.frybits.harmony.internal._harmonyLog
 import com.frybits.harmony.internal.harmonyFileObserver
 import com.frybits.harmony.internal.putHarmony
 import com.frybits.harmony.internal.readHarmony
@@ -76,7 +75,7 @@ import kotlin.coroutines.resume
  * It's totally supported here.
  *
  * Parts of this code loosely replicates code in SharedPreferencesImpl.
- * Source code here: https://android.googlesource.com/platform/frameworks/base.git/+/main/core/java/android/app/SharedPreferencesImpl.java
+ * Source code here: https://android.googlesource.com/platform/frameworks/base.git/+/master/core/java/android/app/SharedPreferencesImpl.java
  */
 
 private class HarmonyImpl constructor(
@@ -634,7 +633,7 @@ private class HarmonyImpl constructor(
                 .use { readHarmonyMapFromStream(it) }
         } catch (e: IOException) {
             _InternalHarmonyLog.e(LOG_TAG, "")
-            null to emptyMap<String, Any?>() // Make the main empty if there was an issue reading the main file
+            null to emptyMap() // Make the main empty if there was an issue reading the main file
         }
 
         // Create a mutable copy
@@ -1050,16 +1049,4 @@ internal fun Context.getHarmonySharedPreferences(
 fun Context.getHarmonySharedPreferences(name: String): SharedPreferences {
     // 128 KB is ~3k transactions with single operations.
     return getHarmonySharedPreferences(name, 128 * KILOBYTE)
-}
-
-// Helper interface to get logs from Harmony
-interface HarmonyLog {
-
-    fun log(priority: Int, msg: String)
-
-    companion object {
-        fun setHarmonyLog(harmonyLog: HarmonyLog) {
-            _harmonyLog = harmonyLog
-        }
-    }
 }

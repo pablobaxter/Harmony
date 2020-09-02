@@ -6,7 +6,6 @@ package com.frybits.harmony.internal
 
 import android.util.Log
 import com.frybits.harmony.BuildConfig
-import com.frybits.harmony.HarmonyLog
 
 /*
  *  Copyright 2020 Pablo Baxter
@@ -30,8 +29,6 @@ import com.frybits.harmony.HarmonyLog
  */
 
 private val LOG = BuildConfig.DEBUG
-
-internal var _harmonyLog: HarmonyLog? = null
 
 internal object _InternalHarmonyLog {
 
@@ -84,7 +81,6 @@ internal object _InternalHarmonyLog {
     }
 
     private fun log(priority: Int, tag: String, msg: String) {
-        _harmonyLog?.log(priority, getMessage(tag, msg))
         if (LOG) { // Only log to console for debug builds
             Log.println(priority, tag, msg)
         }
