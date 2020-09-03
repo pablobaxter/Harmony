@@ -1,5 +1,6 @@
 package com.frybits.harmony.internal
 
+import androidx.annotation.VisibleForTesting
 import java.io.File
 import java.io.IOException
 import java.io.RandomAccessFile
@@ -31,23 +32,42 @@ private const val LOG_TAG = "HarmonyFileUtils"
 @JvmSynthetic
 internal inline fun <T> File.withFileLock(shared: Boolean = false, block: () -> T): T? {
     return synchronized(this) {
-        var accessFile: RandomAccessFile? = null
-        // Lock the file to prevent other process from writing to it while this read is occurring. This is reentrant
-        var lock: FileLock? = null
+        var randomAccessFile: RandomAccessFile? = null
         try {
-            accessFile = RandomAccessFile(this, "rw")
-            // File Channel must be write enabled for exclusive file locking
-            // This should block the thread, and prevent misuse of CPU cycles
-            lock = accessFile.channel.lock(0L, Long.MAX_VALUE, shared)
-            return@synchronized block()
+            randomAccessFile = RandomAccessFile(this, if (shared) "r" else "rw")
+            return@synchronized randomAccessFile.withFileLock(shared, block)
         } catch (e: IOException) {
             _InternalHarmonyLog.w(LOG_TAG, "IOException while obtaining file lock", e)
         } catch (e: Error) {
             _InternalHarmonyLog.w(LOG_TAG, "Error while obtaining file lock", e)
         } finally {
-            lock?.release()
-            accessFile?.close()
+            // The object may have a bad file descriptor, but if we don't call "close()", this will lead to a crash when GC cleans this object up
+            try {
+                randomAccessFile?.close()
+            } catch (e: IOException) {
+                _InternalHarmonyLog.w(LOG_TAG, "Exception thrown while closing the RandomAccessFile", e)
+            }
         }
         return@synchronized null
+    }
+}
+
+@Throws(IOException::class)
+@JvmSynthetic
+@VisibleForTesting
+internal inline fun <T> RandomAccessFile.withFileLock(shared: Boolean, block: () -> T): T {
+    // Lock the file to prevent other process from writing to it while this read is occurring. This is reentrant
+    var lock: FileLock? = null
+    try {
+        // File Channel must be write enabled for exclusive file locking
+        // This should block the thread, and prevent misuse of CPU cycles
+        lock = channel.lock(0L, Long.MAX_VALUE, shared)
+        return block()
+    } finally {
+        try {
+            lock?.release()
+        } catch (e: IOException) {
+            throw IOException("Unable to release FileLock!", e)
+        }
     }
 }

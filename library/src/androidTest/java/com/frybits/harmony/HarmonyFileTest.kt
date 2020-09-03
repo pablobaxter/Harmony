@@ -7,6 +7,7 @@ import android.content.Intent
 import android.os.Binder
 import android.os.IBinder
 import android.os.Process
+import android.system.Os
 import androidx.core.content.edit
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -17,12 +18,14 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
+import java.io.IOException
 import java.io.RandomAccessFile
 import java.nio.channels.FileChannel
 import java.nio.channels.FileLock
 import java.util.concurrent.Executors
 import kotlin.random.Random
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -243,9 +246,7 @@ class HarmonyFileTest {
         Thread.sleep(1000)
 
         val sharedAsync = executor.submit {
-            testFile.withFileLock(true) {
-
-            }
+            testFile.withFileLock(true) {}
         }
 
         Thread.sleep(1000)
@@ -253,9 +254,7 @@ class HarmonyFileTest {
         assertTrue("Shared job has not completed, when it should be!") { sharedAsync.isDone }
 
         val lockedAsync = executor.submit {
-            testFile.withFileLock {
-
-            }
+            testFile.withFileLock {}
         }
 
         Thread.sleep(1000)
@@ -292,9 +291,7 @@ class HarmonyFileTest {
         Thread.sleep(1000)
 
         val sharedAsync = executor.submit {
-            testFile.withFileLock(true) {
-
-            }
+            testFile.withFileLock(true) {}
         }
 
         Thread.sleep(1000)
@@ -302,9 +299,7 @@ class HarmonyFileTest {
         assertFalse("Shared job was completed, when it was not supposed to be yet!") { sharedAsync.isDone }
 
         val lockedAsync = executor.submit {
-            testFile.withFileLock {
-
-            }
+            testFile.withFileLock {}
         }
 
         Thread.sleep(1000)
@@ -321,6 +316,38 @@ class HarmonyFileTest {
 
         assertTrue("Locked job has not completed, when it should be!") { lockedAsync.isDone }
         assertTrue("Shared job has not completed, when it should be!") { sharedAsync.isDone }
+    }
+
+    @Test
+    fun testBadFileDescriptorLockReleaseCrash() {
+        // Setup test
+        val application = InstrumentationRegistry.getInstrumentation().targetContext
+
+        val testFile = File(application.filesDir, TEST_PREFS)
+
+        val randomAccessFile = RandomAccessFile(testFile, "rw")
+
+        // Ensure the FileDescriptor is valid
+        assertTrue { randomAccessFile.fd.valid() }
+
+        // This is expected to fail with only an IOException. Any other error is a failure
+        val exception = assertFailsWith<IOException> {
+            randomAccessFile.withFileLock(shared = true) {
+                Os.close(randomAccessFile.fd) // Simulate the file descriptor closing unexpectedly
+            }
+        }
+        assertEquals("Unable to release FileLock!", exception.message)
+
+        // FileDescriptor should be closed here
+        assertFalse { randomAccessFile.fd.valid() }
+
+        // Handled safely inside the 'withFileLock', but forcing the close here
+        assertFailsWith<IOException> {
+            randomAccessFile.close()
+        }
+
+        // This should not throw any exception
+        randomAccessFile.close()
     }
 }
 
