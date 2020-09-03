@@ -81,8 +81,6 @@ The source code for this test can be found in [`HarmonyPrefsApplyActivity`](./ap
 
 ![Apply Single Entry Test](./graphics/apply_test.png)
 
-**Summary:** With the recent changes (v1.1.3), Harmony `apply()` is as fast as the vanilla `SharedPreferences` and the replication performance across processes has been greatly improved. Previously, this replication would take up to 3 seconds when calling `apply()` upwards of 1k times, but now will take up to 350 ms. More details about this test and results below.
-
 Inter-Process replication test setup:
 - A service called `HarmonyPrefsReceiveService` is listening on another processes using the `OnSharedPreferenceChangeListener`
 - On every key change, the current time is taken on the service process, and compared against the received time from the activity process
@@ -93,6 +91,8 @@ Inter-Process replication test setup:
   - **Max time:** `348 ms`
   - **Average time:** `101.1798 ms`
 - **NOTE:** Quickly calling `apply()` can lead to longer replication times. You should always batch changes into the `SharedPreferenced.Editor` object before calling `apply()` for the best performance.
+
+**Summary:** With the recent changes (v1.1.3), Harmony `apply()` is as fast as the vanilla `SharedPreferences` and the replication performance across processes has been greatly improved. Previously, this replication would take up to 3 seconds when calling `apply()` upwards of 1k times, but now will take ~350 ms at maximum.
 
 ## Change Log
 ### Version 1.1.3 / 2020-09-02
