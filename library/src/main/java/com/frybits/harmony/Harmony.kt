@@ -305,18 +305,18 @@ private class HarmonyImpl constructor(
     }
 
     // Helper function to handle exceptions from reading the main file
-    private fun readHarmonyMapFromStream(prefsReader: Reader): Pair<String?, HashMap<String, Any?>> {
+    private fun readHarmonyMapFromStream(prefsReader: Reader): HashMap<String, Any?> {
         return try {
             JsonReader(prefsReader).readHarmony()
         } catch (e: IllegalStateException) {
             _InternalHarmonyLog.e(LOG_TAG, "IllegalStateException while reading data file", e)
-            null to hashMapOf()
+            hashMapOf()
         } catch (e: JSONException) {
             _InternalHarmonyLog.e(LOG_TAG, "JSONException while reading data file", e)
-            null to hashMapOf()
+            hashMapOf()
         } catch (e: IOException) {
             _InternalHarmonyLog.e(LOG_TAG, "IOException occurred while reading json", e)
-            null to hashMapOf()
+            hashMapOf()
         }
     }
 
@@ -348,9 +348,8 @@ private class HarmonyImpl constructor(
             if (!harmonyMainFile.createNewFile()) {
                 try {
                     // Get main file
-                    val (_, map) = harmonyMainFile.bufferedReader()
+                    mainSnapshot = harmonyMainFile.bufferedReader()
                         .use { readHarmonyMapFromStream(it) }
-                    mainSnapshot = map
                 } catch (e: IOException) {
                     _InternalHarmonyLog.e(LOG_TAG, "Unable to read harmony main file on init", e)
                 }
@@ -412,11 +411,11 @@ private class HarmonyImpl constructor(
         suspendCancellableCoroutine<Unit> { cont ->
             harmonyMainLockFile.withFileLock(shared = true) mainLock@{
                 if (cont.isCancelled) return@suspendCancellableCoroutine // Early out if this job was cancelled before the lock was obtained
-                val (_, isCorrupted) = RandomAccessFile(harmonyTransactionsFile, "r").use { accessFile ->
+                val isCorrupted = RandomAccessFile(harmonyTransactionsFile, "r").use { accessFile ->
                     if (accessFile.length() == 0L) { // Don't read the transaction file if it's empty
                         lastReadTransactions.clear()
                         lastTransactionPosition = 0L
-                        return@use lastReadTransactions to false
+                        return@use false
                     }
                     accessFile.seek(lastTransactionPosition) // Read from the last position
                     try {
@@ -429,10 +428,10 @@ private class HarmonyImpl constructor(
                             mapReentrantReadWriteLock.write { lastTransaction = lastTransaction?.let { maxOf(transaction, it) } ?: transaction } // Ensure only the latest used transaction is set
                         }
                         lastReadTransactions.addAll(readTransactions) // Store all the read transactions to avoid re-reading them again
-                        return@use lastReadTransactions to isCorrupted
+                        return@use isCorrupted
                     } catch (e: IOException) {
                         _InternalHarmonyLog.w(LOG_TAG, "Unable to read transactions during update")
-                        return@use emptySet<HarmonyTransaction>() to false
+                        return@use false
                     }
                 }
 
@@ -515,7 +514,7 @@ private class HarmonyImpl constructor(
     @GuardedBy("harmonyMainLockFile")
     private fun handleMainUpdate() {
         // Read the main file directly
-        val (_, map) = try {
+        val map = try {
             harmonyMainFile.bufferedReader()
                 .use { readHarmonyMapFromStream(it) }
         } catch (e: IOException) {
@@ -631,15 +630,13 @@ private class HarmonyImpl constructor(
         }
 
         // Get the current preferences
-        val (_, prefs) = try {
+        val prefs = try {
             harmonyMainBackupFile.bufferedReader()
                 .use { readHarmonyMapFromStream(it) }
         } catch (e: IOException) {
             _InternalHarmonyLog.e(LOG_TAG, "Unable to get main file.", e)
-            null to hashMapOf() // Make the main empty if there was an issue reading the main file
+            hashMapOf() // Make the main empty if there was an issue reading the main file
         }
-
-        // Create a mutable copy
 
         // Apply all transactions to the mutable copy
         combinedTransactions.sorted()

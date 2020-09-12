@@ -47,12 +47,12 @@ private const val SET = "set"
 
 @JvmSynthetic
 @Throws(IOException::class)
-internal fun JsonReader.readHarmony(): Pair<String?, HashMap<String, Any?>> {
+internal fun JsonReader.readHarmony(): HashMap<String, Any?> {
     var prefsName: String? = null
     var currName: String? = null
     val map = hashMapOf<String, Any?>()
 
-    if (this.peek() == JsonToken.END_DOCUMENT) return prefsName to map
+    if (this.peek() == JsonToken.END_DOCUMENT) return map
 
     beginObject()
     while (hasNext()) {
@@ -113,7 +113,7 @@ internal fun JsonReader.readHarmony(): Pair<String?, HashMap<String, Any?>> {
     }
     endObject()
 
-    return prefsName to map
+    return map
 }
 
 @JvmSynthetic
