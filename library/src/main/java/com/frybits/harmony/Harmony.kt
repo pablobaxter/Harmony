@@ -124,6 +124,8 @@ private class HarmonyImpl constructor(
     // In-memory copy of the last read transactions in the transaction file. Should be cleared when transaction is cleared.
     private val lastReadTransactions = hashSetOf<HarmonyTransaction>()
 
+    private var lastTransaction: HarmonyTransaction? = null
+
     // The last read position of the transaction file. Prevents having to read the entire file each update
     private var lastTransactionPosition = 0L
 
@@ -357,7 +359,7 @@ private class HarmonyImpl constructor(
             // Wait for the transactions job to finish if it hasn't yet
             val (transactions) = runBlocking { transactionListJob.await() }
 
-            transactions.sortedBy { it.memoryCommitTime }
+            transactions.sorted()
                 .forEach { it.commitTransaction(mainSnapshot) }
 
             // We want to commit any pending transactions to the main file on startup
@@ -411,7 +413,7 @@ private class HarmonyImpl constructor(
             harmonyMainLockFile.withFileLock(shared = true) mainLock@{
                 if (cont.isCancelled) return@suspendCancellableCoroutine // Early out if this job was cancelled before the lock was obtained
                 val (_, isCorrupted) = RandomAccessFile(harmonyTransactionsFile, "r").use { accessFile ->
-                    if (accessFile.length() == 0L) { // Don't read the transaction file it it's empty
+                    if (accessFile.length() == 0L) { // Don't read the transaction file if it's empty
                         lastReadTransactions.clear()
                         lastTransactionPosition = 0L
                         return@use lastReadTransactions to false
@@ -422,6 +424,10 @@ private class HarmonyImpl constructor(
                             .use { HarmonyTransaction.generateHarmonyTransactions(it) }
                         lastTransactionPosition =
                             accessFile.length() // Set the last position to the length of the data
+                        // Only set the latest transaction if the lastReadTransactions has any items
+                        lastReadTransactions.maxOrNull()?.let { transaction ->
+                            mapReentrantReadWriteLock.write { lastTransaction = lastTransaction?.let { maxOf(transaction, it) } ?: transaction } // Ensure only the latest used transaction is set
+                        }
                         lastReadTransactions.addAll(readTransactions) // Store all the read transactions to avoid re-reading them again
                         return@use lastReadTransactions to isCorrupted
                     } catch (e: IOException) {
@@ -463,26 +469,22 @@ private class HarmonyImpl constructor(
                     // Get a copy of the last known main snapshot
                     val mainCopy = HashMap(mainSnapshot)
 
-                    // Commit all transactions to this snapshot
-                    combinedTransactions.sortedBy { it.memoryCommitTime }
-                        .forEach { it.commitTransaction(mainCopy) }
-
                     val notifyListeners = listenerMap.isNotEmpty()
                     val keysModified = if (notifyListeners) arrayListOf<String>() else null
                     val listeners = if (notifyListeners) listenerMap.keys.toHashSet() else null
 
-                    // Identify any keys that were modified
-                    val oldMap = harmonyMap
-                    harmonyMap = mainCopy
-                    if (harmonyMap.isNotEmpty()) {
-                        harmonyMap.forEach { (k, v) ->
-                            if (!oldMap.containsKey(k) || oldMap[k] != v) {
-                                keysModified?.add(k)
+                    // Commit all transactions to this snapshot
+                    combinedTransactions.sorted()
+                        .forEach {
+                            val tempTransaction = lastTransaction
+                            if (tempTransaction == null || tempTransaction < it) {
+                                it.commitTransaction(mainCopy, keysModified)
+                            } else {
+                                it.commitTransaction(mainCopy)
                             }
-                            oldMap.remove(k)
                         }
-                        keysModified?.addAll(oldMap.keys)
-                    }
+
+                    harmonyMap = mainCopy
 
                     if (notifyListeners) {
                         requireNotNull(keysModified)
@@ -529,7 +531,7 @@ private class HarmonyImpl constructor(
             val mainCopy = HashMap(mainSnapshot)
 
             // All transactions should be applied to a copy of the main snapshot, not directly on it
-            transactionSet.sortedBy { it.memoryCommitTime }
+            transactionSet.sorted() // TODO There is an edge case bug where this won't properly handle change listener updates across processes if the main file is updated.
                 .forEach { it.commitTransaction(mainCopy) }
 
             val notifyListeners = listenerMap.isNotEmpty()
@@ -640,7 +642,7 @@ private class HarmonyImpl constructor(
         // Create a mutable copy
 
         // Apply all transactions to the mutable copy
-        combinedTransactions.sortedBy { it.memoryCommitTime }
+        combinedTransactions.sorted()
             .forEach { it.commitTransaction(prefs) }
 
         val mainWriter =
@@ -772,9 +774,10 @@ private class HarmonyImpl constructor(
                 synchronized(this@HarmonyEditor) {
                     val transaction = harmonyTransaction
                     transaction.memoryCommitTime =
-                        SystemClock.elapsedRealtime() // The current time this "apply()" was called
+                        SystemClock.elapsedRealtimeNanos() // The current time this "apply()" was called
                     transactionSet.add(transaction) // Add this to the in-flight transaction set for this process
                     transactionQueue.put(transaction) // Current queue of transactions that need to be written to disk
+                    lastTransaction = lastTransaction?.let { maxOf(transaction, it) } ?: transaction // Extremely rare, but if the other process emitted a later transaction, keep that as the last, else use the current transaction
                     harmonyTransaction = HarmonyTransaction() // Generate a new transaction to prevent modifying one in-flight
                     transaction.commitTransaction(harmonyMap, keysModified) // Update the in-process map and get all modified keys
                     return@synchronized
@@ -795,7 +798,7 @@ private class HarmonyImpl constructor(
 }
 
 // Internal transaction class
-private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) { // Unique identifier to prevent transaction collision
+private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) : Comparable<HarmonyTransaction> { // Unique identifier to prevent transaction collision
     private sealed class Operation(val data: Any?) {
         class Update(data: Any) : Operation(data)
         object Delete : Operation(null)
@@ -934,6 +937,10 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) { /
 
     override fun hashCode(): Int {
         return uuid.hashCode()
+    }
+
+    override fun compareTo(other: HarmonyTransaction): Int {
+        return memoryCommitTime.compareTo(other.memoryCommitTime)
     }
 
     companion object {

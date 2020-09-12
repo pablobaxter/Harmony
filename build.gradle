@@ -22,7 +22,7 @@ buildscript {
         test_rules_version = '1.3.0'
 
         // Android project
-        minSdk_version = 14
+        minSdk_version = 17
         compileSdk_version = 29
         targetSdk_version = 29
         buildtools_version = '29.0.2'

@@ -6,6 +6,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -134,8 +135,8 @@ class HarmonyTest {
                 assertTrue { sharedPreferences === harmonyPrefs }
                 keyCompletableDeferred.complete(key)
             }
-        val pref1 = "foo"
-        val pref2 = "bar"
+        val pref1 = "foo${Random.nextInt()}"
+        val pref2 = "bar${Random.nextInt()}"
         assertFalse { harmonyPrefs.contains("test") }
         harmonyPrefs.edit { putString("test", pref1) }
         assertTrue { harmonyPrefs.contains("test") }
@@ -143,7 +144,39 @@ class HarmonyTest {
         harmonyPrefs.registerOnSharedPreferenceChangeListener(onPreferenChanListener)
         harmonyPrefs.edit { putString("test", pref2) }
         runBlocking {
-            assertEquals("test", keyCompletableDeferred.await())
+            withTimeout(1000) {
+                assertEquals("test", keyCompletableDeferred.await())
+            }
+        }
+        assertEquals(pref2, harmonyPrefs.getString("test", null))
+    }
+
+    @Test
+    fun testOnPreferenceChangeListenerWithClear() {
+        // Context of the app under test.
+        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+        val harmonyPrefs = appContext.getHarmonySharedPreferences(PREFS)
+        val keyCompletableDeferred = CompletableDeferred<String>()
+        val onPreferenChanListener =
+            SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences, key ->
+                assertTrue { sharedPreferences === harmonyPrefs }
+                keyCompletableDeferred.complete(key)
+            }
+        val pref1 = "foo${Random.nextInt()}"
+        val pref2 = "bar${Random.nextInt()}"
+        assertFalse { harmonyPrefs.contains("test") }
+        harmonyPrefs.edit { putString("test", pref1) }
+        assertTrue { harmonyPrefs.contains("test") }
+        assertEquals(pref1, harmonyPrefs.getString("test", null))
+        harmonyPrefs.registerOnSharedPreferenceChangeListener(onPreferenChanListener)
+        harmonyPrefs.edit {
+            clear()
+            putString("test", pref2)
+        }
+        runBlocking {
+            withTimeout(1000) {
+                assertEquals("test", keyCompletableDeferred.await())
+            }
         }
         assertEquals(pref2, harmonyPrefs.getString("test", null))
     }

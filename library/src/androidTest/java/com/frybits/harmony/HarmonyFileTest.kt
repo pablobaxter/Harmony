@@ -56,7 +56,6 @@ private const val PREFS_BACKUP = "prefs.backup"
 private const val PREFS_TRANSACTION_DATA = "prefs.transaction.data"
 
 private const val TEST_PREFS = "testPrefs"
-private const val ALTERNATE_PROCESS_NAME = ":alternate"
 
 private const val TEST_PREFS_JSON = """
     {

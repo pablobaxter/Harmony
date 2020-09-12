@@ -15,5 +15,11 @@
         <service
             android:name=".LockedFileLockService"
             android:process=":alternate" />
+        <service
+            android:name=".ClearDataApplyService"
+            android:process=":alternate" />
+        <service
+            android:name=".ClearDataCommitService"
+            android:process=":alternate" />
     </application>
 </manifest>
