@@ -8,6 +8,7 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.os.Messenger
 import android.os.Process
+import android.util.Log
 import androidx.core.content.edit
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -21,7 +22,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.random.Random
-import kotlin.test.Ignore
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -72,6 +72,7 @@ class HarmonyProcessCommitTest {
 
     @Test
     fun testMultiProcessPreferences_Int() {
+        Log.e("Blah", "testMultiProcessPreferences_Int")
         // Setup test
         val application = InstrumentationRegistry.getInstrumentation().targetContext
 
@@ -92,6 +93,7 @@ class HarmonyProcessCommitTest {
 
         // Setup a messenger to report results back from alternate process
         val messenger = Messenger(Handler(handlerThread.looper) { msg ->
+            Log.d("Blah", "Got message: $msg")
             if (testDeferred.isCompleted) return@Handler true
             val key = msg.data.keySet().first()
             val value = msg.data[key] as? Int
@@ -100,7 +102,10 @@ class HarmonyProcessCommitTest {
                 testDeferred.complete(Exception("Values were not equal! expected: $expected, actual: $value"))
                 return@Handler true
             }
-            if (testMap.isEmpty()) testDeferred.complete(null)
+            if (testMap.isEmpty()) {
+                Log.d("Blah", "Completing!")
+                testDeferred.complete(null)
+            }
             return@Handler true
         })
 
@@ -114,6 +119,7 @@ class HarmonyProcessCommitTest {
 
         val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
         testMap.forEach { (k, v) ->
+            Log.d("Blah", "Storing: $k")
             sharedPreferences.edit(true) { putInt(k, v) }
         }
 
@@ -127,6 +133,7 @@ class HarmonyProcessCommitTest {
 
     @Test
     fun testMultiProcessPreferences_Long() {
+        Log.e("Blah", "testMultiProcessPreferences_Long")
         // Setup test
         val application = InstrumentationRegistry.getInstrumentation().targetContext
 
@@ -147,6 +154,7 @@ class HarmonyProcessCommitTest {
 
         // Setup a messenger to report results back from alternate process
         val messenger = Messenger(Handler(handlerThread.looper) { msg ->
+            Log.d("Blah", "Got message: $msg")
             if (testDeferred.isCompleted) return@Handler true
             val key = msg.data.keySet().first()
             val value = msg.data[key] as? Long
@@ -155,7 +163,10 @@ class HarmonyProcessCommitTest {
                 testDeferred.complete(Exception("Values were not equal! expected: $expected, actual: $value"))
                 return@Handler true
             }
-            if (testMap.isEmpty()) testDeferred.complete(null)
+            if (testMap.isEmpty()) {
+                Log.d("Blah", "Completing!")
+                testDeferred.complete(null)
+            }
             return@Handler true
         })
 
@@ -169,6 +180,7 @@ class HarmonyProcessCommitTest {
 
         val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
         testMap.forEach { (k, v) ->
+            Log.d("Blah", "Storing: $k")
             sharedPreferences.edit(true) { putLong(k, v) }
         }
 
@@ -182,6 +194,7 @@ class HarmonyProcessCommitTest {
 
     @Test
     fun testMultiProcessPreferences_Float() {
+        Log.e("Blah", "testMultiProcessPreferences_Float")
         // Setup test
         val application = InstrumentationRegistry.getInstrumentation().targetContext
 
@@ -202,6 +215,7 @@ class HarmonyProcessCommitTest {
 
         // Setup a messenger to report results back from alternate process
         val messenger = Messenger(Handler(handlerThread.looper) { msg ->
+            Log.d("Blah", "Got message: $msg")
             if (testDeferred.isCompleted) return@Handler true
             val key = msg.data.keySet().first()
             val value = msg.data[key] as? Float
@@ -210,7 +224,10 @@ class HarmonyProcessCommitTest {
                 testDeferred.complete(Exception("Values were not equal! expected: $expected, actual: $value"))
                 return@Handler true
             }
-            if (testMap.isEmpty()) testDeferred.complete(null)
+            if (testMap.isEmpty()) {
+                Log.d("Blah", "Completing!")
+                testDeferred.complete(null)
+            }
             return@Handler true
         })
 
@@ -224,6 +241,7 @@ class HarmonyProcessCommitTest {
 
         val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
         testMap.forEach { (k, v) ->
+            Log.d("Blah", "Storing: $k")
             sharedPreferences.edit(true) { putFloat(k, v) }
         }
 
@@ -237,6 +255,7 @@ class HarmonyProcessCommitTest {
 
     @Test
     fun testMultiProcessPreferences_Boolean() {
+        Log.e("Blah", "testMultiProcessPreferences_Boolean")
         // Setup test
         val application = InstrumentationRegistry.getInstrumentation().targetContext
 
@@ -257,6 +276,7 @@ class HarmonyProcessCommitTest {
 
         // Setup a messenger to report results back from alternate process
         val messenger = Messenger(Handler(handlerThread.looper) { msg ->
+            Log.d("Blah", "Got message: $msg")
             if (testDeferred.isCompleted) return@Handler true
             val key = msg.data.keySet().first()
             val value = msg.data[key] as? Boolean
@@ -265,7 +285,10 @@ class HarmonyProcessCommitTest {
                 testDeferred.complete(Exception("Values were not equal! expected: $expected, actual: $value"))
                 return@Handler true
             }
-            if (testMap.isEmpty()) testDeferred.complete(null)
+            if (testMap.isEmpty()) {
+                Log.d("Blah", "Completing!")
+                testDeferred.complete(null)
+            }
             return@Handler true
         })
 
@@ -279,6 +302,7 @@ class HarmonyProcessCommitTest {
 
         val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
         testMap.forEach { (k, v) ->
+            Log.d("Blah", "Storing: $k")
             sharedPreferences.edit(true) { putBoolean(k, v) }
         }
 
@@ -292,6 +316,7 @@ class HarmonyProcessCommitTest {
 
     @Test
     fun testMultiProcessPreferences_String() {
+        Log.e("Blah", "testMultiProcessPreferences_String")
         // Setup test
         val application = InstrumentationRegistry.getInstrumentation().targetContext
 
@@ -312,6 +337,7 @@ class HarmonyProcessCommitTest {
 
         // Setup a messenger to report results back from alternate process
         val messenger = Messenger(Handler(handlerThread.looper) { msg ->
+            Log.d("Blah", "Got message: $msg")
             if (testDeferred.isCompleted) return@Handler true
             val key = msg.data.keySet().first()
             val value = msg.data[key] as? String
@@ -320,7 +346,10 @@ class HarmonyProcessCommitTest {
                 testDeferred.complete(Exception("Values were not equal! expected: $expected, actual: $value"))
                 return@Handler true
             }
-            if (testMap.isEmpty()) testDeferred.complete(null)
+            if (testMap.isEmpty()) {
+                Log.d("Blah", "Completing!")
+                testDeferred.complete(null)
+            }
             return@Handler true
         })
 
@@ -334,6 +363,7 @@ class HarmonyProcessCommitTest {
 
         val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
         testMap.forEach { (k, v) ->
+            Log.d("Blah", "Storing: $k")
             sharedPreferences.edit(true) { putString(k, v) }
         }
 
@@ -347,6 +377,7 @@ class HarmonyProcessCommitTest {
 
     @Test
     fun testMultiProcessPreferences_StringSet() {
+        Log.e("Blah", "testMultiProcessPreferences_StringSet")
         // Setup test
         val application = InstrumentationRegistry.getInstrumentation().targetContext
 
@@ -367,6 +398,7 @@ class HarmonyProcessCommitTest {
 
         // Setup a messenger to report results back from alternate process
         val messenger = Messenger(Handler(handlerThread.looper) { msg ->
+            Log.d("Blah", "Got message: $msg")
             if (testDeferred.isCompleted) return@Handler true
             val key = msg.data.keySet().first()
             @Suppress("UNCHECKED_CAST") val value = msg.data[key] as? Set<String>
@@ -375,7 +407,10 @@ class HarmonyProcessCommitTest {
                 testDeferred.complete(Exception("Values were not equal! expected: $expected, actual: $value"))
                 return@Handler true
             }
-            if (testMap.isEmpty()) testDeferred.complete(null)
+            if (testMap.isEmpty()) {
+                Log.d("Blah", "Completing!")
+                testDeferred.complete(null)
+            }
             return@Handler true
         })
 
@@ -389,6 +424,7 @@ class HarmonyProcessCommitTest {
 
         val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
         testMap.forEach { (k, v) ->
+            Log.d("Blah", "Storing: $k")
             sharedPreferences.edit(true) { putStringSet(k, v) }
         }
 
@@ -466,7 +502,6 @@ class HarmonyProcessCommitTest {
     }
 
     @Test
-    @Ignore("This test is failing due to a known bug with 'commit()'. Must be fixed.")
     fun testClearedDataChangesNotifiesAcrossProcesses() = runBlocking {
         // Setup test
         val application = InstrumentationRegistry.getInstrumentation().targetContext
