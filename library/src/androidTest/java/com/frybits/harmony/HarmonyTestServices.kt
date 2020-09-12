@@ -10,7 +10,6 @@ import android.os.IBinder
 import android.os.Message
 import android.os.Messenger
 import android.os.Process
-import android.util.Log
 import androidx.core.content.edit
 import androidx.core.os.bundleOf
 import kotlin.random.Random
@@ -72,7 +71,6 @@ class AlternateProcessService : HarmonyService() {
 
     private val sharedPreferenceChangeListener =
         SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
-            Log.d("Blah", "Got change listener event: $key")
             val value = prefs.all[key]
             messenger.send(Message.obtain().apply {
                 data = bundleOf(key to value)

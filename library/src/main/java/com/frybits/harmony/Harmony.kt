@@ -195,90 +195,54 @@ private class HarmonyImpl constructor(
     }
 
     override fun getInt(key: String, defValue: Int): Int {
-        if (!isLoadedDeferred.isCompleted) { // Only block if this job is not completed
-            runBlocking {
-                isLoadedDeferred.await()
-            }
-        }
+        awaitForLoad()
         val obj = mapReentrantReadWriteLock.read { harmonyMap[key] }
         return obj as Int? ?: defValue
     }
 
     override fun getLong(key: String, defValue: Long): Long {
-        if (!isLoadedDeferred.isCompleted) { // Only block if this job is not completed
-            runBlocking {
-                isLoadedDeferred.await()
-            }
-        }
+        awaitForLoad()
         val obj = mapReentrantReadWriteLock.read { harmonyMap[key] }
         return obj as Long? ?: defValue
     }
 
     override fun getFloat(key: String, defValue: Float): Float {
-        if (!isLoadedDeferred.isCompleted) { // Only block if this job is not completed
-            runBlocking {
-                isLoadedDeferred.await()
-            }
-        }
+        awaitForLoad()
         val obj = mapReentrantReadWriteLock.read { harmonyMap[key] }
         return obj as Float? ?: defValue
     }
 
     override fun getBoolean(key: String, defValue: Boolean): Boolean {
-        if (!isLoadedDeferred.isCompleted) {
-            runBlocking {
-                isLoadedDeferred.await()
-            }
-        }
+        awaitForLoad()
         val obj = mapReentrantReadWriteLock.read { harmonyMap[key] }
         return obj as Boolean? ?: defValue
     }
 
     override fun getString(key: String, defValue: String?): String? {
-        if (!isLoadedDeferred.isCompleted) {
-            runBlocking {
-                isLoadedDeferred.await()
-            }
-        }
+        awaitForLoad()
         val obj = mapReentrantReadWriteLock.read { harmonyMap[key] }
         return obj as String? ?: defValue
     }
 
     override fun getStringSet(key: String, defValues: MutableSet<String>?): Set<String>? {
-        if (!isLoadedDeferred.isCompleted) {
-            runBlocking {
-                isLoadedDeferred.await()
-            }
-        }
+        awaitForLoad()
         val obj = mapReentrantReadWriteLock.read { harmonyMap[key] }
         @Suppress("UNCHECKED_CAST")
         return obj as Set<String>? ?: defValues
     }
 
     override fun contains(key: String): Boolean {
-        if (!isLoadedDeferred.isCompleted) {
-            runBlocking {
-                isLoadedDeferred.await()
-            }
-        }
+        awaitForLoad()
         return mapReentrantReadWriteLock.read { harmonyMap.containsKey(key) }
     }
 
     override fun getAll(): MutableMap<String, *> {
-        if (!isLoadedDeferred.isCompleted) {
-            runBlocking {
-                isLoadedDeferred.await()
-            }
-        }
+        awaitForLoad()
         return mapReentrantReadWriteLock.read { harmonyMap.toMutableMap() }
     }
 
     override fun edit(): SharedPreferences.Editor {
-        if (!isLoadedDeferred.isCompleted) {
-            runBlocking {
-                isLoadedDeferred.await()
-            }
-        }
+        awaitForLoad()
         return HarmonyEditor()
     }
 
@@ -292,6 +256,14 @@ private class HarmonyImpl constructor(
     override fun unregisterOnSharedPreferenceChangeListener(listener: SharedPreferences.OnSharedPreferenceChangeListener) {
         mapReentrantReadWriteLock.write {
             listenerMap.remove(listener)
+        }
+    }
+
+    private fun awaitForLoad() {
+        if (!isLoadedDeferred.isCompleted) {
+            runBlocking {
+                isLoadedDeferred.await()
+            }
         }
     }
 
