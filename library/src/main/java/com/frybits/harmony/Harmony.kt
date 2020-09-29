@@ -873,14 +873,15 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) : C
     fun commitTransactionToOutputStream(outputStream: OutputStream) {
         val checkSum = Adler32()
         val dataOutputStream = DataOutputStream(CheckedOutputStream(outputStream, checkSum))
-        dataOutputStream.writeByte(Byte.MAX_VALUE.toInt())
+        dataOutputStream.writeByte(CURR_TRANSACTION_FILE_VERSION)
         dataOutputStream.writeLong(uuid.mostSignificantBits)
         dataOutputStream.writeLong(uuid.leastSignificantBits)
         dataOutputStream.writeBoolean(cleared)
         dataOutputStream.writeLong(memoryCommitTime)
         transactionMap.forEach { (k, v) ->
             dataOutputStream.writeBoolean(true)
-            dataOutputStream.writeUTF(k) // Write the key
+            dataOutputStream.writeInt(k.length)
+            dataOutputStream.write(k.toByteArray()) // Write the key
             when (val d = v.data) { // Write the data
                 is Int -> {
                     dataOutputStream.writeByte(0)
@@ -900,7 +901,8 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) : C
                 }
                 is String -> {
                     dataOutputStream.writeByte(4)
-                    dataOutputStream.writeUTF(d)
+                    dataOutputStream.writeInt(d.length)
+                    dataOutputStream.write(d.toByteArray())
                 }
                 is Set<*> -> {
                     dataOutputStream.writeByte(5)
@@ -908,7 +910,8 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) : C
                     @Suppress("UNCHECKED_CAST")
                     val set = d as? Set<String>
                     set?.forEach { s ->
-                        dataOutputStream.writeUTF(s)
+                        dataOutputStream.writeInt(s.length)
+                        dataOutputStream.write(s.toByteArray())
                     }
                 }
                 null -> dataOutputStream.writeByte(6)
@@ -952,7 +955,8 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) : C
             val checksum = Adler32()
             val dataInputStream = DataInputStream(CheckedInputStream(inputStream, checksum))
 
-            while (dataInputStream.read() != -1) {
+            var versionByte = dataInputStream.read()
+            while (versionByte != -1) {
                 try {
                     val transaction =
                         HarmonyTransaction(UUID(dataInputStream.readLong(), dataInputStream.readLong())).apply {
@@ -961,18 +965,39 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) : C
                         }
 
                     while (dataInputStream.readBoolean()) {
-                        val key = dataInputStream.readUTF()
+                        val key = if (versionByte.toByte() == TRANSACTION_FILE_VERSION_1) { // Unused. Here for compat purposes
+                            dataInputStream.readUTF()
+                        } else {
+                            val size = dataInputStream.readInt()
+                            val byteArray = ByteArray(size)
+                            dataInputStream.read(byteArray)
+                            String(byteArray)
+                        }
                         val data = when (dataInputStream.readByte()) {
                             0.toByte() -> dataInputStream.readInt()
                             1.toByte() -> dataInputStream.readLong()
                             2.toByte() -> dataInputStream.readFloat()
                             3.toByte() -> dataInputStream.readBoolean()
-                            4.toByte() -> dataInputStream.readUTF()
+                            4.toByte() -> if (versionByte.toByte() == TRANSACTION_FILE_VERSION_1) { // Unused. Here for compat purposes
+                                dataInputStream.readUTF()
+                            } else {
+                                val size = dataInputStream.readInt()
+                                val byteArray = ByteArray(size)
+                                dataInputStream.read(byteArray)
+                                String(byteArray)
+                            }
                             5.toByte() -> {
                                 val count = dataInputStream.readInt()
                                 val set = hashSetOf<String>()
                                 repeat(count) {
-                                    set.add(dataInputStream.readUTF())
+                                    if (versionByte.toByte() == TRANSACTION_FILE_VERSION_1) { // Unused. Here for compat purposes
+                                        set.add(dataInputStream.readUTF())
+                                    } else {
+                                        val size = dataInputStream.readInt()
+                                        val byteArray = ByteArray(size)
+                                        dataInputStream.read(byteArray)
+                                        set.add(String(byteArray))
+                                    }
                                 }
                                 set
                             }
@@ -1001,7 +1026,12 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) : C
                     // This is expected if the transaction file write was not complete
                     _InternalHarmonyLog.e(LOG_TAG, "Unable to read current transaction in file", e)
                     return transactionList to true
+                } catch (e: NegativeArraySizeException) {
+                    // Happens when the read integer for the array size is negative. Since we don't know how many bytes are needed to be read, treat rest of the transaction file as corrupted.
+                    _InternalHarmonyLog.e(LOG_TAG, "Unable to read current transaction in file", e)
+                    return transactionList to true
                 }
+                versionByte = dataInputStream.read()
             }
             return transactionList to false
         }
@@ -1021,6 +1051,10 @@ private const val PREFS_OLD_TRANSACTIONS = "prefs.transactions.old"
 private const val PREFS_DATA_LOCK = "prefs.data.lock"
 private const val PREFS_BACKUP = "prefs.backup"
 private const val KILOBYTE = 1024L * Byte.SIZE_BYTES
+
+// Original version was Byte MAX_VALUE. All new transaction file versions should be one lower from the previous.
+private const val TRANSACTION_FILE_VERSION_1 = Byte.MAX_VALUE
+private const val CURR_TRANSACTION_FILE_VERSION = TRANSACTION_FILE_VERSION_1 - 1
 
 // Empty singleton to support WeakHashmap
 private object CONTENT
