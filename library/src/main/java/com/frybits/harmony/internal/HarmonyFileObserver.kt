@@ -30,9 +30,7 @@ internal fun harmonyFileObserver(
     file: File,
     eventFilter: Int,
     block: (event: Int, path: String?) -> Unit
-): FileObserver {
-    return HarmonyFileObserver(file, eventFilter, block)
-}
+): FileObserver = HarmonyFileObserver(file, eventFilter, block)
 
 @Suppress("DEPRECATION")
 private class HarmonyFileObserver(

@@ -38,10 +38,12 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.io.RandomAccessFile
 import java.io.Reader
+import java.util.SortedSet
 import java.util.UUID
 import java.util.WeakHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import java.util.zip.Adler32
 import java.util.zip.CheckedInputStream
@@ -50,6 +52,7 @@ import kotlin.concurrent.read
 import kotlin.concurrent.thread
 import kotlin.concurrent.write
 import kotlin.coroutines.resume
+import kotlin.jvm.Throws
 
 /*
  *  Copyright 2020 Pablo Baxter
@@ -87,7 +90,7 @@ private class HarmonyImpl constructor(
 
     // Folder containing all harmony preference files
     // NOTE: This folder can only be observed on if it exists before observer is started
-    private val harmonyPrefsFolder = File(context.harmonyPrefsFolder(), prefsName)
+    private val harmonyPrefsFolder = File(context.harmonyPrefsFolder(), prefsName).apply { if (!exists()) mkdirs() }
 
     // Main file file
     private val harmonyMainFile = File(harmonyPrefsFolder, PREFS_DATA)
@@ -125,9 +128,9 @@ private class HarmonyImpl constructor(
     private val mapReentrantReadWriteLock = ReentrantReadWriteLock()
 
     // In-memory copy of the last read transactions in the transaction file. Should be cleared when transaction is cleared.
-    private val lastReadTransactions = hashSetOf<HarmonyTransaction>()
+    private val lastReadTransactions = sortedSetOf<HarmonyTransaction>()
 
-    private var lastTransaction: HarmonyTransaction? = null
+    private var lastTransaction = EMPTY_TRANSACTION
 
     // The last read position of the transaction file. Prevents having to read the entire file each update
     private var lastTransactionPosition = 0L
@@ -146,6 +149,7 @@ private class HarmonyImpl constructor(
                         handleTransactionUpdate()
                     }
                 } else if (path.endsWith(PREFS_DATA)) {
+                    resetMainSnapshot.set(true)
                     currentJob.cancel() // Cancel any transaction update, as an update to the main supersedes it
                     harmonyCoroutineScope.launch(harmonySingleThreadDispatcher) {
                         handleMainUpdateWithFileLock()
@@ -165,12 +169,14 @@ private class HarmonyImpl constructor(
     private var harmonyMap: HashMap<String, Any?> = hashMapOf()
 
     // Last snapshot of main read in this process that all transactions will apply to
-    private var mainSnapshot: HashMap<String, Any?> = hashMapOf()
+    private var mainSnapshot: Map<String, Any?> = emptyMap()
+
+    private val resetMainSnapshot = AtomicBoolean(false)
 
     // In-process transactions in-flight but not yet written to the file
     // This prevents losing changes done in this process
     @GuardedBy("mapReentrantReadWriteLock")
-    private val transactionSet = hashSetOf<HarmonyTransaction>()
+    private val transactionSet = sortedSetOf<HarmonyTransaction>()
 
     // A queue for any transactions that are pending writes. This allows for batching of transaction writes
     private val transactionQueue = LinkedBlockingQueue<HarmonyTransaction>()
@@ -270,10 +276,9 @@ private class HarmonyImpl constructor(
     private fun checkForRequiredFiles() {
         if (!harmonyPrefsFolder.exists()) {
             _InternalHarmonyLog.e(LOG_TAG, "Harmony folder does not exist! Creating...")
-            harmonyPrefsFolder.mkdirs()
-        }
-
-        if (!harmonyMainLockFile.exists()) {
+            if (!harmonyPrefsFolder.mkdirs()) throw IOException("Unable to create harmony prefs directories")
+            harmonyMainLockFile.createNewFile() // Skip the extra check and create the file. It didn't exist before.
+        } else if (!harmonyMainLockFile.exists()) {
             _InternalHarmonyLog.e(LOG_TAG, "Harmony main lock file does not exist! Creating...")
             harmonyMainLockFile.createNewFile()
         }
@@ -300,7 +305,7 @@ private class HarmonyImpl constructor(
         harmonyMainLockFile.withFileLock mainLock@{
 
             // Load the transactions asynchronously
-            val transactionListJob = harmonyCoroutineScope.async(Dispatchers.IO) {
+            val transactionSetJob = harmonyCoroutineScope.async(Dispatchers.IO) {
                 if (!harmonyTransactionsFile.createNewFile()) {
                     try {
                         return@async harmonyTransactionsFile.inputStream().buffered()
@@ -309,7 +314,7 @@ private class HarmonyImpl constructor(
                         _InternalHarmonyLog.w(LOG_TAG, "Unable to read transaction during load")
                     }
                 }
-                return@async emptySet<HarmonyTransaction>() to false
+                return@async sortedSetOf<HarmonyTransaction>() to false
             }
 
             // This backup mechanism was inspired by the SharedPreferencesImpl source code
@@ -320,21 +325,23 @@ private class HarmonyImpl constructor(
             }
 
             // Get a snapshot of the main file
-            if (!harmonyMainFile.createNewFile()) {
+            val map = if (!harmonyMainFile.createNewFile()) {
                 try {
                     // Get main file
-                    mainSnapshot = harmonyMainFile.bufferedReader()
+                    harmonyMainFile.bufferedReader()
                         .use { readHarmonyMapFromStream(it) }
                 } catch (e: IOException) {
                     _InternalHarmonyLog.e(LOG_TAG, "Unable to read harmony main file on init", e)
+                    hashMapOf()
                 }
+            } else {
+                hashMapOf()
             }
 
             // Wait for the transactions job to finish if it hasn't yet
-            val (transactions) = runBlocking { transactionListJob.await() }
+            val (transactions) = runBlocking { transactionSetJob.await() }
 
-            transactions.sorted()
-                .forEach { it.commitTransaction(mainSnapshot) }
+            transactions.forEach { it.commitTransaction(map) }
 
             // We want to commit any pending transactions to the main file on startup
             // This is due to how transactions are stored. The system uptime is reset on phone restart, which could cause transactions to be out of sync
@@ -356,7 +363,7 @@ private class HarmonyImpl constructor(
                     ParcelFileDescriptor.AutoCloseOutputStream(mainWriter)
                         .use { mainOutputStream ->
                             JsonWriter(mainOutputStream.bufferedWriter())
-                                .putHarmony(prefsName, mainSnapshot)
+                                .putHarmony(prefsName, map)
                                 .flush()
                             // Write all changes to the physical storage
                             mainWriter.fileDescriptor.sync()
@@ -374,6 +381,9 @@ private class HarmonyImpl constructor(
                     _InternalHarmonyLog.e(LOG_TAG, "initialLoad() - commitToDisk got exception:", e)
                 }
             }
+
+            resetMainSnapshot.set(false)
+            mainSnapshot = map
 
             mapReentrantReadWriteLock.write {
                 harmonyMap = HashMap(mainSnapshot)
@@ -396,11 +406,10 @@ private class HarmonyImpl constructor(
                     try {
                         val (readTransactions, isCorrupted) = FileInputStream(accessFile.fd).buffered()
                             .use { HarmonyTransaction.generateHarmonyTransactions(it) }
-                        lastTransactionPosition =
-                            accessFile.length() // Set the last position to the length of the data
+                        lastTransactionPosition = accessFile.length() // Set the last position to the length of the data
                         // Only set the latest transaction if the lastReadTransactions has any items
-                        lastReadTransactions.maxOrNull()?.let { transaction ->
-                            mapReentrantReadWriteLock.write { lastTransaction = lastTransaction?.let { maxOf(transaction, it) } ?: transaction } // Ensure only the latest used transaction is set
+                        lastReadTransactions.lastOrNull()?.let { transaction ->
+                            mapReentrantReadWriteLock.write { lastTransaction = maxOf(transaction, lastTransaction) } // Ensure only the latest used transaction is set
                         }
                         lastReadTransactions.addAll(readTransactions) // Store all the read transactions to avoid re-reading them again
                         return@use isCorrupted
@@ -438,7 +447,10 @@ private class HarmonyImpl constructor(
                     // Empty transactions, early exit
                     if (lastReadTransactions.isEmpty() && transactionSet.isEmpty()) return@mainLock
 
-                    val combinedTransactions = lastReadTransactions + transactionSet
+                    val combinedTransactions = sortedSetOf<HarmonyTransaction>().apply {
+                        addAll(lastReadTransactions)
+                        addAll(transactionSet)
+                    }
 
                     // Get a copy of the last known main snapshot
                     val mainCopy = HashMap(mainSnapshot)
@@ -448,10 +460,9 @@ private class HarmonyImpl constructor(
                     val listeners = if (notifyListeners) listenerMap.keys.toHashSet() else null
 
                     // Commit all transactions to this snapshot
-                    combinedTransactions.sorted()
-                        .forEach {
+                    combinedTransactions.forEach {
                             val tempTransaction = lastTransaction
-                            if (tempTransaction == null || tempTransaction < it) {
+                            if (tempTransaction < it) {
                                 it.commitTransaction(mainCopy, keysModified)
                             } else {
                                 it.commitTransaction(mainCopy)
@@ -489,7 +500,7 @@ private class HarmonyImpl constructor(
     @GuardedBy("harmonyMainLockFile")
     private fun handleMainUpdate() {
         // Read the old transaction file asynchronously
-        val oldTransactionListJob = harmonyCoroutineScope.async(Dispatchers.IO) {
+        val oldTransactionSetJob = harmonyCoroutineScope.async(Dispatchers.IO) {
             if (harmonyOldTransactionsFile.exists()) {
                 try {
                     return@async harmonyOldTransactionsFile.inputStream().buffered()
@@ -498,7 +509,7 @@ private class HarmonyImpl constructor(
                     _InternalHarmonyLog.w(LOG_TAG, "Unable to read old transactions during load")
                 }
             }
-            return@async emptySet<HarmonyTransaction>() to false
+            return@async sortedSetOf<HarmonyTransaction>() to false
         }
 
         // Read the main file directly
@@ -510,18 +521,19 @@ private class HarmonyImpl constructor(
             return
         }
 
-        val (transactionList) = runBlocking { oldTransactionListJob.await() }
+        val (transactionSet) = runBlocking { oldTransactionSetJob.await() }
 
         mapReentrantReadWriteLock.write {
             // Update the main snapshot
             mainSnapshot = map
 
+            resetMainSnapshot.set(false)
+
             // Create a copy of the main snapshot
             val mainCopy = HashMap(mainSnapshot)
 
             // All transactions should be applied to a copy of the main snapshot, not directly on it
-            transactionSet.sorted()
-                .forEach { it.commitTransaction(mainCopy) }
+            transactionSet.forEach { it.commitTransaction(mainCopy) }
 
             val notifyListeners = listenerMap.isNotEmpty()
             val keysModified = if (notifyListeners) arrayListOf<String>() else null
@@ -531,8 +543,7 @@ private class HarmonyImpl constructor(
 
             if (notifyListeners) {
                 val transaction = lastTransaction
-                transactionList.filter { it > transaction ?: return@filter true } // Filter for any transaction newer than the last read transaction, or just assume all are new
-                    .sorted()
+                transactionSet.filter { it > transaction } // Filter for any transaction newer than the last read transaction, or just assume all are new
                     .forEach {
                         it.commitTransaction(oldMap, keysModified)
                         lastTransaction = it
@@ -581,22 +592,25 @@ private class HarmonyImpl constructor(
     // Function to commit all transactions to the main file
     @GuardedBy("harmonyMainLockFile")
     private fun commitTransactionsToMain(): Boolean {
-        val readTransactions: Set<HarmonyTransaction> = try {
+        val readTransactions: SortedSet<HarmonyTransaction> = try {
             RandomAccessFile(harmonyTransactionsFile, "r").use { accessFile ->
                 accessFile.seek(lastTransactionPosition)
                 val (readTransactions) = FileInputStream(accessFile.fd).buffered()
                     .use { inputStream ->
                         HarmonyTransaction.generateHarmonyTransactions(inputStream)
                     }
-                return@use lastReadTransactions + readTransactions
+                return@use sortedSetOf<HarmonyTransaction>().apply {
+                    addAll(lastReadTransactions)
+                    addAll(readTransactions)
+                }
             }
         } catch (e: IOException) {
             _InternalHarmonyLog.w(LOG_TAG, "Unable to read transaction file", e)
-            emptySet()
+            sortedSetOf()
         }
 
         // Add the in-flight transactions to the list, if they exist
-        val transactionsInQueue = transactionQueue.toList()
+        val transactionsInQueue = transactionQueue.toSortedSet()
 
         // Remove these transactions as they won't be written to the transaction file
         mapReentrantReadWriteLock.write { transactionSet.removeAll(transactionsInQueue) }
@@ -604,7 +618,10 @@ private class HarmonyImpl constructor(
         // Early exit if there is nothing to change
         if (transactionsInQueue.isEmpty() && readTransactions.isEmpty()) return false
 
-        val combinedTransactions = transactionsInQueue + readTransactions
+        val combinedTransactions = sortedSetOf<HarmonyTransaction>().apply {
+            addAll(transactionsInQueue)
+            addAll(readTransactions)
+        }
 
         // Create a backup and delete the main file
         if (!harmonyMainBackupFile.exists()) {
@@ -616,20 +633,22 @@ private class HarmonyImpl constructor(
         }
 
         // Get the current preferences
-        val prefs = try {
-            harmonyMainBackupFile.bufferedReader()
-                .use { readHarmonyMapFromStream(it) }
-        } catch (e: IOException) {
-            _InternalHarmonyLog.e(LOG_TAG, "Unable to get main file.", e)
-            hashMapOf() // Make the main empty if there was an issue reading the main file
+        val prefs = if (resetMainSnapshot.compareAndSet(true, false)) {
+            try {
+                harmonyMainBackupFile.bufferedReader()
+                    .use { readHarmonyMapFromStream(it) }
+            } catch (e: IOException) {
+                _InternalHarmonyLog.e(LOG_TAG, "Unable to get main file.", e)
+                hashMapOf() // Make the main empty if there was an issue reading the main file
+            }
+        } else {
+            HashMap(mainSnapshot)
         }
 
         // Apply all transactions to the mutable copy
-        combinedTransactions.sorted()
-            .forEach { it.commitTransaction(prefs) }
+        combinedTransactions.forEach { it.commitTransaction(prefs) }
 
-        val mainWriter =
-            ParcelFileDescriptor.open(harmonyMainFile, ParcelFileDescriptor.MODE_CREATE or ParcelFileDescriptor.MODE_WRITE_ONLY)
+        val mainWriter = ParcelFileDescriptor.open(harmonyMainFile, ParcelFileDescriptor.MODE_CREATE or ParcelFileDescriptor.MODE_WRITE_ONLY)
 
         try {
             ParcelFileDescriptor.AutoCloseOutputStream(mainWriter).use { mainOutputStream ->
@@ -779,7 +798,7 @@ private class HarmonyImpl constructor(
                     transaction.memoryCommitTime = SystemClock.elapsedRealtimeNanos() // The current time this "apply()" was called
                     transactionSet.add(transaction) // Add this to the in-flight transaction set for this process
                     transactionQueue.put(transaction) // Current queue of transactions that need to be written to disk
-                    lastTransaction = lastTransaction?.let { maxOf(transaction, it) } ?: transaction // Extremely rare, but if the other process emitted a later transaction, keep that as the last, else use the current transaction
+                    lastTransaction = maxOf(transaction, lastTransaction) // Extremely rare, but if the other process emitted a later transaction, keep that as the last, else use the current transaction
                     harmonyTransaction = HarmonyTransaction() // Generate a new transaction to prevent modifying one in-flight
                     transaction.commitTransaction(harmonyMap, keysModified) // Update the in-process map and get all modified keys
                     return@synchronized
@@ -950,8 +969,8 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) : C
 
     companion object {
         // Generates the list of transactions from the inputstream, with a boolean value to determine if the transaction failed the checksum validation
-        fun generateHarmonyTransactions(inputStream: InputStream): Pair<Set<HarmonyTransaction>, Boolean> {
-            val transactionList = hashSetOf<HarmonyTransaction>()
+        fun generateHarmonyTransactions(inputStream: InputStream): Pair<SortedSet<HarmonyTransaction>, Boolean> {
+            val transactionSet = sortedSetOf<HarmonyTransaction>()
             val checksum = Adler32()
             val dataInputStream = DataInputStream(CheckedInputStream(inputStream, checksum))
 
@@ -1002,7 +1021,7 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) : C
                                 set
                             }
                             6.toByte() -> null
-                            else -> return transactionList to true
+                            else -> return transactionSet to true
                         }
                         val operation = when (dataInputStream.readByte()) {
                             0.toByte() -> data?.let { Operation.Update(data) }
@@ -1011,36 +1030,32 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) : C
                         }
                         operation?.let { op ->
                             transaction.transactionMap[key] = op
-                        } ?: return transactionList to true
+                        } ?: return transactionSet to true
                     }
                     val checkSum = checksum.value
                     val expected = dataInputStream.readLong()
                     if (checkSum == expected) {
-                        transactionList.add(transaction)
+                        transactionSet.add(transaction)
                     } else {
                         // Checksum validation failed! Assume the rest of the transaction file is corrupted and return early
-                        return transactionList to true
+                        throw IOException("Transaction checksum failed")
                     }
                     checksum.reset()
-                } catch (e: IOException) {
+                } catch (e: Exception) {
                     // This is expected if the transaction file write was not complete
                     _InternalHarmonyLog.e(LOG_TAG, "Unable to read current transaction in file", e)
-                    return transactionList to true
-                } catch (e: NegativeArraySizeException) {
-                    // Happens when the read integer for the array size is negative. Since we don't know how many bytes are needed to be read, treat rest of the transaction file as corrupted.
-                    _InternalHarmonyLog.e(LOG_TAG, "Unable to read current transaction in file", e)
-                    return transactionList to true
+                    return transactionSet to true
                 }
                 versionByte = dataInputStream.read()
             }
-            return transactionList to false
+            return transactionSet to false
         }
     }
 }
 
 private const val HARMONY_PREFS_FOLDER = "harmony_prefs"
 
-private fun Context.harmonyPrefsFolder() = File(filesDir, HARMONY_PREFS_FOLDER)
+private fun Context.harmonyPrefsFolder() = File(filesDir, HARMONY_PREFS_FOLDER).apply { if (!exists()) mkdirs() }
 
 private val posixRegex = "[^-_.A-Za-z0-9]".toRegex()
 private const val LOG_TAG = "Harmony"
@@ -1062,6 +1077,8 @@ private object CONTENT
 private object SingletonLockObj
 
 private val SINGLETON_MAP = hashMapOf<String, HarmonyImpl>()
+
+private val EMPTY_TRANSACTION = HarmonyTransaction().apply { memoryCommitTime = Long.MIN_VALUE }
 
 @VisibleForTesting
 @JvmSynthetic

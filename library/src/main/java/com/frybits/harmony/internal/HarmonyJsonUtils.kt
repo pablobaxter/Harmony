@@ -7,6 +7,7 @@ import android.util.JsonReader
 import android.util.JsonToken
 import android.util.JsonWriter
 import java.io.IOException
+import kotlin.jvm.Throws
 
 /*
  *  Copyright 2020 Pablo Baxter
