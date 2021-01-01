@@ -7,7 +7,6 @@ import android.util.JsonReader
 import android.util.JsonToken
 import android.util.JsonWriter
 import java.io.IOException
-import kotlin.jvm.Throws
 
 /*
  *  Copyright 2020 Pablo Baxter
@@ -48,11 +47,12 @@ private const val SET = "set"
 
 @JvmSynthetic
 @Throws(IOException::class)
-internal fun JsonReader.readHarmony(): HashMap<String, Any?> {
+internal fun JsonReader.readHarmony(): Pair<String?, HashMap<String, Any?>> {
+    var prefsName: String? = null
     var currName: String? = null
     val map = hashMapOf<String, Any?>()
 
-    if (this.peek() == JsonToken.END_DOCUMENT) return map
+    if (this.peek() == JsonToken.END_DOCUMENT) return prefsName to map
 
     beginObject()
     while (hasNext()) {
@@ -63,7 +63,7 @@ internal fun JsonReader.readHarmony(): HashMap<String, Any?> {
                     beginObject()
                     val n = nextName()
                     if (n == NAME_KEY) {
-                        nextString()
+                        prefsName = nextString()
                     }
                     endObject()
                 } else {
@@ -113,7 +113,7 @@ internal fun JsonReader.readHarmony(): HashMap<String, Any?> {
     }
     endObject()
 
-    return map
+    return prefsName to map
 }
 
 @JvmSynthetic

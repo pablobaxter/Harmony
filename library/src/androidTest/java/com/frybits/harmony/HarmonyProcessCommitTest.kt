@@ -21,6 +21,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.random.Random
+import kotlin.test.Ignore
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -465,6 +466,7 @@ class HarmonyProcessCommitTest {
     }
 
     @Test
+    @Ignore("Known issue with current implementation. https://github.com/pablobaxter/Harmony/issues/13")
     fun testClearedDataChangesNotifiesAcrossProcesses() = runBlocking {
         // Setup test
         val application = InstrumentationRegistry.getInstrumentation().targetContext

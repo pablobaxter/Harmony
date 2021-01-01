@@ -5,7 +5,6 @@ import java.io.File
 import java.io.IOException
 import java.io.RandomAccessFile
 import java.nio.channels.FileLock
-import kotlin.jvm.Throws
 
 /*
  *  Copyright 2020 Pablo Baxter
