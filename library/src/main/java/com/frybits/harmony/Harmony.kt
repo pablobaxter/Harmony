@@ -243,14 +243,6 @@ private class HarmonyImpl constructor(
         return HarmonyEditor()
     }
 
-    private fun awaitForLoad() {
-        if (!isLoadedDeferred.isCompleted) {
-            runBlocking {
-                isLoadedDeferred.await()
-            }
-        }
-    }
-
     // This listener will also listen for changes that occur to the Harmony preference with the same name from other processes.
     override fun registerOnSharedPreferenceChangeListener(listener: SharedPreferences.OnSharedPreferenceChangeListener) {
         mapReentrantReadWriteLock.write {
@@ -261,6 +253,14 @@ private class HarmonyImpl constructor(
     override fun unregisterOnSharedPreferenceChangeListener(listener: SharedPreferences.OnSharedPreferenceChangeListener) {
         mapReentrantReadWriteLock.write {
             listenerMap.remove(listener)
+        }
+    }
+
+    private fun awaitForLoad() {
+        if (!isLoadedDeferred.isCompleted) {
+            runBlocking {
+                isLoadedDeferred.await()
+            }
         }
     }
 
