@@ -1,31 +1,27 @@
 package com.frybits.harmony
 
 import android.app.ActivityManager
-import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
-import android.os.Binder
 import android.os.Handler
 import android.os.HandlerThread
-import android.os.IBinder
-import android.os.Message
 import android.os.Messenger
 import android.os.Process
 import androidx.core.content.edit
-import androidx.core.os.bundleOf
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.ServiceTestRule
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.lang.Exception
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.random.Random
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -48,13 +44,8 @@ import kotlin.test.assertTrue
  * https://github.com/pablobaxter/Harmony
  */
 
-private const val PREF_NAME = "prefName"
-private const val ALTERNATE_PROCESS_NAME = ":alternate"
-private const val MESSENGER_KEY = "messenger"
-private const val TRANSACTION_SIZE = 4 * 1024L
-
 @RunWith(AndroidJUnit4::class)
-class HarmonyProcessTest {
+class HarmonyProcessApplyTest {
 
     @get:Rule
     val serviceRule = ServiceTestRule()
@@ -125,7 +116,11 @@ class HarmonyProcessTest {
             sharedPreferences.edit { putInt(k, v) }
         }
 
-        runBlocking { testDeferred.await() }?.let { throw it }
+        runBlocking {
+            withTimeout(1000) {
+                testDeferred.await()
+            }
+        }?.let { throw it }
         assertTrue("Test Map was not empty!") { testMap.isEmpty() }
     }
 
@@ -176,7 +171,11 @@ class HarmonyProcessTest {
             sharedPreferences.edit { putLong(k, v) }
         }
 
-        runBlocking { testDeferred.await() }?.let { throw it }
+        runBlocking {
+            withTimeout(1000) {
+                testDeferred.await()
+            }
+        }?.let { throw it }
         assertTrue("Test Map was not empty!") { testMap.isEmpty() }
     }
 
@@ -227,7 +226,11 @@ class HarmonyProcessTest {
             sharedPreferences.edit { putFloat(k, v) }
         }
 
-        runBlocking { testDeferred.await() }?.let { throw it }
+        runBlocking {
+            withTimeout(1000) {
+                testDeferred.await()
+            }
+        }?.let { throw it }
         assertTrue("Test Map was not empty!") { testMap.isEmpty() }
     }
 
@@ -278,7 +281,11 @@ class HarmonyProcessTest {
             sharedPreferences.edit { putBoolean(k, v) }
         }
 
-        runBlocking { testDeferred.await() }?.let { throw it }
+        runBlocking {
+            withTimeout(1000) {
+                testDeferred.await()
+            }
+        }?.let { throw it }
         assertTrue("Test Map was not empty!") { testMap.isEmpty() }
     }
 
@@ -329,7 +336,11 @@ class HarmonyProcessTest {
             sharedPreferences.edit { putString(k, v) }
         }
 
-        runBlocking { testDeferred.await() }?.let { throw it }
+        runBlocking {
+            withTimeout(1000) {
+                testDeferred.await()
+            }
+        }?.let { throw it }
         assertTrue("Test Map was not empty!") { testMap.isEmpty() }
     }
 
@@ -380,7 +391,11 @@ class HarmonyProcessTest {
             sharedPreferences.edit { putStringSet(k, v) }
         }
 
-        runBlocking { testDeferred.await() }?.let { throw it }
+        runBlocking {
+            withTimeout(1000) {
+                testDeferred.await()
+            }
+        }?.let { throw it }
         assertTrue("Test Map was not empty!") { testMap.isEmpty() }
     }
 
@@ -413,87 +428,74 @@ class HarmonyProcessTest {
         // Check again to ensure data was not re-inserted
         assertFalse("Shared preferences still contains old data!") { sharedPreferences.contains("test") }
     }
-}
 
-class AlternateProcessService : Service() {
+    @Test
+    fun testDataChangesNotifiesAcrossProcesses() = runBlocking {
+        // Setup test
+        val application = InstrumentationRegistry.getInstrumentation().targetContext
 
-    private val sharedPreferenceChangeListener =
-        SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
-            val value = prefs.all[key]
-            messenger.send(Message.obtain().apply {
-                data = bundleOf(key to value)
-            })
+        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
+
+        // Start simple change notify test
+        val simpleTestString = "simple${Random.nextInt(0, Int.MAX_VALUE)}"
+
+        sharedPreferences.edit { putString(TEST_SIMPLE_KEY, "blah") } // Pre-populate the data
+
+        val simpleKeyChangedCompletableDeferred = CompletableDeferred<String?>()
+
+        val simpleChangeListener = SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
+            assertTrue("Wrong Harmony object was returned") { sharedPreferences == prefs }
+            assertTrue("Wrong key was emitted") { key == TEST_SIMPLE_KEY }
+            simpleKeyChangedCompletableDeferred.complete(prefs.getString(TEST_SIMPLE_KEY, null)) // This should emit because the data changed
         }
 
-    private lateinit var testPrefs: SharedPreferences
-    private lateinit var messenger: Messenger
+        sharedPreferences.registerOnSharedPreferenceChangeListener(simpleChangeListener)
 
-    override fun onCreate() {
-        super.onCreate()
-        assertTrue("Service is not running in alternate process!") { getServiceProcess().endsWith(ALTERNATE_PROCESS_NAME) }
-
-        testPrefs = getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
-        testPrefs.registerOnSharedPreferenceChangeListener(sharedPreferenceChangeListener)
-    }
-
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent != null) {
-            messenger = intent.getParcelableExtra(MESSENGER_KEY)!!
+        val serviceIntent = Intent(application, ClearDataApplyService::class.java).apply {
+            putExtra(TEST_SIMPLE_KEY, simpleTestString) // Pass a different string
         }
-        return START_NOT_STICKY
-    }
+        serviceRule.startService(serviceIntent)
 
-    // Binder cannot be null. Returning NoOp instead
-    override fun onBind(intent: Intent?): IBinder? = Binder()
-
-    override fun onDestroy() {
-        super.onDestroy()
-        testPrefs.unregisterOnSharedPreferenceChangeListener(sharedPreferenceChangeListener)
-    }
-
-    private fun getServiceProcess(): String {
-        val pid = Process.myPid()
-        val manager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-        for (processInfo in manager.runningAppProcesses) {
-            if (processInfo.pid == pid) {
-                return processInfo.processName
-            }
+        withTimeout(1000) {
+            val simpleResponse = simpleKeyChangedCompletableDeferred.await()
+            assertEquals(simpleTestString, simpleResponse, "Simple change listener failed to emit the correct key!")
         }
-        return ""
-    }
-}
 
-class MassInputService : Service() {
-
-    private lateinit var testPrefs: SharedPreferences
-
-    override fun onCreate() {
-        super.onCreate()
-        assertTrue("Service is not running in alternate process!") { getServiceProcess().endsWith(ALTERNATE_PROCESS_NAME) }
-
-        testPrefs = getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
+        sharedPreferences.unregisterOnSharedPreferenceChangeListener(simpleChangeListener)
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent != null) {
-            repeat(10_000) {
-                testPrefs.edit { putString("$it", "${Random.nextLong()}") }
-            }
+    @Test
+    fun testClearedDataChangesNotifiesAcrossProcesses() = runBlocking {
+        // Setup test
+        val application = InstrumentationRegistry.getInstrumentation().targetContext
+
+        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
+
+        // Start clear data + simple change notify test
+        val clearDataTestString = "clearData${Random.nextInt(0, Int.MAX_VALUE)}"
+
+        sharedPreferences.edit { putString(TEST_CLEAR_DATA_KEY, clearDataTestString) } // Pre-populate the prefs with known data
+
+        val clearDataKeyChangedCompletableDeferred = CompletableDeferred<String?>()
+
+        val clearDataChangeListener = SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
+            assertTrue("Wrong Harmony object was returned") { sharedPreferences == prefs }
+            assertTrue("Wrong key was emitted") { key == TEST_CLEAR_DATA_KEY } // We expect the change listener to emit, even though we have the same string. Prefs were cleared.
+            clearDataKeyChangedCompletableDeferred.complete(prefs.getString(TEST_CLEAR_DATA_KEY, null))
         }
-        return START_NOT_STICKY
-    }
 
-    // Binder cannot be null. Returning NoOp instead
-    override fun onBind(intent: Intent?): IBinder? = Binder()
+        sharedPreferences.registerOnSharedPreferenceChangeListener(clearDataChangeListener)
 
-    private fun getServiceProcess(): String {
-        val pid = Process.myPid()
-        val manager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-        for (processInfo in manager.runningAppProcesses) {
-            if (processInfo.pid == pid) {
-                return processInfo.processName
-            }
+        val serviceIntent = Intent(application, ClearDataApplyService::class.java).apply {
+            putExtra(TEST_CLEAR_DATA_KEY, clearDataTestString) // Pass the same string
         }
-        return ""
+        serviceRule.startService(serviceIntent)
+
+        withTimeout(1000) {
+            val clearDataResponse = clearDataKeyChangedCompletableDeferred.await()
+            assertEquals(clearDataTestString, clearDataResponse, "Cleared data change listener failed to emit the correct key!")
+        }
+
+        sharedPreferences.unregisterOnSharedPreferenceChangeListener(clearDataChangeListener)
     }
 }

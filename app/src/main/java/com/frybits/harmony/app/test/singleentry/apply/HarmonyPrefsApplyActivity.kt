@@ -171,7 +171,7 @@ class HarmonyPrefsApplyActivity : AppCompatActivity() {
                 harmonyTotalApplyTimeSpent[testCount] = time
                 // Due to the quick successions of "apply()" called, as well as the data being reloaded ITERATION times on the other process,
                 // we need to let the other process "catch up". This test is the worst case scenario for multi-process replication!
-                delay(5000)
+                delay(1000)
                 startService(Intent(this@HarmonyPrefsApplyActivity, HarmonyPrefsReceiveService::class.java).apply { putExtra("STOP", true) })
                 delay(1000) // Give ample time for service to perform read test
                 activityHarmonyPrefs.edit(true) { clear() }
@@ -188,44 +188,44 @@ class HarmonyPrefsApplyActivity : AppCompatActivity() {
             // Vanilla results
             Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Vanilla - Apply count: ${vanillaSingleApplyTimeSpent.size}, expecting ${ITERATIONS * NUM_TESTS}")
             Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Vanilla - Average to apply one item: ${vanillaSingleApplyTimeSpent.average()} ms")
-            Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Vanilla - Max to apply one item: ${vanillaSingleApplyTimeSpent.max()} ms")
-            Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Vanilla - Min to apply one item: ${vanillaSingleApplyTimeSpent.min()} ms")
+            Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Vanilla - Max to apply one item: ${vanillaSingleApplyTimeSpent.maxOrNull()} ms")
+            Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Vanilla - Min to apply one item: ${vanillaSingleApplyTimeSpent.minOrNull()} ms")
 
             Log.i("Trial", this@HarmonyPrefsApplyActivity::class.java.simpleName)
             Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: =========================Vanilla Total Apply=========================")
             Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Vanilla - Apply test count: ${vanillaTotalApplyTimeSpent.size}, expecting $NUM_TESTS")
             Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Vanilla - Average apply test time: ${vanillaTotalApplyTimeSpent.average()} ms")
-            Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Vanilla - Max apply test time: ${vanillaTotalApplyTimeSpent.max()} ms")
-            Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Vanilla - Min apply test time: ${vanillaTotalApplyTimeSpent.min()} ms")
+            Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Vanilla - Max apply test time: ${vanillaTotalApplyTimeSpent.maxOrNull()} ms")
+            Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Vanilla - Min apply test time: ${vanillaTotalApplyTimeSpent.minOrNull()} ms")
 
             Log.i("Trial", this@HarmonyPrefsApplyActivity::class.java.simpleName)
             Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: =========================Vanilla Single Read=========================")
             Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Vanilla - Read count: ${vanillaSingleReadTimeSpent.size}, expecting ${ITERATIONS * NUM_TESTS}")
             Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Vanilla - Average to read one item: ${vanillaSingleReadTimeSpent.average()} ms")
-            Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Vanilla - Max to read one item: ${vanillaSingleReadTimeSpent.max()} ms")
-            Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Vanilla - Min to read one item: ${vanillaSingleReadTimeSpent.min()} ms")
+            Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Vanilla - Max to read one item: ${vanillaSingleReadTimeSpent.maxOrNull()} ms")
+            Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Vanilla - Min to read one item: ${vanillaSingleReadTimeSpent.minOrNull()} ms")
 
             Log.i("Trial", this@HarmonyPrefsApplyActivity::class.java.simpleName)
             Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: =========================Vanilla Total Read=========================")
             Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Vanilla - Read test count: ${vanillaTotalReadTimeSpent.size}, expecting $NUM_TESTS")
             Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Vanilla - Average read test time: ${vanillaTotalReadTimeSpent.average()} ms")
-            Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Vanilla - Max read test time: ${vanillaTotalReadTimeSpent.max()} ms")
-            Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Vanilla - Min read test time: ${vanillaTotalReadTimeSpent.min()} ms")
+            Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Vanilla - Max read test time: ${vanillaTotalReadTimeSpent.maxOrNull()} ms")
+            Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Vanilla - Min read test time: ${vanillaTotalReadTimeSpent.minOrNull()} ms")
 
             Log.i("Trial", this@HarmonyPrefsApplyActivity::class.java.simpleName)
             Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: =========================Harmony Single Apply=========================")
             // Harmony results
             Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Harmony - Apply count: ${harmonySingleApplyTimeSpent.size}, expecting ${ITERATIONS * NUM_TESTS}")
             Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Harmony - Average to apply one item: ${harmonySingleApplyTimeSpent.average()} ms")
-            Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Harmony - Max to apply one item: ${harmonySingleApplyTimeSpent.max()} ms")
-            Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Harmony - Min to apply one item: ${harmonySingleApplyTimeSpent.min()} ms")
+            Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Harmony - Max to apply one item: ${harmonySingleApplyTimeSpent.maxOrNull()} ms")
+            Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Harmony - Min to apply one item: ${harmonySingleApplyTimeSpent.minOrNull()} ms")
 
             Log.i("Trial", this@HarmonyPrefsApplyActivity::class.java.simpleName)
             Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: =========================Harmony Total Apply=========================")
             Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Harmony - Apply Test count: ${harmonyTotalApplyTimeSpent.size}, expecting $NUM_TESTS")
             Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Harmony - Average apply test time: ${harmonyTotalApplyTimeSpent.average()} ms")
-            Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Harmony - Max apply test time: ${harmonyTotalApplyTimeSpent.max()} ms")
-            Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Harmony - Min apply test time: ${harmonyTotalApplyTimeSpent.min()} ms")
+            Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Harmony - Max apply test time: ${harmonyTotalApplyTimeSpent.maxOrNull()} ms")
+            Log.i("Trial", "${this@HarmonyPrefsApplyActivity::class.java.simpleName}: Harmony - Min apply test time: ${harmonyTotalApplyTimeSpent.minOrNull()} ms")
 
             delay(250)
 

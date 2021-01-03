@@ -14,12 +14,12 @@ Harmony is a thread-safe, process-safe, full [`SharedPreferences`](https://devel
 - [`OnSharedPreferenceChangeListener`](https://developer.android.com/reference/android/content/SharedPreferences.OnSharedPreferenceChangeListener) emits changes made by other processes
 - Uses no native code (NDK) or any IPC classes such as [`ContentProvider`](https://developer.android.com/reference/android/content/ContentProvider), [`Service`](https://developer.android.com/reference/android/app/Service), [`BroadcastReceiver`](https://developer.android.com/reference/android/content/BroadcastReceiver), or [AIDL](https://developer.android.com/guide/components/aidl)
 - Built-in failed-write recovery similar to the default [`SharedPreferences`](https://developer.android.com/reference/android/content/SharedPreferences)
-- Supports Android API 14+
+- Supports Android API 17+
 
 ## Download
 ### Gradle
 ```
-implementation 'com.frybits.harmony:harmony:1.1.2'
+implementation 'com.frybits.harmony:harmony:1.1.3'
 ```
 
 ## Usage
@@ -62,9 +62,9 @@ Inter-Process replication test setup:
 - On every key change, the current time is taken on the service process, and compared against the received time from the activity process
 - This test was performed 10 times, with the results based off of all 10k entries
 - Time for `OnSharedPreferenceChangeListener` to be called in other process (Harmony only):
-  - **Min time:** `6 ms`
-  - **Max time:** `190 ms`
-  - **Average time:** `53.4882 ms`
+  - **Min time:** `5 ms`
+  - **Max time:** `423 ms`
+  - **Average time:** `38.0076 ms`
 
 **Summary:** This result is expected. Harmony will perform a commit that is slower than the vanilla SharedPreferences due to file locking occurring, but will quickly emit the changes to any process that is listening.
 
@@ -81,19 +81,34 @@ The source code for this test can be found in [`HarmonyPrefsApplyActivity`](./ap
 
 ![Apply Single Entry Test](./graphics/apply_test.png)
 
-**Summary:** With the recent changes (v1.1.0), Harmony `apply()` is now as fast as the vanilla `SharedPreferences` implementation. Also, the replication performance across processes has improved, however due to the asynchrnonous nature of the data storage, this is still slower than using `commit()`.
-
 Inter-Process replication test setup:
 - A service called `HarmonyPrefsReceiveService` is listening on another processes using the `OnSharedPreferenceChangeListener`
 - On every key change, the current time is taken on the service process, and compared against the received time from the activity process
+- Each test calls `apply()` 1k times and awaits to read the data on the other process
 - This test was performed 10 times, with the results based off of all 10k entries
 - Time for `OnSharedPreferenceChangeListener` to be called in other process (Harmony only):
-  - **Min time:** `9 ms`
-  - **Max time:** `3004 ms`
-  - **Average time:** `805.6435 ms`
-- **NOTE:** Quickly calling `apply()` increases the queue for the underlying disk write, which is why the replication time seems to increase. This is the max and average times when calling `apply()` 1k times in a loop. Consider this a wort case scenario.
+  - **Min time:** `10 ms`
+  - **Max time:** `317 ms`
+  - **Average time:** `115.6742 ms`
+- **NOTE:** Quickly calling `apply()` can lead to longer replication times. You should always batch changes into the `SharedPreferenced.Editor` object before calling `apply()` for the best performance.
+
+**Summary:** With the recent changes (`v1.1.3`), Harmony `apply()` is as fast as the vanilla `SharedPreferences` and the replication performance across processes has been greatly improved. Previously, this replication would take up to 3 seconds when calling `apply()` upwards of 1k times, but now will take ~350 ms at maximum.
 
 ## Change Log
+### Version 1.1.3 / 2021-01-02
+- **MIN SDK Raised to API 17**
+- Adds batching to transactions, making inter-process data replication much faster
+- Updates several core Kotlin and Coroutines libraries
+- Fixes potential bug where an `IOException` could be thrown by a function, but isn't declared as throws when compiled to JVM bytecode.
+- Slight improvements with memory usage
+- Fixes a file descriptor crash
+- Additional unit tests for `apply()` and `commit()` functions
+- Fixed crasg bug when storing a large string (64K limit with `DataOutputStream.writeUTF()`)
+- **Known issues:**
+  - There is a bug where changes don't always emit on `OnSharedPreferenceChangeListener` across processes (https://github.com/pablobaxter/Harmony/issues/13)
+  - When targeting API 30, `OnSharedPreferenceChangeListener` emits an event when `Editor.clear()` is called for `SharedPreferences`. Harmony does not currently honor this, as modifying this affects the above bug (https://github.com/pablobaxter/Harmony/issues/14)
+  - Harmony `apply()` fails occasionally (https://github.com/pablobaxter/Harmony/issues/15)
+
 ### Version 1.1.2 / 2020-06-15
 - Renamed several functions and variables
 
@@ -142,6 +157,14 @@ Inter-Process replication test setup:
 
 ### Version 0.0.1 / 2020-05-15
 - Initial release!
+
+## Special thanks
+
+This section is to give a special thanks to inidividuals that helped with getting this project where it is today.
+- JD - For the batching idea, reviewing the code, and all around bouncing of ideas to improve this project. 
+- [@orrinLife360](https://github.com/orrinLife360) - For helping review some of the more critical improvements.
+- [@imminent](https://github.com/imminent) - For all the Kotlin insight and helping review many of the changes on this project.
+- [@bipin360](https://github.com/bipin360) - For pushing me on this project when I was unsure about it.
 
 ## License
 ```
