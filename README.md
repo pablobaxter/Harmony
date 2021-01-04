@@ -166,6 +166,8 @@ This section is to give a special thanks to inidividuals that helped with gettin
 - [@imminent](https://github.com/imminent) - For all the Kotlin insight and helping review many of the changes on this project.
 - [@bipin360](https://github.com/bipin360) - For pushing me on this project when I was unsure about it.
 
+Finally, a very special thank you to [@life360](https://github.com/life360) for integrating this project and providing incredibly valuable feedback that I was able to use to improve Harmony.
+
 ## License
 ```
    Copyright 2020 Pablo Baxter
