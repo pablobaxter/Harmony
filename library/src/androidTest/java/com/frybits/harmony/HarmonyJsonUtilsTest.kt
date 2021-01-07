@@ -1,7 +1,5 @@
 package com.frybits.harmony
 
-import android.util.JsonReader
-import android.util.JsonWriter
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.frybits.harmony.internal.putHarmony
 import com.frybits.harmony.internal.readHarmony
@@ -91,28 +89,28 @@ class HarmonyUtilsTest {
 
     @Test
     fun basicJsonToHarmonyMapTest() {
-        val map = JsonReader(StringReader(BASIC_JSON)).readHarmony()
+        val map = StringReader(BASIC_JSON).readHarmony()
         assertEquals(BASIC_MAP, map.second, "Maps were not equal")
     }
 
     @Test
     fun basicHarmonyMapToJsonTest() {
         val stringWriter = StringWriter()
-        JsonWriter(stringWriter).putHarmony(BASIC_NAME, BASIC_MAP).flush()
+        stringWriter.putHarmony(BASIC_NAME, BASIC_MAP).flush()
         val expected = JSONObject(BASIC_JSON).toString()
         assertEquals(expected, stringWriter.toString(), "JSON strings were not equal")
     }
 
     @Test
     fun mixedJsonToHarmonyMapTest() {
-        val map = JsonReader(StringReader(MIXED_JSON)).readHarmony()
+        val map = StringReader(MIXED_JSON).readHarmony()
         assertEquals(MIXED_MAP, map.second, "Maps were not equal")
     }
 
     @Test
     fun mixedHarmonyMapToJsonTest() {
         val stringWriter = StringWriter()
-        JsonWriter(stringWriter).putHarmony(MIXED_NAME, MIXED_MAP).flush()
+        stringWriter.putHarmony(MIXED_NAME, MIXED_MAP).flush()
         val expected = JSONObject(MIXED_JSON).toString()
         assertEquals(expected, stringWriter.toString(), "JSON strings were not equal")
     }
@@ -133,9 +131,9 @@ class HarmonyUtilsTest {
         )
 
         val stringWriter = StringWriter()
-        JsonWriter(stringWriter).putHarmony(expectedName, expectedMap).flush()
+        stringWriter.putHarmony(expectedName, expectedMap).flush()
 
-        val map = JsonReader(StringReader(stringWriter.toString())).readHarmony()
+        val map = StringReader(stringWriter.toString()).readHarmony()
         assertEquals(expectedMap, map.second, "Maps were not equal")
     }
 }

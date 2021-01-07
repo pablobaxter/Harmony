@@ -6,8 +6,6 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.os.FileObserver
 import android.os.SystemClock
-import android.util.JsonReader
-import android.util.JsonWriter
 import androidx.annotation.GuardedBy
 import androidx.annotation.VisibleForTesting
 import com.frybits.harmony.internal._InternalHarmonyLog
@@ -277,7 +275,7 @@ private class HarmonyImpl constructor(
     // Helper function to handle exceptions from reading the main file
     private fun readHarmonyMapFromStream(prefsReader: Reader): Pair<String?, Map<String, Any?>> {
         return try {
-            JsonReader(prefsReader).readHarmony()
+            prefsReader.readHarmony()
         } catch (e: IllegalStateException) {
             _InternalHarmonyLog.e(LOG_TAG, "IllegalStateException while reading data file", e)
             null to emptyMap()
@@ -350,7 +348,7 @@ private class HarmonyImpl constructor(
 
                 try {
                     harmonyMainFile.outputStream().use { mainOutputStream ->
-                        JsonWriter(mainOutputStream.bufferedWriter())
+                        mainOutputStream.bufferedWriter()
                             .putHarmony(prefsName, mainSnapshot)
                             .flush()
                         // Write all changes to the physical storage
@@ -631,7 +629,7 @@ private class HarmonyImpl constructor(
 
         try {
             harmonyMainFile.outputStream().use { mainOutputStream ->
-                JsonWriter(mainOutputStream.bufferedWriter())
+                mainOutputStream.bufferedWriter()
                     .putHarmony(prefsName, currentPrefs)
                     .flush()
                 // Write all changes to the physical storage
