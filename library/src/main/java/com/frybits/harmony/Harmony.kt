@@ -5,7 +5,6 @@ package com.frybits.harmony
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.FileObserver
-import android.os.ParcelFileDescriptor
 import android.os.SystemClock
 import android.util.JsonReader
 import android.util.JsonWriter
@@ -349,18 +348,14 @@ private class HarmonyImpl constructor(
                     harmonyMainFile.delete()
                 }
 
-                val mainWriter =
-                    ParcelFileDescriptor.open(harmonyMainFile, ParcelFileDescriptor.MODE_CREATE or ParcelFileDescriptor.MODE_WRITE_ONLY)
-
                 try {
-                    ParcelFileDescriptor.AutoCloseOutputStream(mainWriter)
-                        .use { mainOutputStream ->
-                            JsonWriter(mainOutputStream.bufferedWriter())
-                                .putHarmony(prefsName, mainSnapshot)
-                                .flush()
-                            // Write all changes to the physical storage
-                            mainWriter.fileDescriptor.sync()
-                        }
+                    harmonyMainFile.outputStream().use { mainOutputStream ->
+                        JsonWriter(mainOutputStream.bufferedWriter())
+                            .putHarmony(prefsName, mainSnapshot)
+                            .flush()
+                        // Write all changes to the physical storage
+                        mainOutputStream.fd.sync()
+                    }
 
                     // Clear all the transactions, as they are committed
                     harmonyTransactionsFile.delete()
@@ -555,14 +550,17 @@ private class HarmonyImpl constructor(
             } else {
                 // This should be the normal use case. This updates the file quickly, for replication to the other processes
                 try {
-                    FileOutputStream(harmonyTransactionsFile, true).buffered().use { outputStream ->
+                    FileOutputStream(harmonyTransactionsFile, true).use { outputStream ->
+                        val bufferedOutputStream = outputStream.buffered()
                         // Transaction batching to improve cross-process replication
                         repeat(transactionMaxBatchCount) {
                             val peekedTransaction = transactionQueue.peek() ?: return@use
-                            peekedTransaction.commitTransactionToOutputStream(outputStream)
-                            outputStream.flush()
+                            peekedTransaction.commitTransactionToOutputStream(bufferedOutputStream)
+                            bufferedOutputStream.flush()
                             transactionQueue.remove(peekedTransaction)
                         }
+                        // Write all changes to the physical storage
+                        outputStream.fd.sync()
                     }
                 } catch (e: IOException) {
                     _InternalHarmonyLog.w(LOG_TAG, "Unable to write transaction", e)
@@ -631,16 +629,13 @@ private class HarmonyImpl constructor(
         // Apply all transactions to the mutable copy
         combinedTransactions.forEach { it.commitTransaction(currentPrefs) }
 
-        val mainWriter =
-            ParcelFileDescriptor.open(harmonyMainFile, ParcelFileDescriptor.MODE_CREATE or ParcelFileDescriptor.MODE_WRITE_ONLY)
-
         try {
-            ParcelFileDescriptor.AutoCloseOutputStream(mainWriter).use { mainOutputStream ->
+            harmonyMainFile.outputStream().use { mainOutputStream ->
                 JsonWriter(mainOutputStream.bufferedWriter())
                     .putHarmony(prefsName, currentPrefs)
                     .flush()
                 // Write all changes to the physical storage
-                mainWriter.fileDescriptor.sync()
+                mainOutputStream.fd.sync()
             }
 
             // Clear the transaction file
