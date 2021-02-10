@@ -95,6 +95,10 @@ Inter-Process replication test setup:
 **Summary:** With the recent changes (`v1.1.3`), Harmony `apply()` is as fast as the vanilla `SharedPreferences` and the replication performance across processes has been greatly improved. Previously, this replication would take up to 3 seconds when calling `apply()` upwards of 1k times, but now will take ~350 ms at maximum.
 
 ## Change Log
+### Version 1.1.4 / 2021-02-10
+- Added `fsync()` for each transaction written (in response to #15)
+- Minor restructure for reading JSON string from main file
+
 ### Version 1.1.3 / 2021-01-02
 - **MIN SDK Raised to API 17**
 - Adds batching to transactions, making inter-process data replication much faster
