@@ -7,6 +7,8 @@ import android.util.JsonReader
 import android.util.JsonToken
 import android.util.JsonWriter
 import java.io.IOException
+import java.io.Reader
+import java.io.Writer
 
 /*
  *  Copyright 2020 Pablo Baxter
@@ -47,131 +49,134 @@ private const val SET = "set"
 
 @JvmSynthetic
 @Throws(IOException::class)
-internal fun JsonReader.readHarmony(): Pair<String?, HashMap<String, Any?>> {
+internal fun <T : Reader> T.readHarmony(): Pair<String?, HashMap<String, Any?>> {
     var prefsName: String? = null
     var currName: String? = null
     val map = hashMapOf<String, Any?>()
 
-    if (this.peek() == JsonToken.END_DOCUMENT) return prefsName to map
+    JsonReader(this).apply {
+        if (this.peek() == JsonToken.END_DOCUMENT) return prefsName to map
 
-    beginObject()
-    while (hasNext()) {
-        when (peek()) {
-            JsonToken.NAME -> currName = nextName()
-            JsonToken.BEGIN_OBJECT -> {
-                if (currName == METADATA) {
-                    beginObject()
-                    val n = nextName()
-                    if (n == NAME_KEY) {
-                        prefsName = nextString()
-                    }
-                    endObject()
-                } else {
-                    skipValue()
-                }
-            }
-            JsonToken.BEGIN_ARRAY -> {
-                if (currName == DATA) {
-                    beginArray()
-                    while (hasNext()) {
+        beginObject()
+        while (hasNext()) {
+            when (peek()) {
+                JsonToken.NAME -> currName = nextName()
+                JsonToken.BEGIN_OBJECT -> {
+                    if (currName == METADATA) {
                         beginObject()
-                        var type: String? = null
-                        var key: String? = null
+                        val n = nextName()
+                        if (n == NAME_KEY) {
+                            prefsName = nextString()
+                        }
+                        endObject()
+                    } else {
+                        skipValue()
+                    }
+                }
+                JsonToken.BEGIN_ARRAY -> {
+                    if (currName == DATA) {
+                        beginArray()
                         while (hasNext()) {
-                            when (nextName()) {
-                                TYPE -> type = nextString()
-                                KEY -> key = nextString()
-                                VALUE -> {
-                                    when (type) {
-                                        INT -> key?.let { map[it] = nextInt() }
-                                        LONG -> key?.let { map[it] = nextLong() }
-                                        FLOAT -> key?.let { map[it] = nextDouble().toFloat() }
-                                        BOOLEAN -> key?.let { map[it] = nextBoolean() }
-                                        STRING -> key?.let { map[it] = nextString() }
-                                        SET -> {
-                                            val stringSet = mutableSetOf<String>()
-                                            beginArray()
-                                            while (hasNext()) {
-                                                stringSet.add(nextString())
+                            beginObject()
+                            var type: String? = null
+                            var key: String? = null
+                            while (hasNext()) {
+                                when (nextName()) {
+                                    TYPE -> type = nextString()
+                                    KEY -> key = nextString()
+                                    VALUE -> {
+                                        when (type) {
+                                            INT -> key?.let { map[it] = nextInt() }
+                                            LONG -> key?.let { map[it] = nextLong() }
+                                            FLOAT -> key?.let { map[it] = nextDouble().toFloat() }
+                                            BOOLEAN -> key?.let { map[it] = nextBoolean() }
+                                            STRING -> key?.let { map[it] = nextString() }
+                                            SET -> {
+                                                val stringSet = mutableSetOf<String>()
+                                                beginArray()
+                                                while (hasNext()) {
+                                                    stringSet.add(nextString())
+                                                }
+                                                endArray()
+                                                key?.let { map[it] = stringSet }
                                             }
-                                            endArray()
-                                            key?.let { map[it] = stringSet }
                                         }
                                     }
                                 }
                             }
+                            endObject()
                         }
-                        endObject()
+                        endArray()
+                    } else {
+                        skipValue()
                     }
-                    endArray()
-                } else {
-                    skipValue()
                 }
+                else -> skipValue()
             }
-            else -> skipValue()
         }
+        endObject()
     }
-    endObject()
 
     return prefsName to map
 }
 
 @JvmSynthetic
-internal fun JsonWriter.putHarmony(prefsName: String, data: Map<String, Any?>): JsonWriter {
-    beginObject().run {
-        name(METADATA).run {
+internal fun <T : Writer> T.putHarmony(prefsName: String, data: Map<String, Any?>): T {
+    JsonWriter(this).apply {
+        beginObject()
+
+        name(METADATA)
+        beginObject()
+        name(NAME_KEY).value(prefsName)
+        endObject()
+
+        name(DATA)
+        beginArray()
+        data.forEach { (key, value) ->
             beginObject()
-            name(NAME_KEY).value(prefsName)
+            when (value) {
+                is Int -> {
+                    name(TYPE).value(INT)
+                    name(KEY).value(key)
+                    name(VALUE).value(value)
+                }
+                is Long -> {
+                    name(TYPE).value(LONG)
+                    name(KEY).value(key)
+                    name(VALUE).value(value)
+                }
+                is Float -> {
+                    name(TYPE).value(FLOAT)
+                    name(KEY).value(key)
+                    name(VALUE).value(value)
+                }
+                is Boolean -> {
+                    name(TYPE).value(BOOLEAN)
+                    name(KEY).value(key)
+                    name(VALUE).value(value)
+                }
+                is String -> {
+                    name(TYPE).value(STRING)
+                    name(KEY).value(key)
+                    name(VALUE).value(value)
+                }
+                is Set<*> -> {
+                    name(TYPE).value(SET)
+                    name(KEY).value(key)
+                    name(VALUE)
+                    beginArray()
+                    @Suppress("UNCHECKED_CAST")
+                    (value as Set<String>).forEach {
+                        value(it)
+                    }
+                    endArray()
+                }
+            }
             endObject()
         }
-        name(DATA).run {
-            beginArray()
-            data.forEach { (key, value) ->
-                beginObject()
-                when (value) {
-                    is Int -> {
-                        name(TYPE).value(INT)
-                        name(KEY).value(key)
-                        name(VALUE).value(value)
-                    }
-                    is Long -> {
-                        name(TYPE).value(LONG)
-                        name(KEY).value(key)
-                        name(VALUE).value(value)
-                    }
-                    is Float -> {
-                        name(TYPE).value(FLOAT)
-                        name(KEY).value(key)
-                        name(VALUE).value(value)
-                    }
-                    is Boolean -> {
-                        name(TYPE).value(BOOLEAN)
-                        name(KEY).value(key)
-                        name(VALUE).value(value)
-                    }
-                    is String -> {
-                        name(TYPE).value(STRING)
-                        name(KEY).value(key)
-                        name(VALUE).value(value)
-                    }
-                    is Set<*> -> {
-                        name(TYPE).value(SET)
-                        name(KEY).value(key)
-                        name(VALUE).run {
-                            beginArray()
-                            @Suppress("UNCHECKED_CAST")
-                            (value as Set<String>).forEach {
-                                value(it)
-                            }
-                            endArray()
-                        }
-                    }
-                }
-                endObject()
-            }
-            endArray()
-        }
+        endArray()
+
+        endObject()
     }
-    endObject()
     return this
 }

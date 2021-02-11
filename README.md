@@ -1,7 +1,7 @@
 # Harmony Preferences
 [![CircleCI](https://circleci.com/gh/pablobaxter/Harmony/tree/main.svg?style=shield)](https://circleci.com/gh/pablobaxter/Harmony/tree/main)
 ![GitHub](https://img.shields.io/github/license/pablobaxter/harmony)
-![Bintray](https://img.shields.io/bintray/v/soaboz/Harmony/com.frybits.harmony?style=shield) [![API](https://img.shields.io/badge/API-17%2B-brightgreen.svg?style=flat)](https://android-arsenal.com/api?level=17)
+![Maven-Central](https://img.shields.io/maven-central/v/com.frybits.harmony/harmony/1.1.4) [![API](https://img.shields.io/badge/API-17%2B-brightgreen.svg?style=flat)](https://android-arsenal.com/api?level=17)
 
 Working on multiprocess Android apps is a complex undertaking. One of the biggest challenges is managing shared data between the multiple processes. Most solutions rely on one process to be available for another to read the data, which can be quite slow and could potentially lead to ANRs.
 
@@ -17,9 +17,10 @@ Harmony is a thread-safe, process-safe, full [`SharedPreferences`](https://devel
 - Supports Android API 17+
 
 ## Download
+The latest release is available on [Maven Central](https://search.maven.org/artifact/com.frybits.harmony/harmony/1.1.4/aar).
 ### Gradle
 ```
-implementation 'com.frybits.harmony:harmony:1.1.3'
+implementation 'com.frybits.harmony:harmony:1.1.4'
 ```
 
 ## Usage
@@ -95,6 +96,12 @@ Inter-Process replication test setup:
 **Summary:** With the recent changes (`v1.1.3`), Harmony `apply()` is as fast as the vanilla `SharedPreferences` and the replication performance across processes has been greatly improved. Previously, this replication would take up to 3 seconds when calling `apply()` upwards of 1k times, but now will take ~350 ms at maximum.
 
 ## Change Log
+### Version 1.1.4 / 2021-02-10
+- Added `FileDescriptor.sync()` for each transaction written (in response to [#15](https://github.com/pablobaxter/Harmony/issues/15))
+- Minor restructure for reading JSON string from main file
+- Updated Kotlin libraries and Android plugins
+- Migrated to releasing directly to MavenCentral instead of Bintray
+
 ### Version 1.1.3 / 2021-01-02
 - **MIN SDK Raised to API 17**
 - Adds batching to transactions, making inter-process data replication much faster
