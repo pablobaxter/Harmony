@@ -97,7 +97,7 @@ Inter-Process replication test setup:
 
 ## Change Log
 ### Version 1.1.4 / 2021-02-10
-- Added `fsync()` for each transaction written (in response to #15)
+- Added `fsync()` for each transaction written (in response to [#15](https://github.com/pablobaxter/Harmony/issues/15))
 - Minor restructure for reading JSON string from main file
 - Updated Kotlin libraries and Android plugins
 - Migrated to releasing directly to MavenCentral instead of Bintray
