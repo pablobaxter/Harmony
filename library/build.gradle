@@ -80,8 +80,6 @@ artifacts {
 dependencies {
     // Kotlin
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
-    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlin_coroutine_version"
-    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$kotlin_coroutine_version"
     implementation "androidx.annotation:annotation:$annotation_version"
 
     // Test
@@ -92,6 +90,8 @@ dependencies {
     androidTestImplementation "androidx.test:rules:$test_rules_version"
     androidTestImplementation "androidx.test.espresso:espresso-core:$espresso_core_version"
     androidTestImplementation "androidx.test.espresso:espresso-remote:$espresso_remote_version"
+    androidTestImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlin_coroutine_version"
+    androidTestImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$kotlin_coroutine_version"
     androidTestUtil "androidx.test:orchestrator:$test_orchestrator_version"
 }
 
