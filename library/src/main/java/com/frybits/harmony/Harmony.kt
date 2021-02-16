@@ -106,7 +106,7 @@ private class HarmonyImpl constructor(
     private var lastTransactionPosition = 0L
 
     // The current job spun from the file observer. Meant only for the transaction updates, and cancelled for any other.
-    private var currentJob: Future<*> = FutureTask {}
+    private var currentJob: Future<Unit> = FutureTask {}
 
     // Observes changes that occur to the backing file of this preference
     private val harmonyFileObserver =
@@ -115,7 +115,7 @@ private class HarmonyImpl constructor(
                 if (event == FileObserver.CLOSE_WRITE) {
                     if (path.endsWith(PREFS_TRANSACTIONS)) {
                         currentJob.cancel(false) // Don't keep a queue of all transaction updates
-                        currentJob = HARMONY_SINGLE_THREAD_EXECUTOR.submit {
+                        currentJob = HARMONY_SINGLE_THREAD_EXECUTOR.submit<Unit> {
                             handleTransactionUpdate()
                         }
                     } else if (path.endsWith(PREFS_DATA)) {
