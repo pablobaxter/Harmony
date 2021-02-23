@@ -1055,7 +1055,7 @@ private val IO_THREAD_POOL = Executors.newCachedThreadPool()
 internal fun Context.getHarmonySharedPreferences(
     name: String,
     maxTransactionSize: Long,
-    maxTransactionBatchCount: Int = 250
+    maxTransactionBatchCount: Int
 ): SharedPreferences {
     return SINGLETON_MAP[name] ?: synchronized(SingletonLockObj) {
         SINGLETON_MAP.getOrPut(name) {
@@ -1079,5 +1079,5 @@ internal fun Context.getHarmonySharedPreferences(
 @JvmName("getSharedPreferences")
 fun Context.getHarmonySharedPreferences(name: String): SharedPreferences {
     // 128 KB is ~3k transactions with single operations.
-    return getHarmonySharedPreferences(name, 128 * KILOBYTE)
+    return getHarmonySharedPreferences(name, maxTransactionSize = 128 * KILOBYTE, maxTransactionBatchCount = 250)
 }
