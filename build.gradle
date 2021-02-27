@@ -27,7 +27,7 @@ buildscript {
         targetSdk_version = 30
         buildtools_version = '29.0.2'
 
-        version_name = "1.1.4"
+        version_name = "1.1.5"
     }
 
     repositories {

@@ -73,13 +73,13 @@ private class HarmonyImpl constructor(
 ) : SharedPreferences {
 
     // Folder containing all harmony preference files
-    // NOTE: This folder can only be observed on if it exists before observer is started
+    // NOTE: This folder can only be observed on if it exists before the file observer is started
     private val harmonyPrefsFolder = File(context.harmonyPrefsFolder(), prefsName).apply { if (!exists()) mkdirs() }
 
-    // Main file file
+    // Main file
     private val harmonyMainFile = File(harmonyPrefsFolder, PREFS_DATA)
 
-    // Lock file to prevent multiple processes from writing and reading to the data file
+    // Lock file to prevent multiple processes from writing and reading to the files
     private val harmonyMainLockFile = File(harmonyPrefsFolder, PREFS_DATA_LOCK)
 
     // Transaction file
@@ -88,7 +88,7 @@ private class HarmonyImpl constructor(
     // Backup file
     private val harmonyMainBackupFile = File(harmonyPrefsFolder, PREFS_BACKUP)
 
-    // Handler for running Harmony
+    // Handler for running Harmony reads/writes
     private val harmonyHandler = Handler(HARMONY_HANDLER_THREAD.looper)
 
     // UI Handler for emitting changes
@@ -97,15 +97,16 @@ private class HarmonyImpl constructor(
     // Prevents multiple threads from editing the in-memory map at once
     private val mapReentrantReadWriteLock = ReentrantReadWriteLock()
 
-    // In-memory copy of the last read transactions in the transaction file. Should be cleared when transaction is cleared.
+    // In-memory copy of the last read transactions in the transaction file. Should be cleared when transaction file is flushed.
     private val lastReadTransactions = sortedSetOf<HarmonyTransaction>()
 
+    // Pointer of the last transaction in the file
     private var lastTransaction = EMPTY_TRANSACTION
 
-    // The last read position of the transaction file. Prevents having to read the entire file each update
+    // The last read position of the transaction file. Prevents having to read the entire file each update.
     private var lastTransactionPosition = 0L
 
-    // Runnable to handle transactions. Used as an object to allow Handler to remove from Queue
+    // Runnable to handle transactions. Used as an object to allow the Handler to remove from the queue. Prevents build up of this job in the looper.
     private var transactionUpdateJob = Runnable {
         handleTransactionUpdate()
     }
@@ -119,7 +120,7 @@ private class HarmonyImpl constructor(
                     harmonyHandler.removeCallbacks(transactionUpdateJob) // Don't keep a queue of all transaction updates
                     harmonyHandler.post(transactionUpdateJob)
                 } else if (path.endsWith(PREFS_DATA)) {
-                    harmonyHandler.removeCallbacks(transactionUpdateJob) // Cancel any transaction update, as an update to the main supersedes it
+                    harmonyHandler.removeCallbacks(transactionUpdateJob) // Cancel any pending transaction update, as an update to the main supersedes it
                     harmonyHandler.post {
                         handleMainUpdateWithFileLock()
                     }
@@ -137,12 +138,12 @@ private class HarmonyImpl constructor(
     @GuardedBy("mapReentrantReadWriteLock")
     private var harmonyMap: HashMap<String, Any?> = hashMapOf()
 
-    // Last snapshot of main read in this process that all transactions will apply to
+    // Snapshot of the main file, to base transaction changes off of
     private var mainSnapshot: HashMap<String, Any?> = hashMapOf()
 
     // In-process transactions in-flight but not yet written to the file
-    // This prevents losing changes done in this pr @GuardedBy("mapReentrantReadWriteLock")ocess
-
+    // This prevents losing changes done in this process
+    @GuardedBy("mapReentrantReadWriteLock")
     private val transactionSet = sortedSetOf<HarmonyTransaction>()
 
     // A queue for any transactions that are pending writes. This allows for batching of transaction writes
@@ -1044,7 +1045,7 @@ private val SINGLETON_MAP = hashMapOf<String, HarmonyImpl>()
 
 private val EMPTY_TRANSACTION = HarmonyTransaction().apply { memoryCommitTime = Long.MIN_VALUE }
 
-// Single thread, to serialize any calls to read/write the prefs
+// Single thread, to ensure calls are handled sequentially
 private val HARMONY_HANDLER_THREAD = HandlerThread(LOG_TAG).apply { start() }
 
 // Thread pool for handling loading of transaction file independently on first start of a Harmony object
