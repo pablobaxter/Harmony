@@ -99,7 +99,7 @@ Inter-Process replication test setup:
 ### Version 1.1.5 / 2021-02-27
 - Removed dependency on Kotlin Coroutines. This is to reduce bringing in libraries that may not already exist into the project.
 - Create a global thread to handle Harmony updates, instead of each Harmony object having their own thread.
-- Note: The test times may appear better this release, but that is only because I was previously testing on a debug build of the demo app instead of a release build. In actuality, v1.1.5 performs just as well as v1.1.4 with the listed changes. Sorry if there is any confusion.
+- **Note**: The test times may appear better this release, but that is only because I was previously testing on a debug build of the demo app instead of a release build. In actuality, v1.1.5 performs just as well as v1.1.4 with the listed changes. Sorry if there is any confusion.
 
 ### Version 1.1.4 / 2021-02-10
 - Added `FileDescriptor.sync()` for each transaction written (in response to [#15](https://github.com/pablobaxter/Harmony/issues/15))
