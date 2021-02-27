@@ -64,8 +64,8 @@ Inter-Process replication test setup:
 - This test was performed 10 times, with the results based off of all 10k entries
 - Time for `OnSharedPreferenceChangeListener` to be called in other process (Harmony only):
   - **Min time:** `5 ms`
-  - **Max time:** `423 ms`
-  - **Average time:** `38.0076 ms`
+  - **Max time:** `127 ms`
+  - **Average time:** `28.1638 ms`
 
 **Summary:** This result is expected. Harmony will perform a commit that is slower than the vanilla SharedPreferences due to file locking occurring, but will quickly emit the changes to any process that is listening.
 
@@ -88,17 +88,18 @@ Inter-Process replication test setup:
 - Each test calls `apply()` 1k times and awaits to read the data on the other process
 - This test was performed 10 times, with the results based off of all 10k entries
 - Time for `OnSharedPreferenceChangeListener` to be called in other process (Harmony only):
-  - **Min time:** `10 ms`
-  - **Max time:** `317 ms`
-  - **Average time:** `115.6742 ms`
+  - **Min time:** `9 ms`
+  - **Max time:** `181 ms`
+  - **Average time:** `76.3006 ms`
 - **NOTE:** Quickly calling `apply()` can lead to longer replication times. You should always batch changes into the `SharedPreferenced.Editor` object before calling `apply()` for the best performance.
 
-**Summary:** With the recent changes (`v1.1.3`), Harmony `apply()` is as fast as the vanilla `SharedPreferences` and the replication performance across processes has been greatly improved. Previously, this replication would take up to 3 seconds when calling `apply()` upwards of 1k times, but now will take ~350 ms at maximum.
+**Summary:** With the recent changes (`v1.1.3`), Harmony `apply()` is as fast as the vanilla `SharedPreferences` and the replication performance across processes has been greatly improved.
 
 ## Change Log
 ### Version 1.1.5 / 2021-02-27
 - Removed dependency on Kotlin Coroutines. This is to reduce bringing in libraries that may not already exist into the project.
 - Create a global thread to handle Harmony updates, instead of each Harmony object having their own thread.
+- Note: The test times may appear better this release, but that is only because I was previously testing on a debug build of the demo app instead of a release build. In actuality, v1.1.5 performs just as well as v1.1.4 with the listed changes. Sorry if there is any confusion.
 
 ### Version 1.1.4 / 2021-02-10
 - Added `FileDescriptor.sync()` for each transaction written (in response to [#15](https://github.com/pablobaxter/Harmony/issues/15))
