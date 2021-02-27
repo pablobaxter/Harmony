@@ -54,7 +54,7 @@ class HarmonyProcessApplyTest {
     fun setup() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        appContext.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE).edit(true) { clear() }
+        appContext.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE, TRANSACTION_BATCH_SIZE).edit(true) { clear() }
 
         // Ensure we are in the right process
         val pid = Process.myPid()
@@ -111,7 +111,7 @@ class HarmonyProcessApplyTest {
         // Give the service enough time to setup
         Thread.sleep(1000)
 
-        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
+        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE, TRANSACTION_BATCH_SIZE)
         testMap.forEach { (k, v) ->
             sharedPreferences.edit { putInt(k, v) }
         }
@@ -166,7 +166,7 @@ class HarmonyProcessApplyTest {
         // Give the service enough time to setup
         Thread.sleep(1000)
 
-        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
+        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE, TRANSACTION_BATCH_SIZE)
         testMap.forEach { (k, v) ->
             sharedPreferences.edit { putLong(k, v) }
         }
@@ -221,7 +221,7 @@ class HarmonyProcessApplyTest {
         // Give the service enough time to setup
         Thread.sleep(1000)
 
-        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
+        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE, TRANSACTION_BATCH_SIZE)
         testMap.forEach { (k, v) ->
             sharedPreferences.edit { putFloat(k, v) }
         }
@@ -276,7 +276,7 @@ class HarmonyProcessApplyTest {
         // Give the service enough time to setup
         Thread.sleep(1000)
 
-        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
+        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE, TRANSACTION_BATCH_SIZE)
         testMap.forEach { (k, v) ->
             sharedPreferences.edit { putBoolean(k, v) }
         }
@@ -331,7 +331,7 @@ class HarmonyProcessApplyTest {
         // Give the service enough time to setup
         Thread.sleep(1000)
 
-        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
+        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE, TRANSACTION_BATCH_SIZE)
         testMap.forEach { (k, v) ->
             sharedPreferences.edit { putString(k, v) }
         }
@@ -386,7 +386,7 @@ class HarmonyProcessApplyTest {
         // Give the service enough time to setup
         Thread.sleep(1000)
 
-        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
+        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE, TRANSACTION_BATCH_SIZE)
         testMap.forEach { (k, v) ->
             sharedPreferences.edit { putStringSet(k, v) }
         }
@@ -404,7 +404,7 @@ class HarmonyProcessApplyTest {
         // Setup test
         val application = InstrumentationRegistry.getInstrumentation().targetContext
 
-        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
+        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE, TRANSACTION_BATCH_SIZE)
 
         sharedPreferences.edit { putString("test", "test") }
 
@@ -434,7 +434,7 @@ class HarmonyProcessApplyTest {
         // Setup test
         val application = InstrumentationRegistry.getInstrumentation().targetContext
 
-        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
+        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE, TRANSACTION_BATCH_SIZE)
 
         // Start simple change notify test
         val simpleTestString = "simple${Random.nextInt(0, Int.MAX_VALUE)}"
@@ -469,7 +469,7 @@ class HarmonyProcessApplyTest {
         // Setup test
         val application = InstrumentationRegistry.getInstrumentation().targetContext
 
-        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
+        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE, TRANSACTION_BATCH_SIZE)
 
         // Start clear data + simple change notify test
         val clearDataTestString = "clearData${Random.nextInt(0, Int.MAX_VALUE)}"

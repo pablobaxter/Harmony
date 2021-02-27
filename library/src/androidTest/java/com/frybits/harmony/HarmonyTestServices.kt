@@ -40,6 +40,7 @@ internal const val MESSENGER_KEY = "messenger"
 internal const val TEST_SIMPLE_KEY = "testSimple"
 internal const val TEST_CLEAR_DATA_KEY = "testClearedData"
 internal const val TRANSACTION_SIZE = 4 * 1024L
+internal const val TRANSACTION_BATCH_SIZE = 250
 
 abstract class HarmonyService : Service() {
 
@@ -49,7 +50,7 @@ abstract class HarmonyService : Service() {
         super.onCreate()
         assertTrue("Service is not running in alternate process!") { getServiceProcess().endsWith(ALTERNATE_PROCESS_NAME) }
 
-        testPrefs = getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
+        testPrefs = getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE, TRANSACTION_BATCH_SIZE)
     }
 
     // Binder cannot be null. Returning NoOp instead
