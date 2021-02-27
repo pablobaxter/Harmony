@@ -1,7 +1,9 @@
-# Harmony Preferences
+# [Harmony — Multiprocess SharedPreferences](https://medium.com/@pablobaxter/harmony-sharedpreferences-4d0fb500907e?source=friends_link&sk=22b45fe99fe66a085dc8d455d0d90178)
+
 [![CircleCI](https://circleci.com/gh/pablobaxter/Harmony/tree/main.svg?style=shield)](https://circleci.com/gh/pablobaxter/Harmony/tree/main)
 [![GitHub](https://img.shields.io/github/license/pablobaxter/harmony)](https://github.com/pablobaxter/Harmony/blob/main/LICENSE)
-[![Maven-Central](https://img.shields.io/maven-central/v/com.frybits.harmony/harmony/1.1.5)](https://search.maven.org/artifact/com.frybits.harmony/harmony/1.1.5/aar) [![API](https://img.shields.io/badge/API-17%2B-brightgreen.svg?style=flat)](https://android-arsenal.com/api?level=17)
+[![Maven-Central](https://img.shields.io/maven-central/v/com.frybits.harmony/harmony/1.1.5)](https://search.maven.org/artifact/com.frybits.harmony/harmony/1.1.5/aar)
+[![API](https://img.shields.io/badge/API-17%2B-brightgreen.svg?style=flat)](https://android-arsenal.com/api?level=17)
 
 Working on multiprocess Android apps is a complex undertaking. One of the biggest challenges is managing shared data between the multiple processes. Most solutions rely on one process to be available for another to read the data, which can be quite slow and could potentially lead to ANRs.
 
