@@ -55,7 +55,7 @@ class HarmonyProcessCommitTest {
     fun setup() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        appContext.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE).edit(true) { clear() }
+        appContext.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE, TRANSACTION_BATCH_SIZE).edit(true) { clear() }
 
         // Ensure we are in the right process
         val pid = Process.myPid()
@@ -112,7 +112,7 @@ class HarmonyProcessCommitTest {
         // Give the service enough time to setup
         Thread.sleep(1000)
 
-        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
+        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE, TRANSACTION_BATCH_SIZE)
         testMap.forEach { (k, v) ->
             sharedPreferences.edit(true) { putInt(k, v) }
         }
@@ -167,7 +167,7 @@ class HarmonyProcessCommitTest {
         // Give the service enough time to setup
         Thread.sleep(1000)
 
-        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
+        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE, TRANSACTION_BATCH_SIZE)
         testMap.forEach { (k, v) ->
             sharedPreferences.edit(true) { putLong(k, v) }
         }
@@ -222,7 +222,7 @@ class HarmonyProcessCommitTest {
         // Give the service enough time to setup
         Thread.sleep(1000)
 
-        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
+        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE, TRANSACTION_BATCH_SIZE)
         testMap.forEach { (k, v) ->
             sharedPreferences.edit(true) { putFloat(k, v) }
         }
@@ -277,7 +277,7 @@ class HarmonyProcessCommitTest {
         // Give the service enough time to setup
         Thread.sleep(1000)
 
-        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
+        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE, TRANSACTION_BATCH_SIZE)
         testMap.forEach { (k, v) ->
             sharedPreferences.edit(true) { putBoolean(k, v) }
         }
@@ -332,7 +332,7 @@ class HarmonyProcessCommitTest {
         // Give the service enough time to setup
         Thread.sleep(1000)
 
-        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
+        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE, TRANSACTION_BATCH_SIZE)
         testMap.forEach { (k, v) ->
             sharedPreferences.edit(true) { putString(k, v) }
         }
@@ -387,7 +387,7 @@ class HarmonyProcessCommitTest {
         // Give the service enough time to setup
         Thread.sleep(1000)
 
-        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
+        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE, TRANSACTION_BATCH_SIZE)
         testMap.forEach { (k, v) ->
             sharedPreferences.edit(true) { putStringSet(k, v) }
         }
@@ -405,7 +405,7 @@ class HarmonyProcessCommitTest {
         // Setup test
         val application = InstrumentationRegistry.getInstrumentation().targetContext
 
-        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
+        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE, TRANSACTION_BATCH_SIZE)
 
         sharedPreferences.edit(true) { putString("test", "test") }
 
@@ -435,7 +435,7 @@ class HarmonyProcessCommitTest {
         // Setup test
         val application = InstrumentationRegistry.getInstrumentation().targetContext
 
-        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
+        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE, TRANSACTION_BATCH_SIZE)
 
         // Start simple change notify test
         val simpleTestString = "simple${Random.nextInt(0, Int.MAX_VALUE)}"
@@ -471,7 +471,7 @@ class HarmonyProcessCommitTest {
         // Setup test
         val application = InstrumentationRegistry.getInstrumentation().targetContext
 
-        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE)
+        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE, TRANSACTION_BATCH_SIZE)
 
         // Start clear data + simple change notify test
         val clearDataTestString = "clearData${Random.nextInt(0, Int.MAX_VALUE)}"

@@ -1,7 +1,9 @@
-# Harmony Preferences
+# [Harmony — Multiprocess SharedPreferences](https://medium.com/@pablobaxter/harmony-sharedpreferences-4d0fb500907e?source=friends_link&sk=22b45fe99fe66a085dc8d455d0d90178)
+
 [![CircleCI](https://circleci.com/gh/pablobaxter/Harmony/tree/main.svg?style=shield)](https://circleci.com/gh/pablobaxter/Harmony/tree/main)
 [![GitHub](https://img.shields.io/github/license/pablobaxter/harmony)](https://github.com/pablobaxter/Harmony/blob/main/LICENSE)
-[![Maven-Central](https://img.shields.io/maven-central/v/com.frybits.harmony/harmony/1.1.4)](https://search.maven.org/artifact/com.frybits.harmony/harmony/1.1.4/aar) [![API](https://img.shields.io/badge/API-17%2B-brightgreen.svg?style=flat)](https://android-arsenal.com/api?level=17)
+[![Maven-Central](https://img.shields.io/maven-central/v/com.frybits.harmony/harmony/1.1.5)](https://search.maven.org/artifact/com.frybits.harmony/harmony/1.1.5/aar)
+[![API](https://img.shields.io/badge/API-17%2B-brightgreen.svg?style=flat)](https://android-arsenal.com/api?level=17)
 
 Working on multiprocess Android apps is a complex undertaking. One of the biggest challenges is managing shared data between the multiple processes. Most solutions rely on one process to be available for another to read the data, which can be quite slow and could potentially lead to ANRs.
 
@@ -17,10 +19,10 @@ Harmony is a thread-safe, process-safe, full [`SharedPreferences`](https://devel
 - Supports Android API 17+
 
 ## Download
-The latest release is available on [Maven Central](https://search.maven.org/artifact/com.frybits.harmony/harmony/1.1.4/aar).
+The latest release is available on [Maven Central](https://search.maven.org/artifact/com.frybits.harmony/harmony/1.1.5/aar).
 ### Gradle
 ```
-implementation 'com.frybits.harmony:harmony:1.1.4'
+implementation 'com.frybits.harmony:harmony:1.1.5'
 ```
 
 ## Usage
@@ -64,8 +66,8 @@ Inter-Process replication test setup:
 - This test was performed 10 times, with the results based off of all 10k entries
 - Time for `OnSharedPreferenceChangeListener` to be called in other process (Harmony only):
   - **Min time:** `5 ms`
-  - **Max time:** `423 ms`
-  - **Average time:** `38.0076 ms`
+  - **Max time:** `127 ms`
+  - **Average time:** `28.1638 ms`
 
 **Summary:** This result is expected. Harmony will perform a commit that is slower than the vanilla SharedPreferences due to file locking occurring, but will quickly emit the changes to any process that is listening.
 
@@ -88,14 +90,19 @@ Inter-Process replication test setup:
 - Each test calls `apply()` 1k times and awaits to read the data on the other process
 - This test was performed 10 times, with the results based off of all 10k entries
 - Time for `OnSharedPreferenceChangeListener` to be called in other process (Harmony only):
-  - **Min time:** `10 ms`
-  - **Max time:** `317 ms`
-  - **Average time:** `115.6742 ms`
+  - **Min time:** `9 ms`
+  - **Max time:** `181 ms`
+  - **Average time:** `76.3006 ms`
 - **NOTE:** Quickly calling `apply()` can lead to longer replication times. You should always batch changes into the `SharedPreferenced.Editor` object before calling `apply()` for the best performance.
 
-**Summary:** With the recent changes (`v1.1.3`), Harmony `apply()` is as fast as the vanilla `SharedPreferences` and the replication performance across processes has been greatly improved. Previously, this replication would take up to 3 seconds when calling `apply()` upwards of 1k times, but now will take ~350 ms at maximum.
+**Summary:** With the recent changes (`v1.1.3`), Harmony `apply()` is as fast as the vanilla `SharedPreferences` and the replication performance across processes has been greatly improved.
 
 ## Change Log
+### Version 1.1.5 / 2021-02-27
+- Removed dependency on Kotlin Coroutines. This is to reduce bringing in libraries that may not already exist into the project.
+- Create a global thread to handle Harmony updates, instead of each Harmony object having their own thread.
+- **Note**: The test times may appear better this release, but that is only because I was previously testing on a debug build of the demo app instead of a release build. In actuality, v1.1.5 performs just as well as v1.1.4 with the listed changes. Sorry if there is any confusion.
+
 ### Version 1.1.4 / 2021-02-10
 - Added `FileDescriptor.sync()` for each transaction written (in response to [#15](https://github.com/pablobaxter/Harmony/issues/15))
 - Minor restructure for reading JSON string from main file
