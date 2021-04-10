@@ -466,7 +466,6 @@ class HarmonyProcessCommitTest {
     }
 
     @Test
-    @Ignore("Known issue with current implementation. https://github.com/pablobaxter/Harmony/issues/13")
     fun testClearedDataChangesNotifiesAcrossProcesses() = runBlocking {
         // Setup test
         val application = InstrumentationRegistry.getInstrumentation().targetContext
