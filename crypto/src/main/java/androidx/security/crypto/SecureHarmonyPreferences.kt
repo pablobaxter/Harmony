@@ -2,6 +2,7 @@ package androidx.security.crypto
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.ArraySet
 import com.frybits.harmony.getHarmonySharedPreferences
 import com.google.crypto.tink.Aead
 import com.google.crypto.tink.DeterministicAead
@@ -9,9 +10,358 @@ import com.google.crypto.tink.KeysetHandle
 import com.google.crypto.tink.aead.AeadConfig
 import com.google.crypto.tink.daead.DeterministicAeadConfig
 import com.google.crypto.tink.integration.android.HarmonyKeysetManager
+import com.google.crypto.tink.subtle.Base64
+import java.nio.ByteBuffer
+import java.security.GeneralSecurityException
+import java.util.WeakHashMap
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.text.Charsets.UTF_8
+
+/*
+ * An implementation of {@link SharedPreferences} that encrypts keys and values and is process-safe.
+ */
 
 private const val KEY_KEYSET_ALIAS = "__androidx_security_crypto_encrypted_prefs_key_keyset__"
 private const val VALUE_KEYSET_ALIAS = "__androidx_security_crypto_encrypted_prefs_value_keyset__"
+private const val NULL_VALUE = "__NULL__"
+
+// Empty singleton to support WeakHashmap
+private object CONTENT
+
+private class SecureHarmonyPreferences(
+    private val fileName: String,
+    private val sharedPreferences: SharedPreferences,
+    private val aead: Aead,
+    private val deterministicAead: DeterministicAead
+) : SharedPreferences {
+
+    private val changedListeners = WeakHashMap<SharedPreferences.OnSharedPreferenceChangeListener, Any>()
+
+    private val internalOnPreferencesChangeListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        changedListeners.keys.forEach {
+            if (!isReservedKey(key)) {
+                it.onSharedPreferenceChanged(this, decryptKey(key))
+            }
+        }
+    }
+
+    init {
+        // Harmony uses a weakhashmap for listeners. If this encrypted shared prefs is garbage collected, the listener will be dropped as well.
+        // No need to call unregister
+        sharedPreferences.registerOnSharedPreferenceChangeListener(internalOnPreferencesChangeListener)
+    }
+
+    private inner class SecureEditor : SharedPreferences.Editor {
+
+        private val editor = sharedPreferences.edit()
+        private val clearRequested = AtomicBoolean()
+        private val keysChanged = CopyOnWriteArrayList<String>()
+
+        override fun putString(key: String?, value: String?): SharedPreferences.Editor {
+            val mutableValue: String = value ?: NULL_VALUE
+            val stringBytes = mutableValue.toByteArray(UTF_8)
+            val stringByteLength = stringBytes.size
+            val buffer = ByteBuffer.allocate(Int.SIZE_BYTES + Int.SIZE_BYTES + stringByteLength)
+            buffer.putInt(EncryptedType.STRING)
+            buffer.putInt(stringByteLength)
+            buffer.put(stringBytes)
+            putEncryptedObject(key, buffer.array())
+            return this
+        }
+
+        override fun putStringSet(key: String?, values: MutableSet<String>?): SharedPreferences.Editor {
+            val mutableValues = values ?: setOf(NULL_VALUE)
+            val byteValues = arrayListOf<ByteArray>()
+            var totalBytes = mutableValues.size * Int.SIZE_BYTES
+            mutableValues.forEach { strValue ->
+                val byteValue = strValue.toByteArray(UTF_8)
+                byteValues.add(byteValue)
+                totalBytes += byteValue.size
+            }
+            totalBytes += Int.SIZE_BYTES
+            val buffer = ByteBuffer.allocate(totalBytes)
+            buffer.putInt(EncryptedType.STRING_SET)
+            byteValues.forEach { bytes ->
+                buffer.putInt(bytes.size)
+                buffer.put(bytes)
+            }
+            putEncryptedObject(key, buffer.array())
+            return this
+        }
+
+        override fun putInt(key: String?, value: Int): SharedPreferences.Editor {
+            val buffer = ByteBuffer.allocate(Int.SIZE_BYTES + Int.SIZE_BYTES)
+            buffer.putInt(EncryptedType.INT)
+            buffer.putInt(value)
+            putEncryptedObject(key, buffer.array())
+            return this
+        }
+
+        override fun putLong(key: String?, value: Long): SharedPreferences.Editor {
+            val buffer = ByteBuffer.allocate(Int.SIZE_BYTES + Long.SIZE_BYTES)
+            buffer.putInt(EncryptedType.LONG)
+            buffer.putLong(value)
+            putEncryptedObject(key, buffer.array())
+            return this
+        }
+
+        override fun putFloat(key: String?, value: Float): SharedPreferences.Editor {
+            val buffer = ByteBuffer.allocate(Int.SIZE_BYTES + Float.SIZE_BYTES)
+            buffer.putInt(EncryptedType.FLOAT)
+            buffer.putFloat(value)
+            putEncryptedObject(key, buffer.array())
+            return this
+        }
+
+        override fun putBoolean(key: String?, value: Boolean): SharedPreferences.Editor {
+            val buffer = ByteBuffer.allocate(Int.SIZE_BYTES + Byte.SIZE_BYTES)
+            buffer.putInt(EncryptedType.BOOLEAN)
+            buffer.put(if (value) 1.toByte() else 0.toByte())
+            putEncryptedObject(key, buffer.array())
+            return this
+        }
+
+        override fun remove(key: String?): SharedPreferences.Editor {
+            if (isReservedKey(key)) {
+                throw SecurityException("$key is a reserved key for the encryption keyset.")
+            }
+            editor.remove(encryptKey(key))
+            keysChanged.remove(key)
+            return this
+        }
+
+        override fun clear(): SharedPreferences.Editor {
+            // Set the flag to clear on commit, this operation happens first on commit.
+            // Cannot use underlying clear operation, it will remove the keysets and
+            // break the editor.
+            clearRequested.set(true)
+            return this
+        }
+
+        override fun commit(): Boolean {
+            clearKeysIfNeeded()
+            try {
+                return editor.commit()
+            } finally {
+                keysChanged.clear()
+            }
+        }
+
+        override fun apply() {
+            clearKeysIfNeeded()
+            editor.apply()
+            keysChanged.clear()
+        }
+
+        private fun clearKeysIfNeeded() {
+            // Call "clear" first as per the documentation, remove all keys that haven't
+            // been modified in this editor.
+            if (clearRequested.getAndSet(false)) {
+                all.keys.forEach { key ->
+                    if (!keysChanged.contains(key) && !isReservedKey(key)) {
+                        editor.remove(encryptKey(key))
+                    }
+                }
+            }
+        }
+
+        private fun putEncryptedObject(key: String?, value: ByteArray) {
+            if (isReservedKey(key)) {
+                throw SecurityException("$key is a reserved key for the encryption keyset.")
+            }
+            keysChanged.add(key)
+            val mutableKey = key ?: NULL_VALUE
+            try {
+                val encryptedPair = encryptKeyValuePair(mutableKey, value)
+                editor.putString(encryptedPair.first, encryptedPair.second)
+            } catch (e: GeneralSecurityException) {
+                throw SecurityException("Could not encrypt data: ${e.message}", e)
+            }
+        }
+    }
+
+    // SharedPreferences methods
+
+    override fun getAll(): MutableMap<String?, *> {
+        val allEntries = hashMapOf<String?, Any?>()
+        sharedPreferences.all.keys.forEach { key ->
+            if (!isReservedKey(key)) {
+                val decryptedKey = decryptKey(key)
+                allEntries[decryptedKey] = getDecryptedObject(decryptedKey)
+            }
+        }
+        return allEntries
+    }
+
+    override fun getString(key: String?, defValue: String?): String? {
+        val obj = getDecryptedObject(key)
+        return obj as String? ?: defValue
+    }
+
+    override fun getStringSet(key: String?, defValues: MutableSet<String>?): MutableSet<String>? {
+        val obj = getDecryptedObject(key)
+        @Suppress("UNCHECKED_CAST")
+        val result = (obj as Set<String>?)?.toMutableSet() ?: hashSetOf()
+        return if (result.size > 0) {
+            result
+        } else {
+            defValues
+        }
+    }
+
+    override fun getInt(key: String?, defValue: Int): Int {
+        val obj = getDecryptedObject(key)
+        return obj as Int? ?: defValue
+    }
+
+    override fun getLong(key: String?, defValue: Long): Long {
+        val obj = getDecryptedObject(key)
+        return obj as Long? ?: defValue
+    }
+
+    override fun getFloat(key: String?, defValue: Float): Float {
+        val obj = getDecryptedObject(key)
+        return obj as Float? ?: defValue
+    }
+
+    override fun getBoolean(key: String?, defValue: Boolean): Boolean {
+        val obj = getDecryptedObject(key)
+        return obj as Boolean? ?: defValue
+    }
+
+    override fun contains(key: String?): Boolean {
+        if (isReservedKey(key)) {
+            throw SecurityException("$key is a reserved key for the encryption keyset.")
+        }
+        val encryptedKey = encryptKey(key)
+        return sharedPreferences.contains(encryptedKey)
+    }
+
+    override fun edit(): SharedPreferences.Editor {
+        return SecureEditor()
+    }
+
+    override fun registerOnSharedPreferenceChangeListener(listener: SharedPreferences.OnSharedPreferenceChangeListener?) {
+        synchronized(this) {
+            changedListeners[listener] = CONTENT
+        }
+    }
+
+    override fun unregisterOnSharedPreferenceChangeListener(listener: SharedPreferences.OnSharedPreferenceChangeListener?) {
+        synchronized(this) {
+            changedListeners.remove(listener)
+        }
+    }
+
+    /**
+     * Internal enum to set the type of encrypted data.
+     */
+    private object EncryptedType {
+        const val STRING = 0
+        const val STRING_SET = 1
+        const val INT = 2
+        const val LONG = 3
+        const val FLOAT = 4
+        const val BOOLEAN = 5
+    }
+
+    private fun getDecryptedObject(key: String?): Any? {
+
+        if (isReservedKey(key)) {
+            throw SecurityException("$key is a reserved key for the encryption keyset.")
+        }
+        val mutableKey: String = key ?: NULL_VALUE
+
+        try {
+            val encryptedKey = encryptKey(mutableKey)
+            val encryptedValue = sharedPreferences.getString(encryptedKey, null)
+            if (encryptedValue != null) {
+                val cipherText = Base64.decode(encryptedValue, Base64.DEFAULT)
+                val result = aead.decrypt(cipherText, encryptedKey.toByteArray(UTF_8))
+                val buffer = ByteBuffer.wrap(result)
+                buffer.position(0)
+                when (buffer.int) {
+                    EncryptedType.STRING -> {
+                        val stringLength = buffer.int
+                        val stringSlice = buffer.slice()
+                        buffer.limit(stringLength)
+                        val stringValue = UTF_8.decode(stringSlice).toString()
+                        return if (stringValue == NULL_VALUE) {
+                            stringValue
+                        } else {
+                            null
+                        }
+                    }
+                    EncryptedType.INT -> return buffer.int
+                    EncryptedType.LONG -> return buffer.long
+                    EncryptedType.FLOAT -> return buffer.float
+                    EncryptedType.BOOLEAN -> return buffer.get() != 0.toByte()
+                    EncryptedType.STRING_SET -> {
+                        val stringSet = ArraySet<String>()
+                        while (buffer.hasRemaining()) {
+                            val subStringLength = buffer.int
+                            val subStringSlice = buffer.slice()
+                            subStringSlice.limit(subStringLength)
+                            buffer.position(buffer.position() + subStringLength)
+                            stringSet.add(UTF_8.decode(subStringSlice).toString())
+                        }
+                        return if (stringSet.size == 1 && stringSet.valueAt(0) == NULL_VALUE) {
+                            null
+                        } else {
+                            stringSet
+                        }
+                    }
+                    else -> return null
+                }
+            }
+        } catch (e: GeneralSecurityException) {
+            throw SecurityException("Could not decrypt value. ${e.message}", e)
+        }
+        return null
+    }
+
+    private fun encryptKey(key: String?): String {
+        val k = key ?: return NULL_VALUE
+        try {
+            val encryptedKeyBytes = deterministicAead.encryptDeterministically(k.toByteArray(UTF_8), fileName.toByteArray())
+            return Base64.encode(encryptedKeyBytes)
+        } catch (e: GeneralSecurityException) {
+            throw SecurityException("Could not encrypt key. ${e.message}", e)
+        }
+    }
+
+    private fun decryptKey(encryptedKey: String): String? {
+        try {
+            val clearText = deterministicAead.decryptDeterministically(Base64.decode(encryptedKey, Base64.DEFAULT), fileName.toByteArray())
+            var key: String? = String(clearText, UTF_8)
+            if (key == NULL_VALUE) {
+                key = null
+            }
+            return key
+        } catch (e: GeneralSecurityException) {
+            throw SecurityException("Could not decrypt key. ${e.message}", e)
+        }
+    }
+
+    /**
+     * Check usage of the key and value keysets.
+     *
+     * @param key the plain text key
+     */
+    private fun isReservedKey(key: String?): Boolean {
+        if (key == KEY_KEYSET_ALIAS || key == VALUE_KEYSET_ALIAS) {
+            return true
+        }
+        return false
+    }
+
+    private fun encryptKeyValuePair(key: String?, bytes: ByteArray): Pair<String, String> {
+        val encryptedKey = encryptKey(key)
+        val cipherText = aead.encrypt(bytes, encryptedKey.toByteArray(UTF_8))
+        return encryptedKey to Base64.encode(cipherText)
+    }
+}
 
 @JvmSynthetic
 internal fun Context.encryptedHarmonyPreferences(
@@ -25,17 +375,17 @@ internal fun Context.encryptedHarmonyPreferences(
 
     val daeadKeysetHandle: KeysetHandle = HarmonyKeysetManager.Builder()
         .withKeyTemplate(prefKeyEncryptionScheme.keyTemplate)
-        .withSharedPref(this, KEY_KEYSET_ALIAS, fileName)
+        .withSharedPref(KEY_KEYSET_ALIAS, getHarmonySharedPreferences(fileName))
         .withMasterKeyUri(MasterKeys.KEYSTORE_PATH_URI + masterKeyAlias)
         .build().keysetHandle
     val aeadKeysetHandle: KeysetHandle = HarmonyKeysetManager.Builder()
         .withKeyTemplate(prefValueEncryptionScheme.keyTemplate)
-        .withSharedPref(this, VALUE_KEYSET_ALIAS, fileName)
+        .withSharedPref(VALUE_KEYSET_ALIAS, getHarmonySharedPreferences(fileName))
         .withMasterKeyUri(MasterKeys.KEYSTORE_PATH_URI + masterKeyAlias)
         .build().keysetHandle
 
     val daead: DeterministicAead = daeadKeysetHandle.getPrimitive(DeterministicAead::class.java)
     val aead: Aead = aeadKeysetHandle.getPrimitive(Aead::class.java)
 
-    return EncryptedSharedPreferences(fileName, masterKeyAlias, getHarmonySharedPreferences(fileName), aead, daead)
+    return SecureHarmonyPreferences(fileName, getHarmonySharedPreferences(fileName), aead, daead)
 }

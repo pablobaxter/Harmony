@@ -16,8 +16,9 @@ import java.io.IOException
  * @since 1.0.0
  */
 @SuppressLint("CommitPrefEdits")
-internal class HarmonyKeysetWriter(context: Context, private val keysetName: String, prefFileName: String?) : KeysetWriter {
+internal class HarmonyKeysetWriter : KeysetWriter {
     private val editor: SharedPreferences.Editor
+    private val keysetName: String
 
     /**
      * Creates a [KeysetReader] that hex-encodes and writes keysets to the preference
@@ -29,13 +30,19 @@ internal class HarmonyKeysetWriter(context: Context, private val keysetName: Str
      * @throws IOException if cannot write the keyset
      * @throws IllegalArgumentException if `keysetName` is null
      */
-    init {
+    constructor(context: Context, keysetName: String, prefFileName: String?) {
+        this.keysetName = keysetName
         val appContext = context.applicationContext
         editor = if (prefFileName == null) {
             appContext.getHarmonySharedPreferences(appContext.packageName + "_preference").edit()
         } else {
             appContext.getHarmonySharedPreferences(prefFileName).edit()
         }
+    }
+
+    constructor(keysetName: String, sharedPreferences: SharedPreferences) {
+        this.keysetName = keysetName
+        this.editor = sharedPreferences.edit()
     }
 
     @Throws(IOException::class)

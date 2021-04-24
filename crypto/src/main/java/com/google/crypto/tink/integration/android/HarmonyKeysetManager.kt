@@ -1,6 +1,7 @@
 package com.google.crypto.tink.integration.android
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.os.Build
 import android.util.Log
 import androidx.annotation.GuardedBy
@@ -133,6 +134,14 @@ internal class HarmonyKeysetManager private constructor(builder: Builder) {
         fun withSharedPref(context: Context, keysetName: String, prefFileName: String?): Builder {
             reader = HarmonyKeysetReader(context, keysetName, prefFileName)
             writer = HarmonyKeysetWriter(context, keysetName, prefFileName)
+            return this
+        }
+
+        /** Reads and writes the keyset from shared preferences.  */
+        @Throws(IOException::class)
+        fun withSharedPref(keysetName: String, sharedPreferences: SharedPreferences): Builder {
+            reader = HarmonyKeysetReader(keysetName, sharedPreferences)
+            writer = HarmonyKeysetWriter(keysetName, sharedPreferences)
             return this
         }
 

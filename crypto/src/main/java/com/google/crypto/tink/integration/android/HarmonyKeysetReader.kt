@@ -17,8 +17,9 @@ import java.io.IOException
  *
  * @since 1.0.0
  */
-internal class HarmonyKeysetReader(context: Context, private val keysetName: String, prefFilename: String?) : KeysetReader {
+internal class HarmonyKeysetReader : KeysetReader {
     private val sharedPreferences: SharedPreferences
+    private val keysetName: String
 
     /**
      * Creates a [KeysetReader] that reads and hex-decodes keysets from the preference
@@ -30,13 +31,19 @@ internal class HarmonyKeysetReader(context: Context, private val keysetName: Str
      * @throws IOException if cannot read the keyset
      * @throws IllegalArgumentException if `keysetName` is null
      */
-    init {
+    constructor(context: Context, keysetName: String, prefFilename: String?) {
+        this.keysetName = keysetName
         val appContext = context.applicationContext
         sharedPreferences = if (prefFilename == null) {
             appContext.getHarmonySharedPreferences(appContext.packageName + "_preference")
         } else {
             appContext.getHarmonySharedPreferences(prefFilename)
         }
+    }
+
+    constructor(keysetName: String, sharedPreferences: SharedPreferences) {
+        this.keysetName = keysetName
+        this.sharedPreferences = sharedPreferences
     }
 
     @Throws(IOException::class)

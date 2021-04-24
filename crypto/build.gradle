@@ -78,9 +78,16 @@ artifacts {
 }
 
 dependencies {
+    // Harmony
+    api project (':harmony')
+
     // Kotlin
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
     implementation "androidx.annotation:annotation:$annotation_version"
+
+    // Security
+    implementation "androidx.security:security-crypto:$androidx_crypto_version"
+    implementation "com.google.crypto.tink:tink-android:$tink_version"
 
     // Test
     androidTestImplementation "androidx.core:core-ktx:$corektx_version"

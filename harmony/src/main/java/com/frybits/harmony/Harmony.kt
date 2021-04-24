@@ -201,11 +201,16 @@ private class HarmonyImpl constructor(
         return obj as String? ?: defValue
     }
 
-    override fun getStringSet(key: String, defValues: MutableSet<String>?): Set<String>? {
+    override fun getStringSet(key: String, defValues: MutableSet<String>?): MutableSet<String>? {
         awaitForLoad()
         val obj = mapReentrantReadWriteLock.read { harmonyMap[key] }
         @Suppress("UNCHECKED_CAST")
-        return obj as Set<String>? ?: defValues
+        val result = (obj as Set<String>?)?.toMutableSet() ?: hashSetOf()
+        return if (result.size > 0) {
+            result
+        } else {
+            defValues
+        }
     }
 
     override fun contains(key: String): Boolean {
@@ -1073,12 +1078,12 @@ internal fun Context.getHarmonySharedPreferences(
  * from different processes, the same content is returned, and changes in from one process will be reflected in the other.
  *
  * @receiver Any valid context
- * @param name The desired preference file
+ * @param fileName The desired preference file
  *
  * @return A [SharedPreferences] object backed by Harmony
  */
 @JvmName("getSharedPreferences")
-fun Context.getHarmonySharedPreferences(name: String): SharedPreferences {
+fun Context.getHarmonySharedPreferences(fileName: String): SharedPreferences {
     // 128 KB is ~3k transactions with single operations.
-    return getHarmonySharedPreferences(name, maxTransactionSize = 128 * KILOBYTE, maxTransactionBatchCount = 250)
+    return getHarmonySharedPreferences(fileName, maxTransactionSize = 128 * KILOBYTE, maxTransactionBatchCount = 250)
 }
