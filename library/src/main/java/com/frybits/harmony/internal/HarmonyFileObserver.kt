@@ -25,17 +25,18 @@ import java.io.File
  * https://github.com/pablobaxter/Harmony
  */
 
+@Suppress("FunctionName")
 @JvmSynthetic
-internal fun harmonyFileObserver(
+internal fun HarmonyFileObserver(
     file: File,
     eventFilter: Int,
     block: (event: Int, path: String?) -> Unit
 ): FileObserver {
-    return HarmonyFileObserver(file, eventFilter, block)
+    return HarmonyFileObserverImpl(file, eventFilter, block)
 }
 
 @Suppress("DEPRECATION")
-private class HarmonyFileObserver(
+private class HarmonyFileObserverImpl(
     file: File,
     eventFilter: Int,
     private val block: (event: Int, path: String?) -> Unit
