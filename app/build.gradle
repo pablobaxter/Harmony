@@ -6,7 +6,7 @@ android {
     buildToolsVersion buildtools_version
     defaultConfig {
         applicationId "com.frybits.harmony.app"
-        minSdkVersion minSdk_version
+        minSdkVersion crypto_minSdk_version
         targetSdkVersion targetSdk_version
         versionCode 1
         versionName "1.0"

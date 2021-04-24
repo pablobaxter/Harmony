@@ -9,9 +9,9 @@ android {
     buildToolsVersion buildtools_version
 
     defaultConfig {
-        minSdkVersion minSdk_version
+        minSdkVersion harmony_minSdk_version
         targetSdkVersion targetSdk_version
-        versionName version_name
+        versionName harmony_version_name
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments clearPackageData: 'true'
@@ -128,7 +128,7 @@ afterEvaluate {
                 // You can then customize attributes of the publication as shown below.
                 groupId = 'com.frybits.harmony'
                 artifactId = 'harmony'
-                version = version_name
+                version = harmony_version_name
 
                 artifact sourcesJar {
                     archiveClassifier = 'sources'
