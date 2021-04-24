@@ -2,7 +2,7 @@ version: 2.1
 
 jobs:
 
-  Android-Library-Test:
+  Android-Harmony-Test:
     docker:
       - image: circleci/android:api-29
 
@@ -19,7 +19,7 @@ jobs:
           name: Build dummy app apk and test apk
           command: |
             ./gradlew :app:assembleDebug
-            ./gradlew :library:assembleAndroidTest
+            ./gradlew :harmony:assembleAndroidTest
 
       - run:
           name: Store Google Service Account
@@ -37,7 +37,7 @@ jobs:
             sudo gcloud firebase test android run \
               --type instrumentation \
               --app ${HOME}/repo/app/build/outputs/apk/debug/app-debug.apk \
-              --test ${HOME}/repo/library/build/outputs/apk/androidTest/debug/library-debug-androidTest.apk \
+              --test ${HOME}/repo/harmony/build/outputs/apk/androidTest/debug/harmony-debug-androidTest.apk \
               --results-bucket cloud-test-${GOOGLE_PROJECT_ID} \
               --results-dir ${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM} \
               --device model=Pixel2,version=29 \
@@ -53,7 +53,7 @@ jobs:
       - store_test_results:
           path: ~/temp_results
 
-  Android-Library-Build:
+  Android-Harmony-Build:
     docker:
       - image: circleci/android:api-29
 
@@ -67,10 +67,10 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Assemble Harmony Library
-          command: ./gradlew :library:assembleRelease
+          name: Assemble Harmony Harmony
+          command: ./gradlew :harmony:assembleRelease
 
-  Android-Library-Upload:
+  Android-Harmony-Upload:
     docker:
       - image: circleci/android:api-29
 
@@ -84,12 +84,12 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Upload Harmony Library
+          name: Upload Harmony Harmony
           command: |
             echo $SIGNING_SECRET | base64 -d > ~/secret.gpg
-            ./gradlew :library:publishReleaseHarmonyPublicationToSonatypeRepository
+            ./gradlew :harmony:publishReleaseHarmonyPublicationToSonatypeRepository
 
-  Android-Library-Maven-Release:
+  Android-Harmony-Maven-Release:
     docker:
       - image: circleci/android:api-29
 
@@ -103,34 +103,34 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Release Harmony Library
+          name: Release Harmony Harmony
           command: ./gradlew closeAndReleaseRepository
 
 workflows:
   version: 2
   Build_Upload:
     jobs:
-      - Android-Library-Build
-      - Android-Library-Test
+      - Android-Harmony-Build
+      - Android-Harmony-Test
       - Upload-Approval:
           type: approval
           requires:
-            - Android-Library-Test
-            - Android-Library-Build
+            - Android-Harmony-Test
+            - Android-Harmony-Build
           filters:
             branches:
               only:
                 - main
-      - Android-Library-Upload:
+      - Android-Harmony-Upload:
           requires:
             - Upload-Approval
           filters:
             branches:
               only:
                 - main
-      - Android-Library-Maven-Release:
+      - Android-Harmony-Maven-Release:
           requires:
-            - Android-Library-Upload
+            - Android-Harmony-Upload
           filters:
             branches:
               only:
