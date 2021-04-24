@@ -32,7 +32,7 @@ import android.os.SystemClock
 import androidx.annotation.GuardedBy
 import androidx.annotation.VisibleForTesting
 import com.frybits.harmony.internal._InternalHarmonyLog
-import com.frybits.harmony.internal.harmonyFileObserver
+import com.frybits.harmony.internal.HarmonyFileObserver
 import com.frybits.harmony.internal.putHarmony
 import com.frybits.harmony.internal.readHarmony
 import com.frybits.harmony.internal.withFileLock
@@ -113,8 +113,8 @@ private class HarmonyImpl constructor(
 
     // Observes changes that occur to the backing file of this preference
     private val harmonyFileObserver =
-        harmonyFileObserver(harmonyPrefsFolder, FileObserver.CLOSE_WRITE or FileObserver.DELETE) { event, path ->
-            if (path.isNullOrBlank()) return@harmonyFileObserver
+        HarmonyFileObserver(harmonyPrefsFolder, FileObserver.CLOSE_WRITE or FileObserver.DELETE) { event, path ->
+            if (path.isNullOrBlank()) return@HarmonyFileObserver
             if (event == FileObserver.CLOSE_WRITE) {
                 if (path.endsWith(PREFS_TRANSACTIONS)) {
                     harmonyHandler.removeCallbacks(transactionUpdateJob) // Don't keep a queue of all transaction updates
