@@ -5,7 +5,7 @@ package com.frybits.harmony.secure
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.encryptedHarmonyPreferences
+import androidx.security.crypto.SecureHarmonyPreferences
 
 /**
  * Main entry to get Encrypted Harmony Preferences
@@ -41,7 +41,7 @@ fun Context.getEncryptedHarmonySharedPreferences(
     prefValueEncryptionScheme: EncryptedSharedPreferences.PrefValueEncryptionScheme
 ): SharedPreferences {
     // 128 KB is ~3k transactions with single operations.
-    return encryptedHarmonyPreferences(fileName, masterKeyAlias, prefKeyEncryptionScheme, prefValueEncryptionScheme)
+    return SecureHarmonyPreferences(fileName, masterKeyAlias, this, prefKeyEncryptionScheme, prefValueEncryptionScheme)
 }
 
 

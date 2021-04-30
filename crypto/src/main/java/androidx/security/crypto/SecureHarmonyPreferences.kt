@@ -26,31 +26,14 @@ private const val KEY_KEYSET_ALIAS = "__androidx_security_crypto_encrypted_prefs
 private const val VALUE_KEYSET_ALIAS = "__androidx_security_crypto_encrypted_prefs_value_keyset__"
 private const val NULL_VALUE = "__NULL__"
 
-// Empty singleton to support WeakHashmap
-private object CONTENT
-
-private class SecureHarmonyPreferences(
+private class SecureHarmonyPreferencesImpl(
     private val fileName: String,
     private val sharedPreferences: SharedPreferences,
     private val aead: Aead,
     private val deterministicAead: DeterministicAead
 ) : SharedPreferences {
 
-    private val changedListeners = WeakHashMap<SharedPreferences.OnSharedPreferenceChangeListener, Any>()
-
-    private val internalOnPreferencesChangeListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-        changedListeners.keys.forEach {
-            if (!isReservedKey(key)) {
-                it.onSharedPreferenceChanged(this, decryptKey(key))
-            }
-        }
-    }
-
-    init {
-        // Harmony uses a weakhashmap for listeners. If this encrypted shared prefs is garbage collected, the listener will be dropped as well.
-        // No need to call unregister
-        sharedPreferences.registerOnSharedPreferenceChangeListener(internalOnPreferencesChangeListener)
-    }
+    private val changedListeners = WeakHashMap<SharedPreferences.OnSharedPreferenceChangeListener, SecureWrappedOnSharedPreferenceChangeListener>()
 
     private inner class SecureEditor : SharedPreferences.Editor {
 
@@ -242,15 +225,20 @@ private class SecureHarmonyPreferences(
         return SecureEditor()
     }
 
-    override fun registerOnSharedPreferenceChangeListener(listener: SharedPreferences.OnSharedPreferenceChangeListener?) {
+    override fun registerOnSharedPreferenceChangeListener(listener: SharedPreferences.OnSharedPreferenceChangeListener) {
         synchronized(this) {
-            changedListeners[listener] = CONTENT
+            val secureListener = SecureWrappedOnSharedPreferenceChangeListener(this, listener)
+            changedListeners[listener] = secureListener
+            sharedPreferences.registerOnSharedPreferenceChangeListener(secureListener)
         }
     }
 
-    override fun unregisterOnSharedPreferenceChangeListener(listener: SharedPreferences.OnSharedPreferenceChangeListener?) {
+    override fun unregisterOnSharedPreferenceChangeListener(listener: SharedPreferences.OnSharedPreferenceChangeListener) {
         synchronized(this) {
-            changedListeners.remove(listener)
+            val secureListener = changedListeners.remove(listener)
+            if (secureListener != null) {
+                sharedPreferences.unregisterOnSharedPreferenceChangeListener(secureListener)
+            }
         }
     }
 
@@ -331,7 +319,7 @@ private class SecureHarmonyPreferences(
         }
     }
 
-    private fun decryptKey(encryptedKey: String): String? {
+    fun decryptKey(encryptedKey: String): String? {
         try {
             val clearText = deterministicAead.decryptDeterministically(Base64.decode(encryptedKey, Base64.DEFAULT), fileName.toByteArray())
             var key: String? = String(clearText, UTF_8)
@@ -349,7 +337,7 @@ private class SecureHarmonyPreferences(
      *
      * @param key the plain text key
      */
-    private fun isReservedKey(key: String?): Boolean {
+    fun isReservedKey(key: String?): Boolean {
         if (key == KEY_KEYSET_ALIAS || key == VALUE_KEYSET_ALIAS) {
             return true
         }
@@ -363,10 +351,24 @@ private class SecureHarmonyPreferences(
     }
 }
 
+private class SecureWrappedOnSharedPreferenceChangeListener(
+    private val secureHarmonyPreferences: SecureHarmonyPreferencesImpl,
+    private val onSharedPreferenceChangeListener: SharedPreferences.OnSharedPreferenceChangeListener
+) : SharedPreferences.OnSharedPreferenceChangeListener {
+
+    override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
+        if (!secureHarmonyPreferences.isReservedKey(key)) {
+            onSharedPreferenceChangeListener.onSharedPreferenceChanged(secureHarmonyPreferences, key?.let { secureHarmonyPreferences.decryptKey(it) })
+        }
+    }
+}
+
+@Suppress("FunctionName")
 @JvmSynthetic
-internal fun Context.encryptedHarmonyPreferences(
+internal fun SecureHarmonyPreferences(
     fileName: String,
     masterKeyAlias: String,
+    context: Context,
     prefKeyEncryptionScheme: EncryptedSharedPreferences.PrefKeyEncryptionScheme,
     prefValueEncryptionScheme: EncryptedSharedPreferences.PrefValueEncryptionScheme
 ): SharedPreferences {
@@ -375,17 +377,17 @@ internal fun Context.encryptedHarmonyPreferences(
 
     val daeadKeysetHandle: KeysetHandle = HarmonyKeysetManager.Builder()
         .withKeyTemplate(prefKeyEncryptionScheme.keyTemplate)
-        .withSharedPref(KEY_KEYSET_ALIAS, getHarmonySharedPreferences(fileName))
+        .withSharedPref(KEY_KEYSET_ALIAS, context.getHarmonySharedPreferences(fileName))
         .withMasterKeyUri(MasterKeys.KEYSTORE_PATH_URI + masterKeyAlias)
         .build().keysetHandle
     val aeadKeysetHandle: KeysetHandle = HarmonyKeysetManager.Builder()
         .withKeyTemplate(prefValueEncryptionScheme.keyTemplate)
-        .withSharedPref(VALUE_KEYSET_ALIAS, getHarmonySharedPreferences(fileName))
+        .withSharedPref(VALUE_KEYSET_ALIAS, context.getHarmonySharedPreferences(fileName))
         .withMasterKeyUri(MasterKeys.KEYSTORE_PATH_URI + masterKeyAlias)
         .build().keysetHandle
 
     val daead: DeterministicAead = daeadKeysetHandle.getPrimitive(DeterministicAead::class.java)
     val aead: Aead = aeadKeysetHandle.getPrimitive(Aead::class.java)
 
-    return SecureHarmonyPreferences(fileName, getHarmonySharedPreferences(fileName), aead, daead)
+    return SecureHarmonyPreferencesImpl(fileName, context.getHarmonySharedPreferences(fileName), aead, daead)
 }

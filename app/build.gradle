@@ -31,7 +31,7 @@ android {
 }
 
 dependencies {
-    implementation project (':harmony')
+    implementation project (':crypto')
 //    implementation 'com.frybits.harmony:harmony:1.1.5'
 
     // Kotlin

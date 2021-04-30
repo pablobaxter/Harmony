@@ -10,12 +10,14 @@ import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.edit
 import androidx.lifecycle.lifecycleScope
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKeys
 import com.frybits.harmony.app.ITERATIONS
 import com.frybits.harmony.app.NUM_TESTS
 import com.frybits.harmony.app.PREFS_NAME
-import com.frybits.harmony.getHarmonySharedPreferences
 import com.frybits.harmony.app.R
 import com.frybits.harmony.app.test.singleentry.HarmonyPrefsReceiveService
+import com.frybits.harmony.secure.getEncryptedHarmonySharedPreferences
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
@@ -49,6 +51,8 @@ class HarmonyPrefsCommitActivity : AppCompatActivity() {
     private var testRunDeferred: Deferred<Unit> = CompletableDeferred(Unit)
     private lateinit var activityHarmonyPrefs: SharedPreferences
     private lateinit var activityVanillaPrefs: SharedPreferences
+
+    val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
 
     private val testKeyArray = Array(ITERATIONS * NUM_TESTS) { i -> "test$i" }
     private val harmonySingleCommitTimeSpent = LongArray(ITERATIONS * NUM_TESTS)
@@ -105,8 +109,8 @@ class HarmonyPrefsCommitActivity : AppCompatActivity() {
             vanillaSingleReadTimeSpent.fill(0L, 0, ITERATIONS * NUM_TESTS)
             vanillaTotalReadTimeSpent.fill(0L, 0, NUM_TESTS)
 
-            activityHarmonyPrefs = getHarmonySharedPreferences(PREFS_NAME)
-            activityVanillaPrefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            activityHarmonyPrefs = getEncryptedHarmonySharedPreferences(PREFS_NAME, masterKeyAlias, EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV, EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM)
+            activityVanillaPrefs = EncryptedSharedPreferences.create(PREFS_NAME, masterKeyAlias, this@HarmonyPrefsCommitActivity, EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV, EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM)
             activityHarmonyPrefs.edit(true) { clear() }
             activityVanillaPrefs.edit(true) { clear() }
 
