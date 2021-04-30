@@ -377,12 +377,12 @@ internal fun SecureHarmonyPreferences(
 
     val daeadKeysetHandle: KeysetHandle = HarmonyKeysetManager.Builder()
         .withKeyTemplate(prefKeyEncryptionScheme.keyTemplate)
-        .withSharedPref(KEY_KEYSET_ALIAS, context.getHarmonySharedPreferences(fileName))
+        .withSharedPref(context, KEY_KEYSET_ALIAS, fileName)
         .withMasterKeyUri(MasterKeys.KEYSTORE_PATH_URI + masterKeyAlias)
         .build().keysetHandle
     val aeadKeysetHandle: KeysetHandle = HarmonyKeysetManager.Builder()
         .withKeyTemplate(prefValueEncryptionScheme.keyTemplate)
-        .withSharedPref(VALUE_KEYSET_ALIAS, context.getHarmonySharedPreferences(fileName))
+        .withSharedPref(context, VALUE_KEYSET_ALIAS, fileName)
         .withMasterKeyUri(MasterKeys.KEYSTORE_PATH_URI + masterKeyAlias)
         .build().keysetHandle
 

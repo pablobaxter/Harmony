@@ -43,5 +43,3 @@ fun Context.getEncryptedHarmonySharedPreferences(
     // 128 KB is ~3k transactions with single operations.
     return SecureHarmonyPreferences(fileName, masterKeyAlias, this, prefKeyEncryptionScheme, prefValueEncryptionScheme)
 }
-
-

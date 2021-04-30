@@ -1,7 +1,6 @@
 package com.google.crypto.tink.integration.android
 
 import android.content.Context
-import android.content.SharedPreferences
 import android.os.Build
 import android.util.Log
 import androidx.annotation.GuardedBy
@@ -22,65 +21,54 @@ import java.security.KeyStoreException
 import java.security.ProviderException
 
 /**
- * A wrapper of [KeysetManager] that supports reading/writing [ ] to/from private harmony shared preferences on Android.
+ * A wrapper of [KeysetManager] that supports reading/writing [com.google.crypto.tink.proto.Keyset] to/from private harmony shared preferences on Android.
  *
- * <h3>Warning</h3>
- *
+ * Warning
  *
  * This class reads and writes to harmony shared preferences, thus is best not to run on the UI thread.
  *
- * <h3>Usage</h3>
+ * Usage
  *
- * <pre>`// One-time operations, should be done when the application is starting up.
+ * // One-time operations, should be done when the application is starting up.
  * // Instead of repeatedly instantiating these crypto objects, instantiate them once and save for
  * // later use.
- * AndroidKeysetManager manager = AndroidKeysetManager.Builder()
+ * HarmonyKeysetManager manager = HarmonyKeysetManager.Builder()
  * .withSharedPref(getApplicationContext(), "my_keyset_name", "my_pref_file_name")
  * .withKeyTemplate(AesGcmHkfStreamingKeyManager.aes128GcmHkdf4KBTemplate())
  * .build();
  * StreamingAead streamingAead = manager.getKeysetHandle().getPrimitive(StreamingAead.class);
-`</pre> *
- *
  *
  * This will read a keyset stored in the `my_keyset_name` preference of the `my_pref_file_name` preferences file. If the preference file name is null, it uses the default
  * preferences file.
  *
- *
- *  * If a keyset is found, but it is invalid, an [IOException] is thrown. The most common
+ * If a keyset is found, but it is invalid, an [IOException] is thrown. The most common
  * cause is when you decrypted a keyset with a wrong master key. In this case, an [InvalidProtocolBufferException] would be thrown. This is an irrecoverable error. You'd have
  * to delete the keyset in Shared Preferences and all existing data encrypted with it.
- *  * If a keyset is not found, and a [KeyTemplate] is set with [AndroidKeysetManager.Builder.withKeyTemplate], a fresh
+ * If a keyset is not found, and a [KeyTemplate] is set with [HarmonyKeysetManager.Builder.withKeyTemplate], a fresh
  * keyset is generated and is written to the `my_keyset_name` preference of the `my_pref_file_name` shared preferences file.
  *
- *
- * <h3>Key rotation</h3>
- *
+ * Key rotation
  *
  * The resulting manager supports all operations supported by [KeysetManager]. For example
  * to rotate the keyset, you can do:
  *
- * <pre>`manager.rotate(AesGcmHkfStreamingKeyManager.aes128GcmHkdf1MBTemplate());
-`</pre> *
- *
+ * manager.rotate(AesGcmHkfStreamingKeyManager.aes128GcmHkdf1MBTemplate());
  *
  * All operations that manipulate the keyset would automatically persist the new keyset to
  * permanent storage.
  *
- * <h3>Opportunistic keyset encryption with Android Keystore</h3>
+ * Opportunistic keyset encryption with Android Keystore
  *
  * **Warning:** because Android Keystore is unreliable, we strongly recommend disabling it by not
  * setting any master key URI.
  *
- *
- * If a master key URI is set with [AndroidKeysetManager.Builder.withMasterKeyUri], the
+ * If a master key URI is set with [HarmonyKeysetManager.Builder.withMasterKeyUri], the
  * keyset may be encrypted with a key generated and stored in [Android Keystore](https://developer.android.com/training/articles/keystore.html).
- *
  *
  * Android Keystore is only available on Android M or newer. Since it has been found that Android
  * Keystore is unreliable on certain devices. Tink runs a self-test to detect such problems and
  * disables Android Keystore accordingly, even if a master key URI is set. You can check whether
  * Android Keystore is in use with [.isUsingKeystore].
- *
  *
  * When Android Keystore is disabled or otherwise unavailable, keysets will be stored in
  * cleartext. This is not as bad as it sounds because keysets remain inaccessible to any other apps
@@ -91,33 +79,31 @@ import java.security.ProviderException
  * authentication for key use](https://developer.android.com/training/articles/keystore#UserAuthentication), which should be done if and only if you're absolutely sure that
  * Android Keystore is working properly on your target devices.
  *
- *
  * The master key URI must start with `android-keystore://`. The remaining of the URI is
  * used as a key ID when calling Android Keystore. If the master key doesn't exist, a fresh one is
  * generated. If the master key already exists but is unusable, a [KeyStoreException] is
  * thrown.
  *
- *
  * This class is thread-safe.
  *
- * @since 1.0.0
  */
+@Suppress("unused")
 internal class HarmonyKeysetManager private constructor(builder: Builder) {
-    private val writer: KeysetWriter? = builder.writer
+    private val writer: KeysetWriter = builder.writer
     private val masterKey: Aead? = builder.masterKey
 
     @GuardedBy("this")
-    private var keysetManager: KeysetManager? = builder.keysetManager
+    private var keysetManager: KeysetManager = builder.keysetManager
 
     /**
-     * A builder for [AndroidKeysetManager].
+     * A builder for [HarmonyKeysetManager].
      *
      *
      * This class is thread-safe.
      */
     internal class Builder {
-        private var reader: KeysetReader? = null
-        var writer: KeysetWriter? = null
+        private lateinit var reader: KeysetReader
+        lateinit var writer: KeysetWriter
             private set
         private var masterKeyUri: String? = null
         var masterKey: Aead? = null
@@ -127,21 +113,12 @@ internal class HarmonyKeysetManager private constructor(builder: Builder) {
         private var keyStore: KeyStore? = null
 
         @GuardedBy("this")
-        var keysetManager: KeysetManager? = null
+        lateinit var keysetManager: KeysetManager
 
         /** Reads and writes the keyset from shared preferences.  */
-        @Throws(IOException::class)
         fun withSharedPref(context: Context, keysetName: String, prefFileName: String?): Builder {
             reader = HarmonyKeysetReader(context, keysetName, prefFileName)
             writer = HarmonyKeysetWriter(context, keysetName, prefFileName)
-            return this
-        }
-
-        /** Reads and writes the keyset from shared preferences.  */
-        @Throws(IOException::class)
-        fun withSharedPref(keysetName: String, sharedPreferences: SharedPreferences): Builder {
-            reader = HarmonyKeysetReader(keysetName, sharedPreferences)
-            writer = HarmonyKeysetWriter(keysetName, sharedPreferences)
             return this
         }
 
@@ -171,7 +148,7 @@ internal class HarmonyKeysetManager private constructor(builder: Builder) {
             return this
         }
 
-        /** If the keyset is not found or valid, generates a new one using `val`.  */
+        /** If the keyset is not found or valid, generates a new one using keyTemplate.  */
         fun withKeyTemplate(_keyTemplate: KeyTemplate?): Builder {
             keyTemplate = _keyTemplate
             return this
@@ -192,21 +169,14 @@ internal class HarmonyKeysetManager private constructor(builder: Builder) {
             return this
         }
 
-        /** This is for testing only  */
-        fun withKeyStore(_keyStore: KeyStore?): Builder {
-            keyStore = _keyStore
-            return this
-        }
-
         /**
-         * Builds and returns a new [AndroidKeysetManager] with the specified options.
+         * Builds and returns a new [HarmonyKeysetManager] with the specified options.
          *
          * @throws IOException If a keyset is found but unusable.
          * @throws KeystoreException If a master key is found but unusable.
          * @throws GeneralSecurityException If cannot read an existing keyset or generate a new one.
          */
         @Synchronized
-        @Throws(GeneralSecurityException::class, IOException::class)
         fun build(): HarmonyKeysetManager {
             if (masterKeyUri != null) {
                 masterKey = readOrGenerateNewMasterKey()
@@ -215,7 +185,6 @@ internal class HarmonyKeysetManager private constructor(builder: Builder) {
             return HarmonyKeysetManager(this)
         }
 
-        @Throws(GeneralSecurityException::class)
         private fun readOrGenerateNewMasterKey(): Aead? {
             if (!isAtLeastM) {
                 Log.w(TAG, "Android Keystore requires at least Android M")
@@ -260,7 +229,6 @@ internal class HarmonyKeysetManager private constructor(builder: Builder) {
             return null
         }
 
-        @Throws(GeneralSecurityException::class, IOException::class)
         private fun readOrGenerateNewKeyset(): KeysetManager {
             try {
                 return read()
@@ -284,7 +252,6 @@ internal class HarmonyKeysetManager private constructor(builder: Builder) {
             throw GeneralSecurityException("cannot read or generate keyset")
         }
 
-        @Throws(GeneralSecurityException::class, IOException::class)
         private fun read(): KeysetManager {
             if (masterKey != null) {
                 try {
@@ -312,10 +279,9 @@ internal class HarmonyKeysetManager private constructor(builder: Builder) {
 
     /** @return a [KeysetHandle] of the managed keyset
      */
-    @get:Throws(GeneralSecurityException::class)
     @get:Synchronized
     val keysetHandle: KeysetHandle
-        get() = keysetManager!!.keysetHandle
+        get() = keysetManager.keysetHandle
 
     /**
      * Generates and adds a fresh key generated using `keyTemplate`, and sets the new key as the
@@ -329,9 +295,8 @@ internal class HarmonyKeysetManager private constructor(builder: Builder) {
         primary, because old binaries don't know the new key yet."""
     )
     @Synchronized
-    @Throws(GeneralSecurityException::class)
     fun rotate(keyTemplate: com.google.crypto.tink.proto.KeyTemplate?): HarmonyKeysetManager {
-        keysetManager = keysetManager!!.rotate(keyTemplate)
+        keysetManager = keysetManager.rotate(keyTemplate)
         write(keysetManager)
         return this
     }
@@ -347,9 +312,8 @@ internal class HarmonyKeysetManager private constructor(builder: Builder) {
         Please use the add method that takes a {@link KeyTemplate} POJO."""
     )
     @Synchronized
-    @Throws(GeneralSecurityException::class)
     fun add(keyTemplate: com.google.crypto.tink.proto.KeyTemplate?): HarmonyKeysetManager {
-        keysetManager = keysetManager!!.add(keyTemplate)
+        keysetManager = keysetManager.add(keyTemplate)
         write(keysetManager)
         return this
     }
@@ -361,9 +325,8 @@ internal class HarmonyKeysetManager private constructor(builder: Builder) {
      */
     @GuardedBy("this")
     @Synchronized
-    @Throws(GeneralSecurityException::class)
     fun add(keyTemplate: KeyTemplate?): HarmonyKeysetManager {
-        keysetManager = keysetManager!!.add(keyTemplate)
+        keysetManager = keysetManager.add(keyTemplate)
         write(keysetManager)
         return this
     }
@@ -374,9 +337,8 @@ internal class HarmonyKeysetManager private constructor(builder: Builder) {
      * @throws GeneralSecurityException if the key is not found or not enabled
      */
     @Synchronized
-    @Throws(GeneralSecurityException::class)
     fun setPrimary(keyId: Int): HarmonyKeysetManager {
-        keysetManager = keysetManager!!.setPrimary(keyId)
+        keysetManager = keysetManager.setPrimary(keyId)
         write(keysetManager)
         return this
     }
@@ -388,7 +350,6 @@ internal class HarmonyKeysetManager private constructor(builder: Builder) {
      */
     @Deprecated("use {@link setPrimary}", ReplaceWith("setPrimary(keyId)"))
     @Synchronized
-    @Throws(GeneralSecurityException::class)
     fun promote(keyId: Int): HarmonyKeysetManager {
         return setPrimary(keyId)
     }
@@ -399,9 +360,8 @@ internal class HarmonyKeysetManager private constructor(builder: Builder) {
      * @throws GeneralSecurityException if the key is not found
      */
     @Synchronized
-    @Throws(GeneralSecurityException::class)
     fun enable(keyId: Int): HarmonyKeysetManager {
-        keysetManager = keysetManager!!.enable(keyId)
+        keysetManager = keysetManager.enable(keyId)
         write(keysetManager)
         return this
     }
@@ -412,9 +372,8 @@ internal class HarmonyKeysetManager private constructor(builder: Builder) {
      * @throws GeneralSecurityException if the key is not found or it is the primary key
      */
     @Synchronized
-    @Throws(GeneralSecurityException::class)
     fun disable(keyId: Int): HarmonyKeysetManager {
-        keysetManager = keysetManager!!.disable(keyId)
+        keysetManager = keysetManager.disable(keyId)
         write(keysetManager)
         return this
     }
@@ -425,9 +384,8 @@ internal class HarmonyKeysetManager private constructor(builder: Builder) {
      * @throws GeneralSecurityException if the key is not found or it is the primary key
      */
     @Synchronized
-    @Throws(GeneralSecurityException::class)
     fun delete(keyId: Int): HarmonyKeysetManager {
-        keysetManager = keysetManager!!.delete(keyId)
+        keysetManager = keysetManager.delete(keyId)
         write(keysetManager)
         return this
     }
@@ -438,9 +396,8 @@ internal class HarmonyKeysetManager private constructor(builder: Builder) {
      * @throws GeneralSecurityException if the key is not found or it is the primary key
      */
     @Synchronized
-    @Throws(GeneralSecurityException::class)
     fun destroy(keyId: Int): HarmonyKeysetManager {
-        keysetManager = keysetManager!!.destroy(keyId)
+        keysetManager = keysetManager.destroy(keyId)
         write(keysetManager)
         return this
     }
@@ -450,13 +407,12 @@ internal class HarmonyKeysetManager private constructor(builder: Builder) {
     val isUsingKeystore: Boolean
         get() = shouldUseKeystore()
 
-    @Throws(GeneralSecurityException::class)
-    private fun write(manager: KeysetManager?) {
+    private fun write(manager: KeysetManager) {
         try {
             if (shouldUseKeystore()) {
-                manager!!.keysetHandle.write(writer, masterKey)
+                manager.keysetHandle.write(writer, masterKey)
             } else {
-                CleartextKeysetHandle.write(manager!!.keysetHandle, writer)
+                CleartextKeysetHandle.write(manager.keysetHandle, writer)
             }
         } catch (e: IOException) {
             throw GeneralSecurityException(e)
@@ -479,7 +435,6 @@ internal class HarmonyKeysetManager private constructor(builder: Builder) {
             }
         }
 
-        private val isAtLeastM: Boolean
-            private get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
+        private val isAtLeastM: Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
     }
 }
