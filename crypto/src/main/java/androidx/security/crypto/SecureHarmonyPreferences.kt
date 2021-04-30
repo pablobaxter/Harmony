@@ -276,9 +276,9 @@ private class SecureHarmonyPreferencesImpl(
                         buffer.limit(stringLength)
                         val stringValue = UTF_8.decode(stringSlice).toString()
                         return if (stringValue == NULL_VALUE) {
-                            stringValue
-                        } else {
                             null
+                        } else {
+                            stringValue
                         }
                     }
                     EncryptedType.INT -> return buffer.int
