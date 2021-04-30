@@ -15,6 +15,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import kotlin.random.Random
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -39,6 +40,8 @@ import kotlin.test.assertTrue
  */
 
 private const val PREFS = "prefs"
+private const val KEY_KEYSET_ALIAS = "__androidx_security_crypto_encrypted_prefs_key_keyset__"
+private const val VALUE_KEYSET_ALIAS = "__androidx_security_crypto_encrypted_prefs_value_keyset__"
 
 @RunWith(AndroidJUnit4::class)
 class EncryptedHarmonyTest {
@@ -169,7 +172,9 @@ class EncryptedHarmonyTest {
 
     @Test
     fun testEncryptedIntStorage() {
-        val unencryptedPrefs = InstrumentationRegistry.getInstrumentation().targetContext.getHarmonySharedPreferences(PREFS)
+        val unencryptedPrefs = InstrumentationRegistry
+            .getInstrumentation()
+            .targetContext.getHarmonySharedPreferences(PREFS)
 
         // Everything should be empty
         assertFalse { unencryptedPrefs.contains("test") }
@@ -192,7 +197,9 @@ class EncryptedHarmonyTest {
 
     @Test
     fun testEncryptedLongStorage() {
-        val unencryptedPrefs = InstrumentationRegistry.getInstrumentation().targetContext.getHarmonySharedPreferences(PREFS)
+        val unencryptedPrefs = InstrumentationRegistry
+            .getInstrumentation()
+            .targetContext.getHarmonySharedPreferences(PREFS)
 
         // Everything should be empty
         assertFalse { unencryptedPrefs.contains("test") }
@@ -215,7 +222,9 @@ class EncryptedHarmonyTest {
 
     @Test
     fun testEncryptedFloatStorage() {
-        val unencryptedPrefs = InstrumentationRegistry.getInstrumentation().targetContext.getHarmonySharedPreferences(PREFS)
+        val unencryptedPrefs = InstrumentationRegistry
+            .getInstrumentation()
+            .targetContext.getHarmonySharedPreferences(PREFS)
 
         // Everything should be empty
         assertFalse { unencryptedPrefs.contains("test") }
@@ -239,7 +248,9 @@ class EncryptedHarmonyTest {
 
     @Test
     fun testEncryptedBooleanStorage() {
-        val unencryptedPrefs = InstrumentationRegistry.getInstrumentation().targetContext.getHarmonySharedPreferences(PREFS)
+        val unencryptedPrefs = InstrumentationRegistry
+            .getInstrumentation()
+            .targetContext.getHarmonySharedPreferences(PREFS)
 
         // Everything should be empty
         assertFalse { unencryptedPrefs.contains("test") }
@@ -262,7 +273,9 @@ class EncryptedHarmonyTest {
 
     @Test
     fun testEncryptedStringStorage() {
-        val unencryptedPrefs = InstrumentationRegistry.getInstrumentation().targetContext.getHarmonySharedPreferences(PREFS)
+        val unencryptedPrefs = InstrumentationRegistry
+            .getInstrumentation()
+            .targetContext.getHarmonySharedPreferences(PREFS)
 
         // Everything should be empty
         assertFalse { unencryptedPrefs.contains("test") }
@@ -285,7 +298,9 @@ class EncryptedHarmonyTest {
 
     @Test
     fun testEncryptedStringSetStorage() {
-        val unencryptedPrefs = InstrumentationRegistry.getInstrumentation().targetContext.getHarmonySharedPreferences(PREFS)
+        val unencryptedPrefs = InstrumentationRegistry
+            .getInstrumentation()
+            .targetContext.getHarmonySharedPreferences(PREFS)
 
         // Everything should be empty
         assertFalse { unencryptedPrefs.contains("test") }
@@ -308,5 +323,19 @@ class EncryptedHarmonyTest {
 
         assertNull(unencryptedPrefs.getStringSet("test", null)) // This key is encrypted, so it should return null
         assertEquals(randomStringSet, sharedPreferences.getStringSet("test", null))
+    }
+
+    @Test
+    fun testReservedKeyManipulation() {
+        assertFalse(sharedPreferences.all.containsKey(KEY_KEYSET_ALIAS)) // Shouldn't contain the keyset
+
+        val editor = sharedPreferences.edit()
+        assertFailsWith<SecurityException> { editor.putString(KEY_KEYSET_ALIAS, "Not a keyset") }
+        assertFailsWith<SecurityException> { editor.remove(KEY_KEYSET_ALIAS) }
+
+        assertFalse(sharedPreferences.all.containsKey(VALUE_KEYSET_ALIAS)) // Shouldn't contain the keyset
+
+        assertFailsWith<SecurityException> { editor.putString(VALUE_KEYSET_ALIAS, "Not a keyset") }
+        assertFailsWith<SecurityException> { editor.remove(VALUE_KEYSET_ALIAS) }
     }
 }
