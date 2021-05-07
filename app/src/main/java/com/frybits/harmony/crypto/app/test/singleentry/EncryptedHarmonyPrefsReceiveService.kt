@@ -1,4 +1,4 @@
-package com.frybits.harmony.app.test.singleentry
+package com.frybits.harmony.crypto.app.test.singleentry
 
 import android.app.Service
 import android.content.Intent
@@ -6,10 +6,12 @@ import android.content.SharedPreferences
 import android.os.IBinder
 import android.os.SystemClock
 import android.util.Log
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKeys
 import com.frybits.harmony.ITERATIONS
 import com.frybits.harmony.NUM_TESTS
-import com.frybits.harmony.app.PREFS_NAME
-import com.frybits.harmony.getHarmonySharedPreferences
+import com.frybits.harmony.crypto.app.PREFS_NAME
+import com.frybits.harmony.secure.getEncryptedHarmonySharedPreferences
 import kotlin.system.measureTimeMillis
 
 /*
@@ -31,9 +33,11 @@ import kotlin.system.measureTimeMillis
  * https://github.com/pablobaxter/Harmony
  */
 
-class HarmonyPrefsReceiveService : Service() {
+class EncryptedHarmonyPrefsReceiveService : Service() {
 
     private lateinit var harmonyActivityPrefs: SharedPreferences
+
+    val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
 
     // This listener receives changes that occur to this shared preference from any process, not just this one.
     private val sharedPreferenceChangeListener = SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
@@ -63,7 +67,7 @@ class HarmonyPrefsReceiveService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        harmonyActivityPrefs = getHarmonySharedPreferences(PREFS_NAME)
+        harmonyActivityPrefs = getEncryptedHarmonySharedPreferences(PREFS_NAME, masterKeyAlias, EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV, EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM)
         timeCaptureList.clear()
         timeCaptureMap.clear()
         singleReadTimeCaptureList.clear()

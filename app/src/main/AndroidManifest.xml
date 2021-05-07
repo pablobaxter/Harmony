@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.frybits.harmony.app">
+    package="com.frybits.harmony">
 
     <application
         android:allowBackup="true"
@@ -10,7 +10,8 @@
         android:theme="@style/AppTheme">
 
         <activity
-            android:name=".MainActivity"
+            android:name=".app.MainActivity"
+            android:label="Harmony Test App - Unencrypted"
             android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -19,43 +20,95 @@
         </activity>
 
         <activity
-            android:name=".test.singleentry.commit.HarmonyPrefsCommitActivity"
+            android:name=".app.test.singleentry.commit.HarmonyPrefsCommitActivity"
             android:screenOrientation="portrait">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value=".MainActivity" />
+                android:value=".app.MainActivity" />
         </activity>
 
         <activity
-            android:name=".test.singleentry.apply.HarmonyPrefsApplyActivity"
+            android:name=".app.test.singleentry.apply.HarmonyPrefsApplyActivity"
             android:screenOrientation="portrait">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value=".MainActivity" />
+                android:value=".app.MainActivity" />
         </activity>
 
         <activity
-            android:name=".test.bulkentry.apply.HarmonyPrefsBulkApplyActivity"
+            android:name=".app.test.bulkentry.apply.HarmonyPrefsBulkApplyActivity"
             android:screenOrientation="portrait">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value=".MainActivity" />
+                android:value=".app.MainActivity" />
         </activity>
 
         <activity
-            android:name=".test.bulkentry.commit.HarmonyPrefsBulkCommitActivity"
+            android:name=".app.test.bulkentry.commit.HarmonyPrefsBulkCommitActivity"
             android:screenOrientation="portrait">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value=".MainActivity" />
+                android:value=".app.MainActivity" />
         </activity>
 
         <service
-            android:name=".test.singleentry.HarmonyPrefsReceiveService"
+            android:name=".app.test.singleentry.HarmonyPrefsReceiveService"
             android:process=":foo" />
 
         <service
-            android:name=".test.bulkentry.HarmonyPrefsBulkReadService"
+            android:name=".app.test.bulkentry.HarmonyPrefsBulkReadService"
+            android:process=":foo" />
+
+        <!--    Encrypted App    -->
+
+        <activity
+            android:name=".crypto.app.EncryptedMainActivity"
+            android:label="Harmony Test App - Encrypted"
+            android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".crypto.app.test.singleentry.commit.EncryptedHarmonyPrefsCommitActivity"
+            android:screenOrientation="portrait">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".app.MainActivity" />
+        </activity>
+
+        <activity
+            android:name=".crypto.app.test.singleentry.apply.EncryptedHarmonyPrefsApplyActivity"
+            android:screenOrientation="portrait">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".app.MainActivity" />
+        </activity>
+
+        <activity
+            android:name=".crypto.app.test.bulkentry.apply.EncryptedHarmonyPrefsBulkApplyActivity"
+            android:screenOrientation="portrait">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".app.MainActivity" />
+        </activity>
+
+        <activity
+            android:name=".crypto.app.test.bulkentry.commit.EncryptedHarmonyPrefsBulkCommitActivity"
+            android:screenOrientation="portrait">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".app.MainActivity" />
+        </activity>
+
+        <service
+            android:name=".crypto.app.test.singleentry.EncryptedHarmonyPrefsReceiveService"
+            android:process=":foo" />
+
+        <service
+            android:name=".crypto.app.test.bulkentry.EncryptedHarmonyPrefsBulkReadService"
             android:process=":foo" />
     </application>
 </manifest>

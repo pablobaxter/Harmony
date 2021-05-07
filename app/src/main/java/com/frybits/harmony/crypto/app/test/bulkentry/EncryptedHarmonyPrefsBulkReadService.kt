@@ -1,15 +1,16 @@
-package com.frybits.harmony.app.test.singleentry
+package com.frybits.harmony.crypto.app.test.bulkentry
 
 import android.app.Service
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.IBinder
-import android.os.SystemClock
 import android.util.Log
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKeys
 import com.frybits.harmony.ITERATIONS
 import com.frybits.harmony.NUM_TESTS
-import com.frybits.harmony.app.PREFS_NAME
-import com.frybits.harmony.getHarmonySharedPreferences
+import com.frybits.harmony.crypto.app.PREFS_NAME
+import com.frybits.harmony.secure.getEncryptedHarmonySharedPreferences
 import kotlin.system.measureTimeMillis
 
 /*
@@ -31,41 +32,23 @@ import kotlin.system.measureTimeMillis
  * https://github.com/pablobaxter/Harmony
  */
 
-class HarmonyPrefsReceiveService : Service() {
+class EncryptedHarmonyPrefsBulkReadService : Service() {
 
     private lateinit var harmonyActivityPrefs: SharedPreferences
 
-    // This listener receives changes that occur to this shared preference from any process, not just this one.
-    private val sharedPreferenceChangeListener = SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
-        val now = SystemClock.elapsedRealtime()
-        require(prefs === harmonyActivityPrefs)
-        val activityTestTime = prefs.getLong(key, -1L)
-        if (activityTestTime > -1L) {
-            if (timeCaptureMap.containsKey(key)) {
-                Log.e("Trial", "${this::class.java.simpleName}: Time result changed! Key=$key")
-            } else {
-                timeCaptureMap[key] = now - activityTestTime
-            }
-        } else {
-            Log.e("Trial", "${this::class.java.simpleName}: Got default long value! Key=$key")
-        }
-    }
+    private val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
 
     private var isStarted = false
     private var isRegistered = false
 
     private val testKeyArray = Array(ITERATIONS) { i -> "test$i" }
 
-    private val timeCaptureList = ArrayList<Long>(ITERATIONS * NUM_TESTS)
-    private val timeCaptureMap = HashMap<String, Long>(ITERATIONS * NUM_TESTS)
     private val singleReadTimeCaptureList = ArrayList<Long>(ITERATIONS * NUM_TESTS)
     private val totalReadTimeCaptureList = ArrayList<Long>(NUM_TESTS)
 
     override fun onCreate() {
         super.onCreate()
-        harmonyActivityPrefs = getHarmonySharedPreferences(PREFS_NAME)
-        timeCaptureList.clear()
-        timeCaptureMap.clear()
+        harmonyActivityPrefs = getEncryptedHarmonySharedPreferences(PREFS_NAME, masterKeyAlias, EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV, EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM)
         singleReadTimeCaptureList.clear()
         totalReadTimeCaptureList.clear()
     }
@@ -79,12 +62,9 @@ class HarmonyPrefsReceiveService : Service() {
             Log.i("Trial", "${this::class.java.simpleName}: Starting service to receive from main process!")
             isStarted = true
             isRegistered = true
-            harmonyActivityPrefs.registerOnSharedPreferenceChangeListener(sharedPreferenceChangeListener)
         }
         if (isStarted && endCommand) {
             Log.i("Trial", "${this::class.java.simpleName}: Stopping service to receive from main process!")
-            timeCaptureList.addAll(timeCaptureMap.values)
-            timeCaptureMap.clear()
             val measure = measureTimeMillis {
                 testKeyArray.forEach { s ->
                     val readTime = measureTimeMillis {
@@ -97,7 +77,6 @@ class HarmonyPrefsReceiveService : Service() {
             }
             totalReadTimeCaptureList.add(measure)
             isStarted = false
-            harmonyActivityPrefs.unregisterOnSharedPreferenceChangeListener(sharedPreferenceChangeListener)
             isRegistered = false
         }
         return START_NOT_STICKY
@@ -118,12 +97,5 @@ class HarmonyPrefsReceiveService : Service() {
         Log.i("Trial", "${this::class.java.simpleName}: Harmony - Average read test time: ${totalReadTimeCaptureList.average()} ms")
         Log.i("Trial", "${this::class.java.simpleName}: Harmony - Max read test time: ${totalReadTimeCaptureList.maxOrNull()} ms")
         Log.i("Trial", "${this::class.java.simpleName}: Harmony - Min read test time: ${totalReadTimeCaptureList.minOrNull()} ms")
-
-        Log.i("Trial", this::class.java.simpleName)
-        Log.i("Trial", "${this::class.java.simpleName}: =========================Harmony Total Receive=========================")
-        Log.i("Trial", "${this::class.java.simpleName}: Harmony - Receive Capture count: ${timeCaptureList.size}, expecting ${ITERATIONS * NUM_TESTS}")
-        Log.i("Trial", "${this::class.java.simpleName}: Harmony - Average time to receive from main process: ${timeCaptureList.average()} ms")
-        Log.i("Trial", "${this::class.java.simpleName}: Harmony - Max time to receive from main process: ${timeCaptureList.maxOrNull()} ms")
-        Log.i("Trial", "${this::class.java.simpleName}: Harmony - Min time to receive from main process: ${timeCaptureList.minOrNull()} ms")
     }
 }

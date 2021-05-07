@@ -5,12 +5,10 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.os.IBinder
 import android.util.Log
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKeys
-import com.frybits.harmony.app.ITERATIONS
-import com.frybits.harmony.app.NUM_TESTS
+import com.frybits.harmony.ITERATIONS
+import com.frybits.harmony.NUM_TESTS
 import com.frybits.harmony.app.PREFS_NAME
-import com.frybits.harmony.secure.getEncryptedHarmonySharedPreferences
+import com.frybits.harmony.getHarmonySharedPreferences
 import kotlin.system.measureTimeMillis
 
 /*
@@ -36,8 +34,6 @@ class HarmonyPrefsBulkReadService : Service() {
 
     private lateinit var harmonyActivityPrefs: SharedPreferences
 
-    private val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
-
     private var isStarted = false
     private var isRegistered = false
 
@@ -48,7 +44,7 @@ class HarmonyPrefsBulkReadService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        harmonyActivityPrefs = getEncryptedHarmonySharedPreferences(PREFS_NAME, masterKeyAlias, EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV, EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM)
+        harmonyActivityPrefs = getHarmonySharedPreferences(PREFS_NAME)
         singleReadTimeCaptureList.clear()
         totalReadTimeCaptureList.clear()
     }

@@ -1,14 +1,14 @@
-package com.frybits.harmony.app
+package com.frybits.harmony.crypto.app
 
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import com.frybits.harmony.R
-import com.frybits.harmony.app.test.bulkentry.apply.HarmonyPrefsBulkApplyActivity
-import com.frybits.harmony.app.test.bulkentry.commit.HarmonyPrefsBulkCommitActivity
-import com.frybits.harmony.app.test.singleentry.apply.HarmonyPrefsApplyActivity
-import com.frybits.harmony.app.test.singleentry.commit.HarmonyPrefsCommitActivity
+import com.frybits.harmony.crypto.app.test.bulkentry.apply.EncryptedHarmonyPrefsBulkApplyActivity
+import com.frybits.harmony.crypto.app.test.bulkentry.commit.EncryptedHarmonyPrefsBulkCommitActivity
+import com.frybits.harmony.crypto.app.test.singleentry.apply.EncryptedHarmonyPrefsApplyActivity
+import com.frybits.harmony.crypto.app.test.singleentry.commit.EncryptedHarmonyPrefsCommitActivity
 
 /*
  *  Copyright 2020 Pablo Baxter
@@ -29,28 +29,28 @@ import com.frybits.harmony.app.test.singleentry.commit.HarmonyPrefsCommitActivit
  * https://github.com/pablobaxter/Harmony
  */
 
-const val PREFS_NAME = "timePrefs-unencrypted"
+const val PREFS_NAME = "timePrefs-encrypted"
 
-class MainActivity : Activity() {
+class EncryptedMainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         findViewById<Button>(R.id.singleCommitButton).setOnClickListener {
-            startActivity(Intent(this, HarmonyPrefsCommitActivity::class.java))
+            startActivity(Intent(this, EncryptedHarmonyPrefsCommitActivity::class.java))
         }
 
         findViewById<Button>(R.id.singleApplyButton).setOnClickListener {
-            startActivity(Intent(this, HarmonyPrefsApplyActivity::class.java))
+            startActivity(Intent(this, EncryptedHarmonyPrefsApplyActivity::class.java))
         }
 
         findViewById<Button>(R.id.bulkApplyButton).setOnClickListener {
-            startActivity(Intent(this, HarmonyPrefsBulkApplyActivity::class.java))
+            startActivity(Intent(this, EncryptedHarmonyPrefsBulkApplyActivity::class.java))
         }
 
         findViewById<Button>(R.id.bulkCommitButton).setOnClickListener {
-            startActivity(Intent(this, HarmonyPrefsBulkCommitActivity::class.java))
+            startActivity(Intent(this, EncryptedHarmonyPrefsBulkCommitActivity::class.java))
         }
     }
 }
