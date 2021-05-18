@@ -19,5 +19,13 @@ package com.frybits.harmony
  * https://github.com/pablobaxter/Harmony
  */
 
-const val NUM_TESTS = 10
-const val ITERATIONS = 1000
+const val PREFS_NAME_KEY = "prefsName"
+const val LOG_KEY = "logKey"
+const val ITERATIONS_KEY = "iterations"
+const val USE_ENCRYPTION_KEY = "useEncryption"
+const val REMOTE_MESSENGER_KEY = "remoteMessenger"
+const val RESULTS_KEY = "results"
+
+const val ACK_EVENT = 1
+const val LOG_EVENT = 2
+const val RESULTS_EVENT = 3
