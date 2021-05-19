@@ -1,4 +1,4 @@
-package com.frybits.harmony
+package com.frybits.harmony.app
 
 import android.app.Application
 import dagger.hilt.android.HiltAndroidApp

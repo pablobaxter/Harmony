@@ -1,4 +1,4 @@
-package com.frybits.harmony.test
+package com.frybits.harmony.app.test
 
 import android.app.Service
 import android.content.Intent
@@ -13,15 +13,15 @@ import androidx.collection.set
 import androidx.core.os.bundleOf
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
-import com.frybits.harmony.ACK_EVENT
-import com.frybits.harmony.ITERATIONS_KEY
-import com.frybits.harmony.LOG_EVENT
-import com.frybits.harmony.LOG_KEY
-import com.frybits.harmony.PREFS_NAME_KEY
-import com.frybits.harmony.REMOTE_MESSENGER_KEY
-import com.frybits.harmony.RESULTS_EVENT
-import com.frybits.harmony.RESULTS_KEY
-import com.frybits.harmony.USE_ENCRYPTION_KEY
+import com.frybits.harmony.app.ACK_EVENT
+import com.frybits.harmony.app.ITERATIONS_KEY
+import com.frybits.harmony.app.LOG_EVENT
+import com.frybits.harmony.app.LOG_KEY
+import com.frybits.harmony.app.PREFS_NAME_KEY
+import com.frybits.harmony.app.REMOTE_MESSENGER_KEY
+import com.frybits.harmony.app.RESULTS_EVENT
+import com.frybits.harmony.app.RESULTS_KEY
+import com.frybits.harmony.app.USE_ENCRYPTION_KEY
 import com.frybits.harmony.getHarmonySharedPreferences
 import com.frybits.harmony.secure.getEncryptedHarmonySharedPreferences
 import kotlinx.coroutines.Dispatchers
@@ -32,6 +32,8 @@ import kotlinx.coroutines.withContext
 private const val LOG_TAG = "Remote"
 
 class HarmonyRemoteTestRunnerService : Service() {
+
+    override fun onBind(intent: Intent): IBinder? = null
 
     private val serviceScope = MainScope()
     private val testKeyMap = hashMapOf<String, Int>()
@@ -54,25 +56,42 @@ class HarmonyRemoteTestRunnerService : Service() {
                     withContext(Dispatchers.Default) {
                         remoteMessenger.send(Message.obtain().apply {
                             what = LOG_EVENT
-                            data = bundleOf(LOG_KEY to LogEvent(
+                            data = bundleOf(
+                                LOG_KEY to LogEvent(
                                 priority = Log.ERROR,
                                 tag = LOG_TAG,
                                 message = "Time result changed! Key=$key"
-                            ))
+                            )
+                            )
                         })
                     }
                 } else {
-                    timeCaptureMap[keyInt] = now - activityTestTime
+                    val diff = now - activityTestTime
+                    if (diff < 0) {
+                        remoteMessenger.send(Message.obtain().apply {
+                            what = LOG_EVENT
+                            data = bundleOf(
+                                LOG_KEY to LogEvent(
+                                    priority = Log.ERROR,
+                                    tag = LOG_TAG,
+                                    message = "Got negative value for key $key!"
+                                )
+                            )
+                        })
+                    }
+                    timeCaptureMap[keyInt] = diff
                 }
             } else {
                 withContext(Dispatchers.Default) {
                     remoteMessenger.send(Message.obtain().apply {
                         what = LOG_EVENT
-                        data = bundleOf(LOG_KEY to LogEvent(
+                        data = bundleOf(
+                            LOG_KEY to LogEvent(
                             priority = Log.ERROR,
                             tag = LOG_TAG,
                             message = "Got default long value! Key=$key"
-                        ))
+                        )
+                        )
                     })
                 }
             }
@@ -87,7 +106,7 @@ class HarmonyRemoteTestRunnerService : Service() {
             val prefsName = requireNotNull(bundle.getString(PREFS_NAME_KEY)) { "No prefs name provided" }
             harmonyActivityPrefs = if (bundle.getBoolean(USE_ENCRYPTION_KEY)) {
                 getEncryptedHarmonySharedPreferences(
-                    prefsName,
+                    "$prefsName-encrypted",
                     MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC),
                     EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
                     EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
@@ -107,8 +126,6 @@ class HarmonyRemoteTestRunnerService : Service() {
         isStarted = true
         return START_NOT_STICKY
     }
-
-    override fun onBind(intent: Intent): IBinder? = null
 
     override fun onDestroy() {
         harmonyActivityPrefs.unregisterOnSharedPreferenceChangeListener(onSharedPreferenceChangeListener)

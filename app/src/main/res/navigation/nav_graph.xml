@@ -6,6 +6,14 @@
     app:startDestination="@id/mainFragment">
     <fragment
         android:id="@+id/mainFragment"
-        android:name="com.frybits.harmony.fragments.MainFragment"
-        android:label="Harmony" />
+        android:name="com.frybits.harmony.app.fragments.MainFragment"
+        android:label="Harmony" >
+        <action
+            android:id="@+id/action_mainFragment_to_resultsFragment"
+            app:destination="@id/resultsFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/resultsFragment"
+        android:name="com.frybits.harmony.app.fragments.ResultsFragment"
+        android:label="Results" />
 </navigation>

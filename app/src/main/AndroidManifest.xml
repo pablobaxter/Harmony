@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.frybits.harmony">
+    package="com.frybits.harmony.app">
 
     <application
         android:name=".HarmonyApp"
@@ -12,7 +12,6 @@
 
         <activity
             android:name=".MainActivity"
-            android:label="Harmony Test App"
             android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -21,6 +20,12 @@
         </activity>
 
         <service android:name=".test.HarmonyRemoteTestRunnerService"
+            android:process=":remote"/>
+
+        <service android:name=".test.MMKVRemoteTestRunnerService"
+            android:process=":remote"/>
+
+        <service android:name=".test.TrayRemoteTestRunnerService"
             android:process=":remote"/>
 
     </application>

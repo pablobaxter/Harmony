@@ -5,6 +5,13 @@ apply plugin: "androidx.navigation.safeargs.kotlin"
 apply plugin: 'kotlin-kapt'
 apply plugin: 'dagger.hilt.android.plugin'
 
+def propertiesFile = rootProject.file("local.properties")
+
+def properties = new Properties()
+
+if (propertiesFile.exists()) {
+    properties.load(new FileInputStream(propertiesFile))
+}
 
 android {
     compileSdkVersion compileSdk_version
@@ -18,9 +25,19 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        release {
+            keyAlias = properties["harmony.keystore.alias"]
+            keyPassword = properties["harmony.keystore.alias.password"]
+            storeFile = file(properties["harmony.keystore.file"])
+            storePassword = properties["harmony.keystore.password"]
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled true
+            signingConfig signingConfigs.release
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -39,9 +56,17 @@ android {
     }
 }
 
+repositories{
+    flatDir{
+        dirs 'libs'
+    }
+}
+
 dependencies {
     implementation project (':crypto')
 //    implementation 'com.frybits.harmony:harmony:1.1.5'
+    implementation 'com.tencent:mmkv-static:1.2.8'
+    implementation (name: "tray-0.12.0", ext: 'aar')
 
     // Kotlin
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"

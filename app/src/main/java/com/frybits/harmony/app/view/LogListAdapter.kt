@@ -1,4 +1,4 @@
-package com.frybits.harmony.view
+package com.frybits.harmony.app.view
 
 import android.graphics.Color
 import android.util.Log
@@ -7,7 +7,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.frybits.harmony.test.LogEvent
+import com.frybits.harmony.app.test.LogEvent
 
 private val LOG_DIFF_CALLBACK = object : DiffUtil.ItemCallback<LogEvent>() {
     override fun areItemsTheSame(oldItem: LogEvent, newItem: LogEvent): Boolean {

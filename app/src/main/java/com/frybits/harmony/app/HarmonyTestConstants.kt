@@ -1,4 +1,4 @@
-package com.frybits.harmony
+package com.frybits.harmony.app
 
 /*
  *  Copyright 2020 Pablo Baxter

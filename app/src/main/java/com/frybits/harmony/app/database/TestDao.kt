@@ -1,4 +1,4 @@
-package com.frybits.harmony.database
+package com.frybits.harmony.app.database
 
 import androidx.room.Dao
 import androidx.room.Delete

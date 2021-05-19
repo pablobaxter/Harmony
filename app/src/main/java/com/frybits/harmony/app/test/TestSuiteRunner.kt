@@ -1,4 +1,4 @@
-package com.frybits.harmony.test
+package com.frybits.harmony.app.test
 
 import android.util.Log
 import kotlinx.coroutines.channels.Channel

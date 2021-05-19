@@ -13,7 +13,7 @@ import java.io.IOException
 /**
  * A [KeysetWriter] that can write keysets to private harmony shared preferences on Android.
  *
- * Creates a [KeysetReader] that hex-encodes and writes keysets to the preference
+ * Creates a [KeysetWriter] that hex-encodes and writes keysets to the preference
  * name `keysetName` in the private harmony shared preferences file `prefFileName`.
  *
  *

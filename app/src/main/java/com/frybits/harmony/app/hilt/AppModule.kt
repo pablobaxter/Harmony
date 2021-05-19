@@ -1,10 +1,9 @@
-package com.frybits.harmony.hilt
+package com.frybits.harmony.app.hilt
 
 import android.content.Context
 import androidx.room.Room
-import com.frybits.harmony.database.HarmonyDatabase
-import com.frybits.harmony.database.TestDao
-import dagger.Binds
+import com.frybits.harmony.app.database.HarmonyDatabase
+import com.frybits.harmony.app.database.TestDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

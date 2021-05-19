@@ -173,7 +173,7 @@ internal class HarmonyKeysetManager private constructor(builder: Builder) {
          * Builds and returns a new [HarmonyKeysetManager] with the specified options.
          *
          * @throws IOException If a keyset is found but unusable.
-         * @throws KeystoreException If a master key is found but unusable.
+         * @throws KeyStoreException If a master key is found but unusable.
          * @throws GeneralSecurityException If cannot read an existing keyset or generate a new one.
          */
         @Synchronized
@@ -287,7 +287,7 @@ internal class HarmonyKeysetManager private constructor(builder: Builder) {
      * Generates and adds a fresh key generated using `keyTemplate`, and sets the new key as the
      * primary key.
      *
-     * @throws GeneralSecurityException if cannot find any [KeyManager] that can handle `keyTemplate`
+     * @throws GeneralSecurityException if cannot find any [com.google.crypto.tink.KeyManager] that can handle `keyTemplate`
      */
     @Deprecated(
         """Please use {@link #add}. This method adds a new key and immediately promotes it to
@@ -296,6 +296,7 @@ internal class HarmonyKeysetManager private constructor(builder: Builder) {
     )
     @Synchronized
     fun rotate(keyTemplate: com.google.crypto.tink.proto.KeyTemplate?): HarmonyKeysetManager {
+        @Suppress("DEPRECATION")
         keysetManager = keysetManager.rotate(keyTemplate)
         write(keysetManager)
         return this
@@ -304,7 +305,7 @@ internal class HarmonyKeysetManager private constructor(builder: Builder) {
     /**
      * Generates and adds a fresh key generated using `keyTemplate`.
      *
-     * @throws GeneralSecurityException if cannot find any [KeyManager] that can handle `keyTemplate`
+     * @throws GeneralSecurityException if cannot find any [com.google.crypto.tink.KeyManager] that can handle `keyTemplate`
      */
     @GuardedBy("this")
     @Deprecated(
@@ -313,6 +314,7 @@ internal class HarmonyKeysetManager private constructor(builder: Builder) {
     )
     @Synchronized
     fun add(keyTemplate: com.google.crypto.tink.proto.KeyTemplate?): HarmonyKeysetManager {
+        @Suppress("DEPRECATION")
         keysetManager = keysetManager.add(keyTemplate)
         write(keysetManager)
         return this
@@ -321,7 +323,7 @@ internal class HarmonyKeysetManager private constructor(builder: Builder) {
     /**
      * Generates and adds a fresh key generated using `keyTemplate`.
      *
-     * @throws GeneralSecurityException if cannot find any [KeyManager] that can handle `keyTemplate`
+     * @throws GeneralSecurityException if cannot find any [com.google.crypto.tink.KeyManager] that can handle `keyTemplate`
      */
     @GuardedBy("this")
     @Synchronized

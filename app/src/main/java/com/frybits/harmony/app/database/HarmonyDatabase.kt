@@ -1,4 +1,4 @@
-package com.frybits.harmony.database
+package com.frybits.harmony.app.database
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
