@@ -2,7 +2,7 @@
 
 [![CircleCI](https://circleci.com/gh/pablobaxter/Harmony/tree/main.svg?style=shield)](https://circleci.com/gh/pablobaxter/Harmony/tree/main)
 [![GitHub](https://img.shields.io/github/license/pablobaxter/harmony)](https://github.com/pablobaxter/Harmony/blob/main/LICENSE)
-[![Maven-Central](https://img.shields.io/maven-central/v/com.frybits.harmony/harmony/1.1.5)](https://search.maven.org/artifact/com.frybits.harmony/harmony/1.1.5/aar)
+[![Maven Central](https://img.shields.io/maven-central/v/com.frybits.harmony/harmony?label=Harmony)](https://search.maven.org/artifact/com.frybits.harmony/harmony/1.1.5/aar)[![Maven Central](https://img.shields.io/maven-central/v/com.frybits.harmony/harmony-crypto?label=Harmony-Crypto)](https://search.maven.org/artifact/com.frybits.harmony/harmony-crypto/0.0.1/aar)
 [![API](https://img.shields.io/badge/API-17%2B-brightgreen.svg?style=flat)](https://android-arsenal.com/api?level=17)
 
 Working on multiprocess Android apps is a complex undertaking. One of the biggest challenges is managing shared data between the multiple processes. Most solutions rely on one process to be available for another to read the data, which can be quite slow and could potentially lead to ANRs.
@@ -23,10 +23,10 @@ The latest release is available on [Maven Central](https://search.maven.org/arti
 ### Gradle
 ```
 implementation 'com.frybits.harmony:harmony:1.1.5'
+// implementation 'com.frybits.harmony:harmony-crypto:0.0.1' // For Encrypted SharedPreferences
 ```
 
 ## Usage
-
 ### Creating Harmony SharedPreferences
 #### Kotlin
 ```kotlin
@@ -40,137 +40,41 @@ val prefs: SharedPreferences = context.getHarmonySharedPreferences("PREF_NAME")
 SharedPreferences prefs = Harmony.getSharedPreferences(context, "PREF_NAME")
 ```
 
+OR
+
+### Creating Encrypted Harmony SharedPreferences (Requires `harmony-crypto` library)
+#### Kotlin
+```kotlin
+// Getting Encrypted Harmony SharedPreferences
+val prefs: SharedPreferences = context.getEncryptedHarmonySharedPreferences(
+            "PREF_NAME",
+            MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC),
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+```
+
+#### Java
+```java
+// Getting Encrypted Harmony SharedPreferences
+SharedPreferences prefs = EncryptedHarmony.getSharedPreferences(
+            context, 
+            "PREF_NAME",
+            MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC),
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+          )
+```
+
 Once you have this `SharedPreferences` object, it can be used just like any other `SharedPreferences`. The main difference with Harmony is that any changes made to `"PREF_NAME"` using `apply()` or `commit()` is reflected across all processes.
 
 **NOTE: Changes in Harmony do not reflect in Android SharedPreferences and vice-versa!** 
 
+
 ## Performance
 All tests were performed on a Samsung Galaxy S9 (SM-G960U) running Android 10.
 
-### Commit (Single Entry) Test
-Test setup:
-- Harmony preferences are cleared before the start of the test
-- Each test creates a single `Editor` object
-- Each time an entry is set on the `Editor`, `commit()` was called immediately
-- Each test inserted 1k `long` values
-- The time measured is the duration it took to complete all 1k inserts
-- This test was performed 10 times
-
-The source code for this test can be found in [`HarmonyPrefsCommitActivity`](./app/src/main/java/com/frybits/harmony/app/test/singleentry/commit/HarmonyPrefsCommitActivity.kt)
-
-![Commit Single Entry Test](./graphics/commit_test.png)
-
-Inter-Process replication test setup:
-- A service called `HarmonyPrefsReceiveService` is listening on another processes using the `OnSharedPreferenceChangeListener`
-- On every key change, the current time is taken on the service process, and compared against the received time from the activity process
-- This test was performed 10 times, with the results based off of all 10k entries
-- Time for `OnSharedPreferenceChangeListener` to be called in other process (Harmony only):
-  - **Min time:** `5 ms`
-  - **Max time:** `127 ms`
-  - **Average time:** `28.1638 ms`
-
-**Summary:** This result is expected. Harmony will perform a commit that is slower than the vanilla SharedPreferences due to file locking occurring, but will quickly emit the changes to any process that is listening.
-
-### Apply (Single Entry) Test
-Test setup:
-- Harmony preferences are cleared before the start of the test
-- Each test creates a single `Editor` object
-- Each time an entry is set on the `Editor`, `apply()` was called immediately
-- Each test inserted 1k `long` values
-- The time measured is the duration it took to complete all 1k inserts
-- This test was performed 10 times
-
-The source code for this test can be found in [`HarmonyPrefsApplyActivity`](./app/src/main/java/com/frybits/harmony/app/test/singleentry/apply/HarmonyPrefsApplyActivity.kt)
-
-![Apply Single Entry Test](./graphics/apply_test.png)
-
-Inter-Process replication test setup:
-- A service called `HarmonyPrefsReceiveService` is listening on another processes using the `OnSharedPreferenceChangeListener`
-- On every key change, the current time is taken on the service process, and compared against the received time from the activity process
-- Each test calls `apply()` 1k times and awaits to read the data on the other process
-- This test was performed 10 times, with the results based off of all 10k entries
-- Time for `OnSharedPreferenceChangeListener` to be called in other process (Harmony only):
-  - **Min time:** `9 ms`
-  - **Max time:** `181 ms`
-  - **Average time:** `76.3006 ms`
-- **NOTE:** Quickly calling `apply()` can lead to longer replication times. You should always batch changes into the `SharedPreferenced.Editor` object before calling `apply()` for the best performance.
-
-**Summary:** With the recent changes (`v1.1.3`), Harmony `apply()` is as fast as the vanilla `SharedPreferences` and the replication performance across processes has been greatly improved.
-
-## Change Log
-### Version 1.1.5 / 2021-02-27
-- Removed dependency on Kotlin Coroutines. This is to reduce bringing in libraries that may not already exist into the project.
-- Create a global thread to handle Harmony updates, instead of each Harmony object having their own thread.
-- **Note**: The test times may appear better this release, but that is only because I was previously testing on a debug build of the demo app instead of a release build. In actuality, v1.1.5 performs just as well as v1.1.4 with the listed changes. Sorry if there is any confusion.
-
-### Version 1.1.4 / 2021-02-10
-- Added `FileDescriptor.sync()` for each transaction written (in response to [#15](https://github.com/pablobaxter/Harmony/issues/15))
-- Minor restructure for reading JSON string from main file
-- Updated Kotlin libraries and Android plugins
-- Migrated to releasing directly to MavenCentral instead of Bintray
-
-### Version 1.1.3 / 2021-01-02
-- **MIN SDK Raised to API 17**
-- Adds batching to transactions, making inter-process data replication much faster
-- Updates several core Kotlin and Coroutines libraries
-- Fixes potential bug where an `IOException` could be thrown by a function, but isn't declared as throws when compiled to JVM bytecode.
-- Slight improvements with memory usage
-- Fixes a file descriptor crash
-- Additional unit tests for `apply()` and `commit()` functions
-- Fixed crasg bug when storing a large string (64K limit with `DataOutputStream.writeUTF()`)
-- **Known issues:**
-  - There is a bug where changes don't always emit on `OnSharedPreferenceChangeListener` across processes (https://github.com/pablobaxter/Harmony/issues/13)
-  - When targeting API 30, `OnSharedPreferenceChangeListener` emits an event when `Editor.clear()` is called for `SharedPreferences`. Harmony does not currently honor this, as modifying this affects the above bug (https://github.com/pablobaxter/Harmony/issues/14)
-  - Harmony `apply()` fails occasionally (https://github.com/pablobaxter/Harmony/issues/15)
-
-### Version 1.1.2 / 2020-06-15
-- Renamed several functions and variables
-
-### Version 1.1.1 / 2020-06-15
-- Fixes minor issue where phone restart could cause transactions to come in out of order
-
-### Version 1.1.0 / 2020-06-13
-- Fixes a bug where calling `apply()` in both processes at once would potentially cause removed data to be restored
-- Improves in-memory replication time between processes when using `apply()`
-- Creates a transaction file where changes get written to before being written to the main preferences file
-  - Every time `apply()` or `commit()` is called, a new transaction is written to the transaction file
-  - Each time a process restarts and gets an instance of a Harmony preference object, all transactions are flushed and written to the main file
-  - Transactions are also flushed when transaction file grows beyond a certain size (128 KB currently, or about ~3k single key transactions)
-  - All transactions contain a checksum value to validate transaction integrity
-
-### Version 1.0.0 / 2020-05-23
-- **FIRST MAJOR RELEASE!**
-- Fixes a bug where `getAll()` only holds `long` numbers, instead of `int` and `float`
-- Fixes a but where lock files could be deleted but not recreated, causing a crash
-- Changes underlying data structure (BREAKING CHANGE)
-- Updates Kotlin Coroutines library
-- Updates min Android SDK to API 14
-- Adds instrumented tests via Firebase Test Lab
-- Added additional tests, especially around testing Harmony in multiprocess
-- Change to casting logic from in-memory map, to match documentation of [SharedPreferences](https://developer.android.com/reference/android/content/SharedPreferences)
-
-### Version 0.0.7 / 2020-05-20
-- Slight improvement to `apply()` performance
-- Adds code for performance testing of Harmony vs SharedPreferences
-- Removes unused library from example app ([MMKV](https://github.com/Tencent/MMKV))
-
-### Version 0.0.6 / 2020-05-15
-- License change from MIT to Apache-2.0
-
-### Version 0.0.5 / 2020-05-15
-- Adds java doc (Dokka HTML) to this release
-- Prep work to release on Maven Central
-
-### Version 0.0.2 / 2020-05-15
-- Removes `app_name` from the `strings.xml` file
-- Restructures library to be under the package `com.frybits.harmony`
-  instead of `com.frybits.harmonyprefs`
-- Renames the `Harmony` class to `HarmonyImpl` and sets class to
-  private.
-- Import of `getHarmonySharedPreferences()` method is now cleaner
-
-### Version 0.0.1 / 2020-05-15
-- Initial release!
+// TODO Write about tests
 
 ## Special thanks
 
