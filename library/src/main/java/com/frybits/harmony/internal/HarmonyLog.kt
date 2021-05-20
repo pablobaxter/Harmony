@@ -6,6 +6,7 @@ package com.frybits.harmony.internal
 
 import android.util.Log
 import com.frybits.harmony.HarmonyLog
+import com.frybits.harmony._harmonyLog
 
 /*
  *  Copyright 2020 Pablo Baxter
@@ -29,9 +30,6 @@ import com.frybits.harmony.HarmonyLog
  */
 
 private val LOG = false
-
-@Volatile
-internal var _harmonyLog: HarmonyLog? = null
 
 internal object _InternalHarmonyLog {
 

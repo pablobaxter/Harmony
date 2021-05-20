@@ -19,6 +19,9 @@ package com.frybits.harmony
  * https://github.com/pablobaxter/Harmony
  */
 
+@Volatile
+internal var _harmonyLog: HarmonyLog? = null
+
 /**
  * Log injector for Harmony
  */

@@ -2,6 +2,20 @@
 
 package com.frybits.harmony
 
+import android.content.Context
+import android.content.SharedPreferences
+import android.os.FileObserver
+import android.os.Handler
+import android.os.HandlerThread
+import android.os.SystemClock
+import androidx.annotation.GuardedBy
+import androidx.annotation.VisibleForTesting
+import com.frybits.harmony.internal._HarmonyException
+import com.frybits.harmony.internal._InternalHarmonyLog
+import com.frybits.harmony.internal.harmonyFileObserver
+import com.frybits.harmony.internal.putHarmony
+import com.frybits.harmony.internal.readHarmony
+import com.frybits.harmony.internal.withFileLock
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.File
@@ -23,21 +37,6 @@ import java.util.zip.CheckedInputStream
 import java.util.zip.CheckedOutputStream
 import kotlin.concurrent.read
 import kotlin.concurrent.write
-import android.content.Context
-import android.content.SharedPreferences
-import android.os.FileObserver
-import android.os.Handler
-import android.os.HandlerThread
-import android.os.SystemClock
-import androidx.annotation.GuardedBy
-import androidx.annotation.VisibleForTesting
-import com.frybits.harmony.internal._HarmonyException
-import com.frybits.harmony.internal._InternalHarmonyLog
-import com.frybits.harmony.internal._harmonyLog
-import com.frybits.harmony.internal.harmonyFileObserver
-import com.frybits.harmony.internal.putHarmony
-import com.frybits.harmony.internal.readHarmony
-import com.frybits.harmony.internal.withFileLock
 import org.json.JSONException
 
 /*
@@ -940,7 +939,7 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) : C
                     while (dataInputStream.readBoolean()) {
                         hasPartialTransaction = true
                         expectedWasSet = false
-                        key = when(versionByte.toByte()) {
+                        key = when (versionByte.toByte()) {
                             TRANSACTION_FILE_VERSION_1 -> { // Unused. Here for compat purposes
                                 dataInputStream.readUTF()
                             }
