@@ -31,6 +31,7 @@ import android.os.HandlerThread
 import android.os.SystemClock
 import androidx.annotation.GuardedBy
 import androidx.annotation.VisibleForTesting
+import com.frybits.harmony.internal._HarmonyException
 import com.frybits.harmony.internal._InternalHarmonyLog
 import com.frybits.harmony.internal._harmonyLog
 import com.frybits.harmony.internal.harmonyFileObserver
@@ -539,6 +540,7 @@ private class HarmonyImpl constructor(
                     }
                 } catch (e: IOException) {
                     _InternalHarmonyLog.w(LOG_TAG, "Unable to write transaction", e)
+                    _InternalHarmonyLog.recordException(_HarmonyException("Unable to write transaction", e))
                 }
             }
         }
@@ -583,6 +585,7 @@ private class HarmonyImpl constructor(
         // Create a backup and delete the main file
         if (!harmonyMainBackupFile.exists()) {
             if (!harmonyMainFile.renameTo(harmonyMainBackupFile)) {
+                _InternalHarmonyLog.recordException(_HarmonyException("Unable to create Harmony backup file, main file not written to!"))
                 return false // Couldn't create a backup!
             }
         } else { // A back up exists! Let's keep it and just delete the main
@@ -628,6 +631,7 @@ private class HarmonyImpl constructor(
             return true
         } catch (e: IOException) {
             _InternalHarmonyLog.e(LOG_TAG, "commitToDisk got exception:", e)
+            _InternalHarmonyLog.recordException(_HarmonyException("commitToDisk got exception:", e))
         }
 
         // We should reach this if there was a failure writing to the prefs file.
@@ -1025,6 +1029,7 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) : C
                         }
                         _InternalHarmonyLog.e(LOG_TAG, "currentTransaction=${currTransaction.uuid}, transactionMap=${currTransaction.transactionMap.map { (k, v) -> "key=$k, operation=${v.type()}" }}, isCleared=${currTransaction.cleared}, commitTime=${currTransaction.memoryCommitTime}")
                     }
+                    _InternalHarmonyLog.recordException(e)
                     return transactionSet to true
                 }
                 versionByte = dataInputStream.read()
