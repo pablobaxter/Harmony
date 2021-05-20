@@ -5,7 +5,6 @@
 package com.frybits.harmony.internal
 
 import android.util.Log
-import com.frybits.harmony.HarmonyLog
 import com.frybits.harmony._harmonyLog
 
 /*
