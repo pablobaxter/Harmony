@@ -24,7 +24,7 @@
             app:layout_constraintEnd_toStartOf="@+id/writeTextView"
             app:layout_constraintHorizontal_chainStyle="spread"
             app:layout_constraintStart_toEndOf="@+id/sharedPrefsTextView"
-            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/numTestsTextView"
             app:layout_constraintVertical_chainStyle="packed" />
 
         <TextView
@@ -238,6 +238,30 @@
             app:layout_constraintEnd_toEndOf="@+id/ipcTextView"
             app:layout_constraintStart_toStartOf="@+id/ipcTextView"
             app:layout_constraintTop_toTopOf="@+id/trayTextView" />
+
+        <TextView
+            android:id="@+id/numTestsTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
+            android:text="Number of tests"
+            app:layout_constraintBottom_toTopOf="@id/readTextView"
+            app:layout_constraintEnd_toStartOf="@+id/itemsStoredTextView"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/itemsStoredTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Items stored"
+            app:layout_constraintBottom_toBottomOf="@+id/numTestsTextView"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintStart_toEndOf="@+id/numTestsTextView"
+            app:layout_constraintTop_toTopOf="@+id/numTestsTextView" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

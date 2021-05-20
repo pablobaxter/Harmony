@@ -41,6 +41,13 @@ class ResultsViewHolder(private val binderView: ViewResultBinding) : RecyclerVie
         val mmkvTests = testSuiteData.getTestData(TestSource.MMKV)
         val trayTests = testSuiteData.getTestData(TestSource.TRAY)
         with(binderView) {
+            var max = maxOf(sharedPrefsTests.filter { it.testDataType == TestType.READ }.count(), harmonyTests.filter { it.testDataType == TestType.READ }.count())
+            max = maxOf(max, mmkvTests.filter { it.testDataType == TestType.READ }.count())
+            max = maxOf(max, trayTests.filter { it.testDataType == TestType.READ }.count())
+            numTestsTextView.text = "Number of runs: $max"
+
+            itemsStoredTextView.text = "Items stored per run: ${testSuiteData.testEntityWithDataList.first().entity.numIterations}"
+
             sharedPrefsReadTextView.text = sharedPrefsTests.evaluateTime(TestType.READ)
             sharedPrefsWriteTextView.text = sharedPrefsTests.evaluateTime(TestType.WRITE)
             sharedPrefsIpcTextView.text = sharedPrefsTests.evaluateTime(TestType.IPC)
@@ -78,10 +85,10 @@ class ResultsViewHolder(private val binderView: ViewResultBinding) : RecyclerVie
         if (curr >= 1000) {
             measure = "s"
             curr /= 1_000
-        }
 
-        if (curr >= 10) {
-            return "Too long"
+            if (curr >= 10) {
+                return "Too long"
+            }
         }
         return "%.3f$measure".format(curr)
     }

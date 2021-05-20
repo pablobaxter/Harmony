@@ -21,7 +21,7 @@
             android:layout_height="match_parent"
             android:layout_marginTop="8dp"
             android:ems="10"
-            android:hint="Test Iterations"
+            android:hint="Items to store"
             android:inputType="number"
             android:text="1000" />
 
@@ -186,12 +186,12 @@
         android:id="@+id/traySwitch"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:checked="true"
         android:text="Use Tray"
         app:layout_constraintBottom_toTopOf="@id/startTestButton"
         app:layout_constraintEnd_toEndOf="@+id/vanillaSharedPrefsSwitch"
         app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toStartOf="@+id/vanillaSharedPrefsSwitch"
-        app:layout_constraintTop_toBottomOf="@id/mmkvSwitch"
-        tools:checked="true" />
+        app:layout_constraintTop_toBottomOf="@id/mmkvSwitch" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
