@@ -1,6 +1,6 @@
 ## Change Log
 
-### Harmony-Crypto Version 0.0.1 / 2021-05-19
+### Harmony-Crypto Version 0.0.1 / 2021-05-24
 - Initial release!
 
 ### Harmony Version 1.1.5 / 2021-02-27

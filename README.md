@@ -66,19 +66,53 @@ SharedPreferences prefs = EncryptedHarmony.getSharedPreferences(
           )
 ```
 
-Once you have this `SharedPreferences` object, it can be used just like any other `SharedPreferences`. The main difference with Harmony is that any changes made to `"PREF_NAME"` using `apply()` or `commit()` is reflected across all processes.
+Once you have this `SharedPreferences` object, it can be used just like any other `SharedPreferences`. The main difference with Harmony is that any change made to `"PREF_NAME"` using `apply()` or `commit()` is reflected across all processes.
 
 **NOTE: Changes in Harmony do not reflect in Android SharedPreferences and vice-versa!** 
 
-
 ## Performance
-All tests were performed on a Samsung Galaxy S9 (SM-G960U) running Android 10.
 
-// TODO Write about tests
+The following are comparison performance tests of some popular multiprocess preference libraries. Each test measures the time it takes to insert 1000 items individually into the preference library (Write), the time it takes to read each 1000 items individually (Read), and how long it took for each item to be available in an alternate process (IPC). Each test was run 10 times. All values in the table below are the average time for a single item to be inserted, read, and available in the alternate process.
+
+Tests were broken into two separate categories:
+- Asynchronous writing (if applicable)
+- Synchronous writing
+
+Logic for tests can been seen in the [`TestRunner.kt`](app/src/main/java/com/frybits/harmony/app/test/TestRunner.kt) file.
+
+**Note:** All tests were performed on a Samsung Galaxy S9 (SM-G960U) running Android 10.
+
+### Asynchronous Tests
+
+|Library                                             |Read (avg)|Write (avg)          |IPC (avg)             |
+|----------------------------------------------------|----------|---------------------|----------------------|
+|SharedPreferences                                   |0.001 ms  |0.062 ms             |N/A <sup>1</sup>      |
+|Harmony                                             |0.0007 ms |0.035 ms             |75.591 ms             |
+|[MMKV](https://github.com/Tencent/MMKV) <sup>2</sup>|0.007 ms  |0.049 ms             |93.916 ms <sup>3</sup>|
+|[Tray](https://github.com/GCX-HCI/tray) <sup>2</sup>|2.389 ms  |8.697 ms             |1.795 s               |
+
+---
+
+### Synchronous Tests
+
+|Library                                             |Read (avg)|Write (avg)           |IPC (avg)              |
+|----------------------------------------------------|----------|----------------------|-----------------------|
+|SharedPreferences                                   |0.002 ms  |9.058 ms              |N/A <sup>1</sup>       |
+|Harmony                                             |0.002 ms  |22.866 ms <sup>4</sup>|29.224 ms              |
+|[MMKV](https://github.com/Tencent/MMKV) <sup>2</sup>|0.010 ms  |0.045 ms              |109.548 ms <sup>3</sup>|
+|[Tray](https://github.com/GCX-HCI/tray) <sup>2</sup>|2.411 ms  |8.306 ms              |1.626 s                |
+
+<sup>1</sup> SharedPreferences doesn't support IPC, so this was not tested.
+
+<sup>2</sup> These libraries don't support asynchronous writes. All tests were synchronous writes by default.
+
+<sup>3</sup> MMKV doesn't support a change listener, so a while-loop in a separate thread was used to determine how soon the data was available in the separate process. See [`MMKVRemoteTestRunnerService.kt`](app/src/main/java/com/frybits/harmony/app/test/MMKVRemoteTestRunnerService.kt) for implementation details.
+
+<sup>4</sup> Harmony performs file locking and file syncing operations on each call to `commit()`, which greatly increases the write time, but decreses the time it takes data to be available in alternate processes. However, using `apply()` is still recommended.
 
 ## Special thanks
 
-This section is to give a special thanks to inidividuals that helped with getting this project where it is today.
+This section is to give a special thanks to individuals that helped with getting this project where it is today.
 - JD - For the batching idea, reviewing the code, and all around bouncing of ideas to improve this project. 
 - [@orrinLife360](https://github.com/orrinLife360) - For helping review some of the more critical improvements.
 - [@imminent](https://github.com/imminent) - For all the Kotlin insight and helping review many of the changes on this project.
