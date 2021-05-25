@@ -80,9 +80,11 @@ Tests were broken into two separate categories:
 
 Logic for tests can been seen in the [`TestRunner.kt`](app/src/main/java/com/frybits/harmony/app/test/TestRunner.kt) file.
 
-**Note:** All tests were performed on a Samsung Galaxy S9 (SM-G960U) running Android 10.
+**Notes** 
+- All tests were performed on a Samsung Galaxy S9 (SM-G960U) running Android 10
+- Times are for single item operation.
 
-### Asynchronous Tests
+#### Asynchronous Tests
 
 |Library                                             |Read (avg)|Write (avg)          |IPC (avg)             |
 |----------------------------------------------------|----------|---------------------|----------------------|
@@ -91,9 +93,8 @@ Logic for tests can been seen in the [`TestRunner.kt`](app/src/main/java/com/fry
 |[MMKV](https://github.com/Tencent/MMKV) <sup>2</sup>|0.007 ms  |0.049 ms             |93.916 ms <sup>3</sup>|
 |[Tray](https://github.com/GCX-HCI/tray) <sup>2</sup>|2.389 ms  |8.697 ms             |1.795 s               |
 
----
 
-### Synchronous Tests
+#### Synchronous Tests
 
 |Library                                             |Read (avg)|Write (avg)           |IPC (avg)              |
 |----------------------------------------------------|----------|----------------------|-----------------------|
@@ -108,7 +109,7 @@ Logic for tests can been seen in the [`TestRunner.kt`](app/src/main/java/com/fry
 
 <sup>3</sup> MMKV doesn't support a change listener, so a while-loop in a separate thread was used to determine how soon the data was available in the separate process. See [`MMKVRemoteTestRunnerService.kt`](app/src/main/java/com/frybits/harmony/app/test/MMKVRemoteTestRunnerService.kt) for implementation details.
 
-<sup>4</sup> Harmony performs file locking and file syncing operations on each call to `commit()`, which greatly increases the write time, but decreses the time it takes data to be available in alternate processes. However, using `apply()` is still recommended.
+<sup>4</sup> Harmony performs file locking and file syncing operations on each call to `commit()`, which greatly increases the write time, but decreses the time it takes data to be available in the alternate processes. However, using `apply()` is still recommended.
 
 ## Special thanks
 
