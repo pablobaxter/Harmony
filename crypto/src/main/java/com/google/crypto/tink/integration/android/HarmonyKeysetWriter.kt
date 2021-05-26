@@ -22,7 +22,7 @@ import java.io.IOException
  * @throws IllegalArgumentException if `keysetName` is null
  */
 @SuppressLint("CommitPrefEdits")
-internal class HarmonyKeysetWriter(context: Context, private val keysetName: String, prefFileName: String?) : KeysetWriter {
+class HarmonyKeysetWriter(context: Context, private val keysetName: String, prefFileName: String?) : KeysetWriter {
 
     private val editor: SharedPreferences.Editor = context.applicationContext.let { appContext ->
         if (prefFileName == null) {

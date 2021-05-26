@@ -1,3 +1,6 @@
+@file:JvmName("_InternalCoreHarmony")
+@file:JvmMultifileClass
+
 package androidx.security.crypto
 
 import android.content.Context

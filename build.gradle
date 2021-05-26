@@ -3,7 +3,7 @@
 buildscript { 
 
     ext {
-        kotlin_version = '1.5.0'
+        kotlin_version = '1.5.10'
         kotlin_coroutine_version = '1.5.0'
         lifecycle_scope_version = '2.3.1'
 
@@ -46,7 +46,7 @@ buildscript {
     dependencies {
         classpath 'com.android.tools.build:gradle:4.2.1'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-        classpath 'org.jetbrains.dokka:dokka-gradle-plugin:1.4.20'
+        classpath 'org.jetbrains.dokka:dokka-gradle-plugin:1.4.32'
         classpath "io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.22.0"
         classpath "androidx.navigation:navigation-safe-args-gradle-plugin:$nav_version"
         classpath "com.google.dagger:hilt-android-gradle-plugin:$hilt_version"

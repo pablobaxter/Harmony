@@ -1,3 +1,6 @@
+@file:JvmName("_InternalCoreHarmony")
+@file:JvmMultifileClass
+
 package com.frybits.harmony.internal
 
 import androidx.annotation.VisibleForTesting

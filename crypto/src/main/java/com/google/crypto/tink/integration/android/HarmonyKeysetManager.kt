@@ -29,6 +29,8 @@ import java.security.ProviderException
  *
  * Usage
  *
+ * <pre>
+ *
  * // One-time operations, should be done when the application is starting up.
  * // Instead of repeatedly instantiating these crypto objects, instantiate them once and save for
  * // later use.
@@ -37,6 +39,8 @@ import java.security.ProviderException
  * .withKeyTemplate(AesGcmHkfStreamingKeyManager.aes128GcmHkdf4KBTemplate())
  * .build();
  * StreamingAead streamingAead = manager.getKeysetHandle().getPrimitive(StreamingAead.class);
+ *
+ * </pre>
  *
  * This will read a keyset stored in the `my_keyset_name` preference of the `my_pref_file_name` preferences file. If the preference file name is null, it uses the default
  * preferences file.
@@ -88,7 +92,7 @@ import java.security.ProviderException
  *
  */
 @Suppress("unused")
-internal class HarmonyKeysetManager private constructor(builder: Builder) {
+class HarmonyKeysetManager private constructor(builder: Builder) {
     private val writer: KeysetWriter = builder.writer
     private val masterKey: Aead? = builder.masterKey
 

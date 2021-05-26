@@ -22,7 +22,7 @@ import java.io.FileNotFoundException
  *
  * @throws IllegalArgumentException if `keysetName` is null
 */
-internal class HarmonyKeysetReader(context: Context, private val keysetName: String, prefFilename: String?) : KeysetReader {
+class HarmonyKeysetReader(context: Context, private val keysetName: String, prefFilename: String?) : KeysetReader {
 
     private val sharedPreferences: SharedPreferences = context.applicationContext.let { appContext ->
         if (prefFilename == null) {

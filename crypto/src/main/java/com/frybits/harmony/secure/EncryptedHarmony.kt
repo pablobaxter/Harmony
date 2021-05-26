@@ -14,6 +14,7 @@ import androidx.security.crypto.SecureHarmonyPreferences
  * Similar to Harmony, this Encrypted SharedPreferences object is process-safe.
  *
  * <pre>
+ *
  *  val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
  *
  *  val sharedPreferences = context.getEncryptedHarmonySharedPreferences(
@@ -26,10 +27,14 @@ import androidx.security.crypto.SecureHarmonyPreferences
  *
  *  // use the shared preferences and editor as you normally would
  *  val editor = sharedPreferences.edit()
+ *
  * </pre>
  *
  * @receiver Any valid context
  * @param fileName The desired preference file
+ * @param masterKeyAlias The alias of the master key to use
+ * @param prefKeyEncryptionScheme The scheme to use for encrypting keys
+ * @param prefValueEncryptionScheme The scheme to use for encrypting values
  *
  * @return A [SharedPreferences] object backed by Harmony
  */
