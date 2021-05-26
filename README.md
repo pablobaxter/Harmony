@@ -2,7 +2,7 @@
 
 [![CircleCI](https://circleci.com/gh/pablobaxter/Harmony/tree/main.svg?style=shield)](https://circleci.com/gh/pablobaxter/Harmony/tree/main)
 [![GitHub](https://img.shields.io/github/license/pablobaxter/harmony)](https://github.com/pablobaxter/Harmony/blob/main/LICENSE)
-[![Maven-Central](https://img.shields.io/maven-central/v/com.frybits.harmony/harmony/1.1.5)](https://search.maven.org/artifact/com.frybits.harmony/harmony/1.1.5/aar)
+[![Maven-Central](https://img.shields.io/maven-central/v/com.frybits.harmony/harmony/1.1.6)](https://search.maven.org/artifact/com.frybits.harmony/harmony/1.1.6/aar)
 [![API](https://img.shields.io/badge/API-17%2B-brightgreen.svg?style=flat)](https://android-arsenal.com/api?level=17)
 
 Working on multiprocess Android apps is a complex undertaking. One of the biggest challenges is managing shared data between the multiple processes. Most solutions rely on one process to be available for another to read the data, which can be quite slow and could potentially lead to ANRs.
@@ -19,10 +19,10 @@ Harmony is a thread-safe, process-safe, full [`SharedPreferences`](https://devel
 - Supports Android API 17+
 
 ## Download
-The latest release is available on [Maven Central](https://search.maven.org/artifact/com.frybits.harmony/harmony/1.1.5/aar).
+The latest release is available on [Maven Central](https://search.maven.org/artifact/com.frybits.harmony/harmony/1.1.6/aar).
 ### Gradle
 ```
-implementation 'com.frybits.harmony:harmony:1.1.5'
+implementation 'com.frybits.harmony:harmony:1.1.6'
 ```
 
 ## Usage
@@ -98,6 +98,11 @@ Inter-Process replication test setup:
 **Summary:** With the recent changes (`v1.1.3`), Harmony `apply()` is as fast as the vanilla `SharedPreferences` and the replication performance across processes has been greatly improved.
 
 ## Change Log
+### Version 1.1.6 / 2021-05-18
+- Fixes OOM issue caused by bad transaction read. [#22](https://github.com/pablobaxter/Harmony/issues/22)
+- Adds an API to inject a logger for capturing logs within Harmony. `Harmony.setLogger(harmonyLog: HarmonyLog)`
+- Updates Kotlin library version to 1.5.0
+
 ### Version 1.1.5 / 2021-02-27
 - Removed dependency on Kotlin Coroutines. This is to reduce bringing in libraries that may not already exist into the project.
 - Create a global thread to handle Harmony updates, instead of each Harmony object having their own thread.

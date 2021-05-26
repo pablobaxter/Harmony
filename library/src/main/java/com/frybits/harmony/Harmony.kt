@@ -2,6 +2,20 @@
 
 package com.frybits.harmony
 
+import android.content.Context
+import android.content.SharedPreferences
+import android.os.FileObserver
+import android.os.Handler
+import android.os.HandlerThread
+import android.os.SystemClock
+import androidx.annotation.GuardedBy
+import androidx.annotation.VisibleForTesting
+import com.frybits.harmony.internal._HarmonyException
+import com.frybits.harmony.internal._InternalHarmonyLog
+import com.frybits.harmony.internal.harmonyFileObserver
+import com.frybits.harmony.internal.putHarmony
+import com.frybits.harmony.internal.readHarmony
+import com.frybits.harmony.internal.withFileLock
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.File
@@ -23,19 +37,6 @@ import java.util.zip.CheckedInputStream
 import java.util.zip.CheckedOutputStream
 import kotlin.concurrent.read
 import kotlin.concurrent.write
-import android.content.Context
-import android.content.SharedPreferences
-import android.os.FileObserver
-import android.os.Handler
-import android.os.HandlerThread
-import android.os.SystemClock
-import androidx.annotation.GuardedBy
-import androidx.annotation.VisibleForTesting
-import com.frybits.harmony.internal._InternalHarmonyLog
-import com.frybits.harmony.internal.harmonyFileObserver
-import com.frybits.harmony.internal.putHarmony
-import com.frybits.harmony.internal.readHarmony
-import com.frybits.harmony.internal.withFileLock
 import org.json.JSONException
 
 /*
@@ -538,6 +539,7 @@ private class HarmonyImpl constructor(
                     }
                 } catch (e: IOException) {
                     _InternalHarmonyLog.w(LOG_TAG, "Unable to write transaction", e)
+                    _InternalHarmonyLog.recordException(_HarmonyException("Unable to write transaction", e))
                 }
             }
         }
@@ -582,6 +584,7 @@ private class HarmonyImpl constructor(
         // Create a backup and delete the main file
         if (!harmonyMainBackupFile.exists()) {
             if (!harmonyMainFile.renameTo(harmonyMainBackupFile)) {
+                _InternalHarmonyLog.recordException(_HarmonyException("Unable to create Harmony backup file, main file not written to!"))
                 return false // Couldn't create a backup!
             }
         } else { // A back up exists! Let's keep it and just delete the main
@@ -627,6 +630,7 @@ private class HarmonyImpl constructor(
             return true
         } catch (e: IOException) {
             _InternalHarmonyLog.e(LOG_TAG, "commitToDisk got exception:", e)
+            _InternalHarmonyLog.recordException(_HarmonyException("commitToDisk got exception:", e))
         }
 
         // We should reach this if there was a failure writing to the prefs file.
@@ -935,38 +939,59 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) : C
                     while (dataInputStream.readBoolean()) {
                         hasPartialTransaction = true
                         expectedWasSet = false
-                        key = if (versionByte.toByte() == TRANSACTION_FILE_VERSION_1) { // Unused. Here for compat purposes
-                            dataInputStream.readUTF()
-                        } else {
-                            val size = dataInputStream.readInt()
-                            val byteArray = ByteArray(size)
-                            dataInputStream.read(byteArray)
-                            String(byteArray)
+                        key = when (versionByte.toByte()) {
+                            TRANSACTION_FILE_VERSION_1 -> { // Unused. Here for compat purposes
+                                dataInputStream.readUTF()
+                            }
+                            TRANSACTION_FILE_VERSION_2 -> {
+                                val size = dataInputStream.readInt()
+                                val byteArray = ByteArray(size)
+                                dataInputStream.read(byteArray)
+                                String(byteArray)
+                            }
+                            else -> {
+                                _InternalHarmonyLog.e(LOG_TAG, "Unable to read key. Incorrect transaction file version $versionByte. Expected $CURR_TRANSACTION_FILE_VERSION")
+                                return transactionSet to true
+                            }
                         }
                         data = when (dataInputStream.readByte()) {
                             0.toByte() -> dataInputStream.readInt()
                             1.toByte() -> dataInputStream.readLong()
                             2.toByte() -> dataInputStream.readFloat()
                             3.toByte() -> dataInputStream.readBoolean()
-                            4.toByte() -> if (versionByte.toByte() == TRANSACTION_FILE_VERSION_1) { // Unused. Here for compat purposes
-                                dataInputStream.readUTF()
-                            } else {
-                                val size = dataInputStream.readInt()
-                                val byteArray = ByteArray(size)
-                                dataInputStream.read(byteArray)
-                                String(byteArray)
+                            4.toByte() -> when (versionByte.toByte()) {
+                                TRANSACTION_FILE_VERSION_1 -> { // Unused. Here for compat purposes
+                                    dataInputStream.readUTF()
+                                }
+                                TRANSACTION_FILE_VERSION_2 -> {
+                                    val size = dataInputStream.readInt()
+                                    val byteArray = ByteArray(size)
+                                    dataInputStream.read(byteArray)
+                                    String(byteArray)
+                                }
+                                else -> {
+                                    _InternalHarmonyLog.e(LOG_TAG, "Unable to read String value. Incorrect transaction file version $versionByte. Expected $CURR_TRANSACTION_FILE_VERSION")
+                                    return transactionSet to true
+                                }
                             }
                             5.toByte() -> {
                                 val count = dataInputStream.readInt()
                                 val set = hashSetOf<String>()
                                 repeat(count) {
-                                    if (versionByte.toByte() == TRANSACTION_FILE_VERSION_1) { // Unused. Here for compat purposes
-                                        set.add(dataInputStream.readUTF())
-                                    } else {
-                                        val size = dataInputStream.readInt()
-                                        val byteArray = ByteArray(size)
-                                        dataInputStream.read(byteArray)
-                                        set.add(String(byteArray))
+                                    when (versionByte.toByte()) {
+                                        TRANSACTION_FILE_VERSION_1 -> { // Unused. Here for compat purposes
+                                            set.add(dataInputStream.readUTF())
+                                        }
+                                        TRANSACTION_FILE_VERSION_2 -> {
+                                            val size = dataInputStream.readInt()
+                                            val byteArray = ByteArray(size)
+                                            dataInputStream.read(byteArray)
+                                            set.add(String(byteArray))
+                                        }
+                                        else -> {
+                                            _InternalHarmonyLog.e(LOG_TAG, "Unable to read String set. Incorrect transaction file version $versionByte. Expected $CURR_TRANSACTION_FILE_VERSION")
+                                            return transactionSet to true
+                                        }
                                     }
                                 }
                                 set
@@ -1003,6 +1028,7 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) : C
                         }
                         _InternalHarmonyLog.e(LOG_TAG, "currentTransaction=${currTransaction.uuid}, transactionMap=${currTransaction.transactionMap.map { (k, v) -> "key=$k, operation=${v.type()}" }}, isCleared=${currTransaction.cleared}, commitTime=${currTransaction.memoryCommitTime}")
                     }
+                    _InternalHarmonyLog.recordException(e)
                     return transactionSet to true
                 }
                 versionByte = dataInputStream.read()
@@ -1034,7 +1060,8 @@ private const val KILOBYTE = 1024L * Byte.SIZE_BYTES
 
 // Original version was Byte MAX_VALUE. All new transaction file versions should be one lower from the previous.
 private const val TRANSACTION_FILE_VERSION_1 = Byte.MAX_VALUE
-private const val CURR_TRANSACTION_FILE_VERSION = TRANSACTION_FILE_VERSION_1 - 1
+private const val TRANSACTION_FILE_VERSION_2 = (TRANSACTION_FILE_VERSION_1 - 1).toByte()
+private const val CURR_TRANSACTION_FILE_VERSION = TRANSACTION_FILE_VERSION_2.toInt()
 
 // Empty singleton to support WeakHashmap
 private object CONTENT
@@ -1081,4 +1108,17 @@ internal fun Context.getHarmonySharedPreferences(
 fun Context.getHarmonySharedPreferences(name: String): SharedPreferences {
     // 128 KB is ~3k transactions with single operations.
     return getHarmonySharedPreferences(name, maxTransactionSize = 128 * KILOBYTE, maxTransactionBatchCount = 250)
+}
+
+/**
+ * Sets the [HarmonyLog] that will report the logs internal to Harmony.
+ * Can only be set once per process start. Any attempt to set it after the first time is a no-op.
+ */
+@JvmName("setLogger")
+fun setHarmonyLog(harmonyLog: HarmonyLog) {
+    synchronized(SingletonLockObj) {
+        if (_harmonyLog == null) {
+            _harmonyLog = harmonyLog
+        }
+    }
 }
