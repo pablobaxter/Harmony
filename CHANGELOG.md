@@ -3,6 +3,12 @@
 ### Harmony-Crypto Version 0.0.1 / 2021-05-24
 - Initial release!
 
+### Version 1.1.6 / 2021-05-24
+- Fixes OnSharedPreferenceChangeListener issue [#13](https://github.com/pablobaxter/Harmony/issues/13)
+- Fixes OOM issue caused by bad transaction read. [#22](https://github.com/pablobaxter/Harmony/issues/22)
+- Adds an API to inject a logger for capturing logs within Harmony. `Harmony.setLogger(harmonyLog: HarmonyLog)`
+- Updates Kotlin library version to 1.5.10
+
 ### Harmony Version 1.1.5 / 2021-02-27
 - Removed dependency on Kotlin Coroutines. This is to reduce bringing in libraries that may not already exist into the project.
 - Create a global thread to handle Harmony updates, instead of each Harmony object having their own thread.

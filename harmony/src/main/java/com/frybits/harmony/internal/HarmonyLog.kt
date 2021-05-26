@@ -5,7 +5,7 @@
 package com.frybits.harmony.internal
 
 import android.util.Log
-import com.frybits.harmony.BuildConfig
+import com.frybits.harmony._harmonyLog
 
 /*
  *  Copyright 2020 Pablo Baxter
@@ -28,7 +28,7 @@ import com.frybits.harmony.BuildConfig
  * Logger tool
  */
 
-private val LOG = BuildConfig.DEBUG
+private val LOG = false
 
 internal object _InternalHarmonyLog {
 
@@ -80,7 +80,13 @@ internal object _InternalHarmonyLog {
         }
     }
 
+    @JvmSynthetic
+    internal fun recordException(throwable: Throwable) {
+        _harmonyLog?.recordException(throwable)
+    }
+
     private fun log(priority: Int, tag: String, msg: String) {
+        _harmonyLog?.log(priority, getMessage(tag, msg))
         if (LOG) { // Only log to console for debug builds
             Log.println(priority, tag, msg)
         }
@@ -89,4 +95,11 @@ internal object _InternalHarmonyLog {
     private fun getMessage(tag: String?, msg: String?): String {
         return "$tag: $msg"
     }
+}
+
+internal class _HarmonyException : Exception {
+
+    constructor(message: String) : super(message)
+
+    constructor(message: String, cause: Throwable) : super(message, cause)
 }

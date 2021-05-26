@@ -34,8 +34,9 @@ buildscript {
         hilt_version = '2.35'
         room_version = "2.3.0"
 
-        harmony_version_name = "1.1.5"
+        harmony_version_name = "1.1.6"
         crypto_version_name = "0.0.1"
+
     }
 
     repositories {

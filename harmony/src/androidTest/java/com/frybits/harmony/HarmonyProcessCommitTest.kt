@@ -21,7 +21,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.random.Random
-import kotlin.test.Ignore
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -114,7 +113,7 @@ class HarmonyProcessCommitTest {
 
         val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE, TRANSACTION_BATCH_SIZE)
         testMap.forEach { (k, v) ->
-            sharedPreferences.edit(true) { putInt(k, v) }
+            assertTrue { sharedPreferences.edit().putInt(k, v).commit() }
         }
 
         runBlocking {
@@ -169,7 +168,7 @@ class HarmonyProcessCommitTest {
 
         val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE, TRANSACTION_BATCH_SIZE)
         testMap.forEach { (k, v) ->
-            sharedPreferences.edit(true) { putLong(k, v) }
+            assertTrue { sharedPreferences.edit().putLong(k, v).commit() }
         }
 
         runBlocking {
@@ -224,7 +223,7 @@ class HarmonyProcessCommitTest {
 
         val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE, TRANSACTION_BATCH_SIZE)
         testMap.forEach { (k, v) ->
-            sharedPreferences.edit(true) { putFloat(k, v) }
+            assertTrue { sharedPreferences.edit().putFloat(k, v).commit() }
         }
 
         runBlocking {
@@ -279,7 +278,7 @@ class HarmonyProcessCommitTest {
 
         val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE, TRANSACTION_BATCH_SIZE)
         testMap.forEach { (k, v) ->
-            sharedPreferences.edit(true) { putBoolean(k, v) }
+            assertTrue { sharedPreferences.edit().putBoolean(k, v).commit() }
         }
 
         runBlocking {
@@ -334,7 +333,7 @@ class HarmonyProcessCommitTest {
 
         val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE, TRANSACTION_BATCH_SIZE)
         testMap.forEach { (k, v) ->
-            sharedPreferences.edit(true) { putString(k, v) }
+            assertTrue { sharedPreferences.edit().putString(k, v).commit() }
         }
 
         runBlocking {
@@ -389,7 +388,7 @@ class HarmonyProcessCommitTest {
 
         val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE, TRANSACTION_BATCH_SIZE)
         testMap.forEach { (k, v) ->
-            sharedPreferences.edit(true) { putStringSet(k, v) }
+            assertTrue { sharedPreferences.edit().putStringSet(k, v).commit() }
         }
 
         runBlocking {
@@ -407,7 +406,7 @@ class HarmonyProcessCommitTest {
 
         val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE, TRANSACTION_BATCH_SIZE)
 
-        sharedPreferences.edit(true) { putString("test", "test") }
+        assertTrue { sharedPreferences.edit().putString("test", "test").commit() }
 
         assertTrue("Test insert failed") { sharedPreferences.contains("test") }
 
@@ -419,7 +418,7 @@ class HarmonyProcessCommitTest {
 
         assertTrue("Alternate service did not insert any data!") { sharedPreferences.all.size > 1 }
 
-        sharedPreferences.edit(true) { remove("test") }
+        assertTrue { sharedPreferences.edit().remove("test").commit() }
 
         assertFalse("Shared preferences still contains old data!") { sharedPreferences.contains("test") }
 
@@ -440,7 +439,7 @@ class HarmonyProcessCommitTest {
         // Start simple change notify test
         val simpleTestString = "simple${Random.nextInt(0, Int.MAX_VALUE)}"
 
-        sharedPreferences.edit(true) { putString(TEST_SIMPLE_KEY, "blah") } // Pre-populate the data
+        assertTrue { sharedPreferences.edit().putString(TEST_SIMPLE_KEY, "blah").commit() } // Pre-populate the data
 
         val simpleKeyChangedCompletableDeferred = CompletableDeferred<String?>()
 
@@ -466,7 +465,6 @@ class HarmonyProcessCommitTest {
     }
 
     @Test
-    @Ignore("Known issue with current implementation. https://github.com/pablobaxter/Harmony/issues/13")
     fun testClearedDataChangesNotifiesAcrossProcesses() = runBlocking {
         // Setup test
         val application = InstrumentationRegistry.getInstrumentation().targetContext
@@ -476,7 +474,7 @@ class HarmonyProcessCommitTest {
         // Start clear data + simple change notify test
         val clearDataTestString = "clearData${Random.nextInt(0, Int.MAX_VALUE)}"
 
-        sharedPreferences.edit(true) { putString(TEST_CLEAR_DATA_KEY, clearDataTestString) } // Pre-populate the prefs with known data
+        assertTrue { sharedPreferences.edit().putString(TEST_CLEAR_DATA_KEY, clearDataTestString).commit() } // Pre-populate the prefs with known data
 
         val clearDataKeyChangedCompletableDeferred = CompletableDeferred<String?>()
 
