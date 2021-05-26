@@ -3,13 +3,13 @@ package com.frybits.harmony
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.frybits.harmony.internal.putHarmony
 import com.frybits.harmony.internal.readHarmony
-import org.json.JSONObject
-import org.junit.Test
-import org.junit.runner.RunWith
 import java.io.StringReader
 import java.io.StringWriter
 import kotlin.random.Random
 import kotlin.test.assertEquals
+import org.json.JSONObject
+import org.junit.Test
+import org.junit.runner.RunWith
 
 /*
  *  Copyright 2020 Pablo Baxter
