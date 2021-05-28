@@ -74,6 +74,9 @@ private class HarmonyImpl constructor(
     private val transactionMaxBatchCount: Int
 ) : SharedPreferences {
 
+    // Single thread, to ensure calls are handled sequentially
+    private val harmonyHandlerThread = HandlerThread("Harmony-$prefsName").apply { start() }
+
     // Folder containing all harmony preference files
     // NOTE: This folder can only be observed on if it exists before the file observer is started
     private val harmonyPrefsFolder = File(context.harmonyPrefsFolder(), prefsName).apply { if (!exists()) mkdirs() }
@@ -94,7 +97,7 @@ private class HarmonyImpl constructor(
     private val harmonyMainBackupFile = File(harmonyPrefsFolder, PREFS_BACKUP)
 
     // Handler for running Harmony reads/writes
-    private val harmonyHandler = Handler(HARMONY_HANDLER_THREAD.looper)
+    private val harmonyHandler = Handler(harmonyHandlerThread.looper)
 
     // UI Handler for emitting changes
     private val mainHandler = Handler(context.mainLooper)
@@ -1115,9 +1118,6 @@ private object SingletonLockObj
 private val SINGLETON_MAP = hashMapOf<String, HarmonyImpl>()
 
 private val EMPTY_TRANSACTION = HarmonyTransaction().apply { memoryCommitTime = Long.MIN_VALUE }
-
-// Single thread, to ensure calls are handled sequentially
-private val HARMONY_HANDLER_THREAD = HandlerThread(LOG_TAG).apply { start() }
 
 // Thread pool for handling loading of transaction file independently on first start of a Harmony object
 private val IO_THREAD_POOL = Executors.newCachedThreadPool()
