@@ -93,6 +93,7 @@ jobs:
           name: Assemble Harmony
           command: |
             ./gradlew :harmony:assembleRelease
+            echo $SIGNING_SECRET | base64 -d > ~/secret.gpg
             ./gradlew :harmony:publishToMavenLocal
             ./gradlew :crypto:assembleRelease
 
