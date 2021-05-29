@@ -1,5 +1,8 @@
 package com.frybits.harmony.app
 
+import android.app.Application
+import dagger.hilt.android.HiltAndroidApp
+
 /*
  *  Copyright 2021 Pablo Baxter
  *
@@ -19,13 +22,5 @@ package com.frybits.harmony.app
  * https://github.com/pablobaxter/Harmony
  */
 
-const val PREFS_NAME_KEY = "prefsName"
-const val LOG_KEY = "logKey"
-const val ITERATIONS_KEY = "iterations"
-const val USE_ENCRYPTION_KEY = "useEncryption"
-const val REMOTE_MESSENGER_KEY = "remoteMessenger"
-const val RESULTS_KEY = "results"
-
-const val ACK_EVENT = 1
-const val LOG_EVENT = 2
-const val RESULTS_EVENT = 3
+@HiltAndroidApp
+class HarmonyApp : Application()

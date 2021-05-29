@@ -1,0 +1,197 @@
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+apply plugin: 'org.jetbrains.dokka'
+apply plugin: 'maven-publish'
+apply plugin: 'signing'
+
+android {
+    compileSdkVersion compileSdk_version
+    buildToolsVersion buildtools_version
+
+    defaultConfig {
+        minSdkVersion crypto_minSdk_version
+        targetSdkVersion targetSdk_version
+        versionName crypto_version_name
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunnerArguments clearPackageData: 'true'
+
+        consumerProguardFiles 'consumer-rules.pro'
+    }
+
+    testOptions {
+        execution 'ANDROIDX_TEST_ORCHESTRATOR'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+}
+
+dokkaHtml {
+    moduleName.set('Crypto')
+    dokkaSourceSets {
+        named("main") {
+            noAndroidSdkLink.set(false)
+            outputDirectory.set(file("$buildDir/dokka"))
+            reportUndocumented.set(true)
+            platform.set(org.jetbrains.dokka.Platform.jvm)
+            sourceRoots.setFrom(file("src/main"))
+            jdkVersion.set(8)
+
+            perPackageOption {
+                matchingRegex('kotlin($|\\.).*')
+                skipDeprecated.set(false)
+                eportUndocumented.set(true)
+                includeNonPublic.set(false)
+            }
+        }
+    }
+}
+
+// build a jar with source files
+task sourcesJar(type: Jar) {
+    from android.sourceSets.main.java.srcDirs
+    archiveClassifier = 'sources'
+}
+
+task javadocJar(type: Jar, dependsOn: dokkaHtml) {
+    from "$buildDir/dokka"
+    archiveClassifier = 'javadoc'
+}
+
+artifacts {
+    archives sourcesJar
+    archives javadocJar
+}
+
+dependencies {
+    // Harmony
+    debugApi project(":harmony")
+    releaseApi "com.frybits.harmony:harmony:$harmony_version_name"
+
+    // Kotlin
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+    implementation "androidx.annotation:annotation:$annotation_version"
+
+    // Security
+    api "androidx.security:security-crypto:$androidx_crypto_version"
+    implementation "com.google.crypto.tink:tink-android:$tink_version"
+
+    // Test
+    androidTestImplementation "androidx.core:core-ktx:$corektx_version"
+    androidTestImplementation "org.jetbrains.kotlin:kotlin-test:$kotlin_version"
+    androidTestImplementation "org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version"
+    androidTestImplementation "androidx.test.ext:junit:$test_ext_version"
+    androidTestImplementation "androidx.test:rules:$test_rules_version"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$espresso_core_version"
+    androidTestImplementation "androidx.test.espresso:espresso-remote:$espresso_remote_version"
+    androidTestImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlin_coroutine_version"
+    androidTestImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$kotlin_coroutine_version"
+    androidTestUtil "androidx.test:orchestrator:$test_orchestrator_version"
+}
+
+ext["signing.keyId"] = ''
+ext["signing.password"] = ''
+ext["signing.secretKeyRingFile"] = ''
+ext["ossrhUsername"] = ''
+ext["ossrhPassword"] = ''
+
+File secretPropsFile = project.rootProject.file('local.properties')
+if (secretPropsFile.exists()) {
+    println "Found secret props file, loading props"
+    Properties p = new Properties()
+    p.load(new FileInputStream(secretPropsFile))
+    p.each { name, value ->
+        ext[name] = value
+    }
+} else {
+    println "No props file, loading env vars"
+    ext["signing.keyId"] = System.getenv('SIGNING_KEY_ID')
+    ext["signing.password"] = System.getenv('SIGNING_PASSWORD')
+    ext["signing.secretKeyRingFile"] = System.getenv('SIGNING_SECRET_KEY_RING_FILE')
+    ext["ossrhUsername"] = System.getenv('MAVEN_USERNAME')
+    ext["ossrhPassword"] = System.getenv('MAVEN_PASSWORD')
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            releaseHarmony(MavenPublication) {
+                // Applies the component for the release build variant.
+                from components.release
+
+                // You can then customize attributes of the publication as shown below.
+                groupId = 'com.frybits.harmony'
+                artifactId = 'harmony-crypto'
+                version = crypto_version_name
+
+                artifact sourcesJar {
+                    archiveClassifier = 'sources'
+                }
+
+                artifact javadocJar {
+                    archiveClassifier = 'javadoc'
+                }
+
+                pom {
+                    name = 'Harmony Crypto'
+                    description = 'A process-safe Encrypted SharedPreferences implementation'
+                    url = 'https://github.com/pablobaxter/Harmony'
+                    licenses {
+                        license {
+                            name = 'The Apache License, Version 2.0'
+                            url = 'https://opensource.org/licenses/Apache-2.0'
+                        }
+                    }
+                    developers {
+                        developer {
+                            id = 'soaboz'
+                            name = 'Pablo Baxter'
+                            email = 'pablo@frybits.com'
+                        }
+                    }
+                    scm {
+                        connection = 'scm:git:git://github.com/pablobaxter/Harmony.git'
+                        developerConnection = 'git:ssh://github.com/pablobaxter/Harmony.git'
+                        url = 'https://github.com/pablobaxter/Harmony'
+                    }
+                }
+            }
+        }
+        repositories {
+            // The repository to publish to, Sonatype/MavenCentral
+            maven {
+                name = "sonatype"
+                url = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
+                credentials {
+                    username ossrhUsername
+                    password ossrhPassword
+                }
+            }
+        }
+    }
+}
+
+signing {
+    sign publishing.publications
+}
+
+nexusStaging {
+    packageGroup = 'com.frybits.harmony'
+    stagingProfileId = '38e43065571d'
+    username = ossrhUsername
+    password = ossrhPassword
+}

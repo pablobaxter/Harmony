@@ -1,22 +1,57 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-parcelize'
+apply plugin: "androidx.navigation.safeargs.kotlin"
+apply plugin: 'kotlin-kapt'
+apply plugin: 'dagger.hilt.android.plugin'
+
+def propertiesFile = rootProject.file("local.properties")
+
+def properties = new Properties()
+
+if (propertiesFile.exists()) {
+    properties.load(new FileInputStream(propertiesFile))
+}
 
 android {
     compileSdkVersion compileSdk_version
     buildToolsVersion buildtools_version
     defaultConfig {
         applicationId "com.frybits.harmony.app"
-        minSdkVersion minSdk_version
+        minSdkVersion crypto_minSdk_version
         targetSdkVersion targetSdk_version
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        debug {
+            keyAlias = 'androiddebugkey'
+            keyPassword = 'android'
+            if (file('./keystore.jks').exists()) {
+                storeFile = file('./keystore.jks')
+            }
+            storePassword = 'android'
+        }
+        release {
+            keyAlias = properties["harmony.keystore.alias"]
+            keyPassword = properties["harmony.keystore.alias.password"]
+            if (properties["harmony.keystore.file"] != null && !properties["harmony.keystore.file"].isEmpty()) {
+                storeFile = file(properties["harmony.keystore.file"])
+            }
+            storePassword = properties["harmony.keystore.password"]
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled true
+            signingConfig signingConfigs.release
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            signingConfig signingConfigs.debug
         }
     }
 
@@ -28,11 +63,24 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
     }
+
+    buildFeatures {
+        viewBinding true
+    }
+}
+
+repositories{
+    flatDir{
+        dirs 'libs'
+    }
 }
 
 dependencies {
-    implementation project (':library')
-//    implementation 'com.frybits.harmony:harmony:1.1.6'
+    debugImplementation project (':crypto')
+    releaseImplementation "com.frybits.harmony:harmony-crypto:$crypto_version_name"
+    releaseImplementation "com.frybits.harmony:harmony:$harmony_version_name"
+    implementation 'com.tencent:mmkv-static:1.2.8'
+    implementation (name: "tray-0.12.0", ext: 'aar')
 
     // Kotlin
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
@@ -43,6 +91,13 @@ dependencies {
     implementation "androidx.appcompat:appcompat:$appcompat_version"
     implementation "androidx.core:core-ktx:$corektx_version"
     implementation "androidx.lifecycle:lifecycle-runtime-ktx:$lifecycle_scope_version"
+    implementation "androidx.navigation:navigation-fragment-ktx:$nav_version"
+    implementation "androidx.navigation:navigation-ui-ktx:$nav_version"
+    implementation "androidx.constraintlayout:constraintlayout:$constraint_version"
+    implementation "com.google.dagger:hilt-android:$hilt_version"
+    kapt "com.google.dagger:hilt-compiler:$hilt_version"
+    implementation "androidx.room:room-ktx:$room_version"
+    kapt "androidx.room:room-compiler:$room_version"
 
     // Test
     testImplementation "junit:junit:$junit_version"

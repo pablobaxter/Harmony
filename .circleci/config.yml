@@ -1,8 +1,13 @@
 version: 2.1
 
+decode_android_key: &decode_android_key
+  run:
+    name: Decode Android key store
+    command: echo $ANDROID_DEBUG_KEY | base64 -di | tee keystore.jks app/keystore.jks >/dev/null
+
 jobs:
 
-  Android-Library-Test:
+  Android-Harmony-Test:
     docker:
       - image: circleci/android:api-29
 
@@ -15,11 +20,13 @@ jobs:
 
     steps:
       - checkout
+      - *decode_android_key
       - run:
           name: Build dummy app apk and test apk
           command: |
             ./gradlew :app:assembleDebug
-            ./gradlew :library:assembleAndroidTest
+            ./gradlew :harmony:assembleAndroidTest
+            ./gradlew :crypto:assembleAndroidTest
 
       - run:
           name: Store Google Service Account
@@ -32,14 +39,28 @@ jobs:
             sudo gcloud --quiet config set project ${GOOGLE_PROJECT_ID}
 
       - run:
-          name: Test with Firebase Test Lab
+          name: Test Harmony with Firebase Test Lab
           command: >
             sudo gcloud firebase test android run \
               --type instrumentation \
               --app ${HOME}/repo/app/build/outputs/apk/debug/app-debug.apk \
-              --test ${HOME}/repo/library/build/outputs/apk/androidTest/debug/library-debug-androidTest.apk \
+              --test ${HOME}/repo/harmony/build/outputs/apk/androidTest/debug/harmony-debug-androidTest.apk \
               --results-bucket cloud-test-${GOOGLE_PROJECT_ID} \
-              --results-dir ${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM} \
+              --results-dir harmony-${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM} \
+              --device model=Pixel2,version=29 \
+              --no-performance-metrics \
+              --no-record-video \
+              --use-orchestrator
+
+      - run:
+          name: Test Crypto with Firebase Test Lab
+          command: >
+            sudo gcloud firebase test android run \
+              --type instrumentation \
+              --app ${HOME}/repo/app/build/outputs/apk/debug/app-debug.apk \
+              --test ${HOME}/repo/crypto/build/outputs/apk/androidTest/debug/crypto-debug-androidTest.apk \
+              --results-bucket cloud-test-${GOOGLE_PROJECT_ID} \
+              --results-dir crypto-${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM} \
               --device model=Pixel2,version=29 \
               --no-performance-metrics \
               --no-record-video \
@@ -49,11 +70,13 @@ jobs:
           name: Install gsutil dependency and copy test results data
           command: |
             sudo pip install -U crcmod
-            sudo gsutil -m cp -r -U `sudo gsutil ls gs://cloud-test-${GOOGLE_PROJECT_ID}/${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM}/Pixel2-29-en-portrait/test_result_1.xml | tail -1` ${HOME}/temp_results/test_result_1.xml | true
+            sudo gsutil -m cp -r -U `sudo gsutil ls gs://cloud-test-${GOOGLE_PROJECT_ID}/harmony-${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM}/Pixel2-29-en-portrait/test_result_1.xml | tail -1` ${HOME}/temp_results/test_result_1_harmony.xml | true
+            sudo gsutil -m cp -r -U `sudo gsutil ls gs://cloud-test-${GOOGLE_PROJECT_ID}/crypto-${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM}/Pixel2-29-en-portrait/test_result_1.xml | tail -1` ${HOME}/temp_results/test_result_1_crypto.xml | true
+
       - store_test_results:
           path: ~/temp_results
 
-  Android-Library-Build:
+  Android-Harmony-Build:
     docker:
       - image: circleci/android:api-29
 
@@ -67,10 +90,14 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Assemble Harmony Library
-          command: ./gradlew :library:assembleRelease
+          name: Assemble Harmony
+          command: |
+            ./gradlew :harmony:assembleRelease
+            echo $SIGNING_SECRET | base64 -d > ~/secret.gpg
+            ./gradlew :harmony:publishToMavenLocal
+            ./gradlew :crypto:assembleRelease
 
-  Android-Library-Upload:
+  Android-Harmony-Upload:
     docker:
       - image: circleci/android:api-29
 
@@ -87,9 +114,9 @@ jobs:
           name: Upload Harmony Library
           command: |
             echo $SIGNING_SECRET | base64 -d > ~/secret.gpg
-            ./gradlew :library:publishReleaseHarmonyPublicationToSonatypeRepository
+            ./gradlew :harmony:publishReleaseHarmonyPublicationToSonatypeRepository
 
-  Android-Library-Maven-Release:
+  Android-Crypto-Upload:
     docker:
       - image: circleci/android:api-29
 
@@ -103,34 +130,76 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Release Harmony Library
+          name: Upload Harmony Crypto
+          command: |
+            echo $SIGNING_SECRET | base64 -d > ~/secret.gpg
+            ./gradlew :crypto:publishReleaseHarmonyPublicationToSonatypeRepository
+
+  Android-Harmony-Maven-Release:
+    docker:
+      - image: circleci/android:api-29
+
+    environment:
+      # Configure the JVM and Gradle to avoid OOM errors
+      _JAVA_OPTIONS: "-Xmx3g"
+      GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2"
+
+    working_directory: ~/repo
+
+    steps:
+      - checkout
+      - run:
+          name: Release Harmony
           command: ./gradlew closeAndReleaseRepository
 
 workflows:
   version: 2
   Build_Upload:
     jobs:
-      - Android-Library-Build
-      - Android-Library-Test
-      - Upload-Approval:
+      - Android-Harmony-Build
+      - Android-Harmony-Test
+      - Harmony-Upload-Approval:
           type: approval
           requires:
-            - Android-Library-Test
-            - Android-Library-Build
+            - Android-Harmony-Test
+            - Android-Harmony-Build
           filters:
             branches:
               only:
                 - main
-      - Android-Library-Upload:
+      - Android-Harmony-Upload:
           requires:
-            - Upload-Approval
+            - Harmony-Upload-Approval
           filters:
             branches:
               only:
                 - main
-      - Android-Library-Maven-Release:
+      - Android-Harmony-Maven-Release:
           requires:
-            - Android-Library-Upload
+            - Android-Harmony-Upload
+          filters:
+            branches:
+              only:
+                - main
+      - Crypto-Upload-Approval:
+          type: approval
+          requires:
+            - Android-Harmony-Maven-Release
+          filters:
+            branches:
+              only:
+                - main
+      - Android-Crypto-Upload:
+          requires:
+            - Crypto-Upload-Approval
+          filters:
+            branches:
+              only:
+                - main
+      - Android-Harmony-Maven-Release:
+          name: Android-Crypto-Maven-Release
+          requires:
+            - Android-Crypto-Upload
           filters:
             branches:
               only:

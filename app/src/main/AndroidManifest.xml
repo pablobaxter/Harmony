@@ -2,6 +2,7 @@
     package="com.frybits.harmony.app">
 
     <application
+        android:name=".HarmonyApp"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -18,44 +19,14 @@
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".test.singleentry.commit.HarmonyPrefsCommitActivity"
-            android:screenOrientation="portrait">
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value=".MainActivity" />
-        </activity>
+        <service android:name=".test.HarmonyRemoteTestRunnerService"
+            android:process=":remote"/>
 
-        <activity
-            android:name=".test.singleentry.apply.HarmonyPrefsApplyActivity"
-            android:screenOrientation="portrait">
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value=".MainActivity" />
-        </activity>
+        <service android:name=".test.MMKVRemoteTestRunnerService"
+            android:process=":remote"/>
 
-        <activity
-            android:name=".test.bulkentry.apply.HarmonyPrefsBulkApplyActivity"
-            android:screenOrientation="portrait">
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value=".MainActivity" />
-        </activity>
+        <service android:name=".test.TrayRemoteTestRunnerService"
+            android:process=":remote"/>
 
-        <activity
-            android:name=".test.bulkentry.commit.HarmonyPrefsBulkCommitActivity"
-            android:screenOrientation="portrait">
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value=".MainActivity" />
-        </activity>
-
-        <service
-            android:name=".test.singleentry.HarmonyPrefsReceiveService"
-            android:process=":foo" />
-
-        <service
-            android:name=".test.bulkentry.HarmonyPrefsBulkReadService"
-            android:process=":foo" />
     </application>
 </manifest>

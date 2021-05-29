@@ -1,16 +1,17 @@
 package com.frybits.harmony.app
 
-import android.app.Activity
-import android.content.Intent
 import android.os.Bundle
-import android.widget.Button
-import com.frybits.harmony.app.test.bulkentry.apply.HarmonyPrefsBulkApplyActivity
-import com.frybits.harmony.app.test.bulkentry.commit.HarmonyPrefsBulkCommitActivity
-import com.frybits.harmony.app.test.singleentry.apply.HarmonyPrefsApplyActivity
-import com.frybits.harmony.app.test.singleentry.commit.HarmonyPrefsCommitActivity
+import android.view.LayoutInflater
+import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
+import androidx.navigation.fragment.NavHostFragment
+import androidx.navigation.ui.AppBarConfiguration
+import androidx.navigation.ui.setupWithNavController
+import com.frybits.harmony.app.databinding.ActivityMainBinding
+import dagger.hilt.android.AndroidEntryPoint
 
 /*
- *  Copyright 2020 Pablo Baxter
+ *  Copyright 2021 Pablo Baxter
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -28,26 +29,20 @@ import com.frybits.harmony.app.test.singleentry.commit.HarmonyPrefsCommitActivit
  * https://github.com/pablobaxter/Harmony
  */
 
-class MainActivity : Activity() {
+@AndroidEntryPoint
+class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        val binding = ActivityMainBinding.inflate(LayoutInflater.from(this))
+        setContentView(binding.root)
 
-        findViewById<Button>(R.id.singleCommitButton).setOnClickListener {
-            startActivity(Intent(this, HarmonyPrefsCommitActivity::class.java))
-        }
-
-        findViewById<Button>(R.id.singleApplyButton).setOnClickListener {
-            startActivity(Intent(this, HarmonyPrefsApplyActivity::class.java))
-        }
-
-        findViewById<Button>(R.id.bulkApplyButton).setOnClickListener {
-            startActivity(Intent(this, HarmonyPrefsBulkApplyActivity::class.java))
-        }
-
-        findViewById<Button>(R.id.bulkCommitButton).setOnClickListener {
-            startActivity(Intent(this, HarmonyPrefsBulkCommitActivity::class.java))
+        val navHostFragment = supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
+        val navController = navHostFragment.navController
+        val appBarConfiguration = AppBarConfiguration(navController.graph)
+        findViewById<Toolbar>(R.id.toolbar).apply {
+            setSupportActionBar(this)
+            setupWithNavController(navController, appBarConfiguration)
         }
     }
 }

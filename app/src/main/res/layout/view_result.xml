@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    tools:layout_height="match_parent"
+    app:cardUseCompatPadding="true"
+    app:cardElevation="4dp"
+    app:contentPadding="4dp">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <TextView
+            android:id="@+id/readTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
+            android:text="Read"
+            app:layout_constraintBottom_toTopOf="@+id/sharedPrefsTextView"
+            app:layout_constraintEnd_toStartOf="@+id/writeTextView"
+            app:layout_constraintHorizontal_chainStyle="spread"
+            app:layout_constraintStart_toEndOf="@+id/sharedPrefsTextView"
+            app:layout_constraintTop_toBottomOf="@id/numTestsTextView"
+            app:layout_constraintVertical_chainStyle="packed" />
+
+        <TextView
+            android:id="@+id/writeTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Write"
+            app:layout_constraintBottom_toBottomOf="@+id/readTextView"
+            app:layout_constraintEnd_toStartOf="@+id/ipcTextView"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintStart_toEndOf="@+id/readTextView"
+            app:layout_constraintTop_toTopOf="@+id/readTextView" />
+
+        <TextView
+            android:id="@+id/ipcTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="IPC"
+            app:layout_constraintBottom_toBottomOf="@+id/readTextView"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintStart_toEndOf="@+id/writeTextView"
+            app:layout_constraintTop_toTopOf="@+id/readTextView" />
+
+        <TextView
+            android:id="@+id/sharedPrefsTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
+            android:text="SharedPrefs"
+            app:layout_constraintBottom_toTopOf="@+id/harmonyTextView"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/readTextView" />
+
+        <TextView
+            android:id="@+id/harmonyTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
+            android:text="Harmony"
+            app:layout_constraintBottom_toTopOf="@+id/mmkvTextView"
+            app:layout_constraintStart_toStartOf="@+id/sharedPrefsTextView"
+            app:layout_constraintTop_toBottomOf="@+id/sharedPrefsTextView" />
+
+        <TextView
+            android:id="@+id/mmkvTextView"
+            android:layout_width="44dp"
+            android:layout_height="23dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
+            android:text="MMKV"
+            app:layout_constraintBottom_toTopOf="@id/trayTextView"
+            app:layout_constraintStart_toStartOf="@+id/harmonyTextView"
+            app:layout_constraintTop_toBottomOf="@+id/harmonyTextView" />
+
+        <TextView
+            android:id="@+id/sharedPrefsReadTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="9.84ms"
+            app:layout_constraintBottom_toBottomOf="@+id/sharedPrefsTextView"
+            app:layout_constraintEnd_toEndOf="@+id/readTextView"
+            app:layout_constraintStart_toStartOf="@+id/readTextView"
+            app:layout_constraintTop_toTopOf="@+id/sharedPrefsTextView" />
+
+        <TextView
+            android:id="@+id/sharedPrefsWriteTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="100.12ms"
+            app:layout_constraintBottom_toBottomOf="@+id/sharedPrefsTextView"
+            app:layout_constraintEnd_toEndOf="@+id/writeTextView"
+            app:layout_constraintStart_toStartOf="@+id/writeTextView"
+            app:layout_constraintTop_toTopOf="@+id/sharedPrefsTextView" />
+
+        <TextView
+            android:id="@+id/sharedPrefsIpcTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="1.0035ms"
+            app:layout_constraintBottom_toBottomOf="@+id/sharedPrefsTextView"
+            app:layout_constraintEnd_toEndOf="@+id/ipcTextView"
+            app:layout_constraintStart_toStartOf="@+id/ipcTextView"
+            app:layout_constraintTop_toTopOf="@+id/sharedPrefsTextView" />
+
+        <TextView
+            android:id="@+id/harmonyReadTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="TextView"
+            app:layout_constraintBottom_toBottomOf="@+id/harmonyTextView"
+            app:layout_constraintEnd_toEndOf="@+id/readTextView"
+            app:layout_constraintStart_toStartOf="@+id/readTextView"
+            app:layout_constraintTop_toTopOf="@+id/harmonyTextView" />
+
+        <TextView
+            android:id="@+id/harmonyWriteTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="TextView"
+            app:layout_constraintBottom_toBottomOf="@+id/harmonyTextView"
+            app:layout_constraintEnd_toEndOf="@+id/writeTextView"
+            app:layout_constraintStart_toStartOf="@+id/writeTextView"
+            app:layout_constraintTop_toTopOf="@+id/harmonyTextView" />
+
+        <TextView
+            android:id="@+id/harmonyIpcTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="TextView"
+            app:layout_constraintBottom_toBottomOf="@+id/harmonyTextView"
+            app:layout_constraintEnd_toEndOf="@+id/ipcTextView"
+            app:layout_constraintStart_toStartOf="@+id/ipcTextView"
+            app:layout_constraintTop_toTopOf="@+id/harmonyTextView" />
+
+        <TextView
+            android:id="@+id/mmkvReadTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="TextView"
+            app:layout_constraintBottom_toBottomOf="@+id/mmkvTextView"
+            app:layout_constraintEnd_toEndOf="@+id/readTextView"
+            app:layout_constraintStart_toStartOf="@+id/readTextView"
+            app:layout_constraintTop_toTopOf="@+id/mmkvTextView" />
+
+        <TextView
+            android:id="@+id/mmkvWriteTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="TextView"
+            app:layout_constraintBottom_toBottomOf="@+id/mmkvTextView"
+            app:layout_constraintEnd_toEndOf="@+id/writeTextView"
+            app:layout_constraintStart_toStartOf="@+id/writeTextView"
+            app:layout_constraintTop_toTopOf="@+id/mmkvTextView" />
+
+        <TextView
+            android:id="@+id/mmkvIpcTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="TextView"
+            app:layout_constraintBottom_toBottomOf="@+id/mmkvTextView"
+            app:layout_constraintEnd_toEndOf="@+id/ipcTextView"
+            app:layout_constraintStart_toStartOf="@+id/ipcTextView"
+            app:layout_constraintTop_toTopOf="@+id/mmkvTextView" />
+
+        <CheckBox
+            android:id="@+id/isAsyncCheckBox"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
+            android:clickable="false"
+            android:text="Is Async?"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/isEncryptedCheckBox"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/trayTextView" />
+
+        <CheckBox
+            android:id="@+id/isEncryptedCheckBox"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:clickable="false"
+            android:text="Is Encrypted?"
+            app:layout_constraintBottom_toBottomOf="@+id/isAsyncCheckBox"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintStart_toEndOf="@+id/isAsyncCheckBox"
+            app:layout_constraintTop_toTopOf="@+id/isAsyncCheckBox" />
+
+        <TextView
+            android:id="@+id/trayTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
+            android:text="Tray"
+            app:layout_constraintBottom_toTopOf="@id/isAsyncCheckBox"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/mmkvTextView" />
+
+        <TextView
+            android:id="@+id/trayReadTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="TextView"
+            app:layout_constraintBottom_toBottomOf="@+id/trayTextView"
+            app:layout_constraintEnd_toEndOf="@+id/readTextView"
+            app:layout_constraintStart_toStartOf="@+id/readTextView"
+            app:layout_constraintTop_toTopOf="@+id/trayTextView" />
+
+        <TextView
+            android:id="@+id/trayWriteTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="TextView"
+            app:layout_constraintBottom_toBottomOf="@+id/trayTextView"
+            app:layout_constraintEnd_toEndOf="@+id/writeTextView"
+            app:layout_constraintStart_toStartOf="@+id/writeTextView"
+            app:layout_constraintTop_toTopOf="@+id/trayTextView" />
+
+        <TextView
+            android:id="@+id/trayIpcTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="TextView"
+            app:layout_constraintBottom_toBottomOf="@+id/trayTextView"
+            app:layout_constraintEnd_toEndOf="@+id/ipcTextView"
+            app:layout_constraintStart_toStartOf="@+id/ipcTextView"
+            app:layout_constraintTop_toTopOf="@+id/trayTextView" />
+
+        <TextView
+            android:id="@+id/numTestsTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
+            android:text="Number of tests"
+            app:layout_constraintBottom_toTopOf="@id/readTextView"
+            app:layout_constraintEnd_toStartOf="@+id/itemsStoredTextView"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/itemsStoredTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Items stored"
+            app:layout_constraintBottom_toBottomOf="@+id/numTestsTextView"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintStart_toEndOf="@+id/numTestsTextView"
+            app:layout_constraintTop_toTopOf="@+id/numTestsTextView" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</com.google.android.material.card.MaterialCardView>

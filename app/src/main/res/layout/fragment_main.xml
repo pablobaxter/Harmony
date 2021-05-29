@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/testIterationEditText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        app:layout_constraintBottom_toTopOf="@+id/testApplySwitch"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/testNumberEditText">
+
+        <EditText
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_marginTop="8dp"
+            android:ems="10"
+            android:hint="Items to store"
+            android:inputType="number"
+            android:text="1000" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/testNumberEditText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        app:layout_constraintBottom_toTopOf="@+id/testIterationEditText"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/testParamTextView">
+
+        <EditText
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_marginTop="8dp"
+            android:ems="10"
+            android:hint="Number of Tests"
+            android:inputType="number"
+            android:text="10" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <Switch
+        android:id="@+id/testApplySwitch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:checked="true"
+        android:text="Use Apply"
+        app:layout_constraintBottom_toTopOf="@+id/useEncryptionSwitch"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/testIterationEditText" />
+
+    <Switch
+        android:id="@+id/vanillaSharedPrefsSwitch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:checked="true"
+        android:text="Use SharedPrefs"
+        app:layout_constraintBottom_toTopOf="@+id/harmonySwitch"
+        app:layout_constraintEnd_toEndOf="@+id/testApplySwitch"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="@+id/testApplySwitch"
+        app:layout_constraintTop_toBottomOf="@+id/testSourcesTextView" />
+
+    <Switch
+        android:id="@+id/harmonySwitch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:checked="true"
+        android:text="Use Harmony"
+        app:layout_constraintBottom_toTopOf="@+id/mmkvSwitch"
+        app:layout_constraintEnd_toEndOf="@+id/vanillaSharedPrefsSwitch"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="@+id/vanillaSharedPrefsSwitch"
+        app:layout_constraintTop_toBottomOf="@+id/vanillaSharedPrefsSwitch" />
+
+    <Switch
+        android:id="@+id/mmkvSwitch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:checked="true"
+        android:text="Use MMKV"
+        app:layout_constraintBottom_toTopOf="@+id/traySwitch"
+        app:layout_constraintEnd_toEndOf="@+id/vanillaSharedPrefsSwitch"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="@+id/vanillaSharedPrefsSwitch"
+        app:layout_constraintTop_toBottomOf="@+id/harmonySwitch" />
+
+    <TextView
+        android:id="@+id/testParamTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Parameters"
+        android:textAppearance="@style/TextAppearance.AppCompat.Body2"
+        app:layout_constraintBottom_toTopOf="@+id/testNumberEditText"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/testSourcesTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Sources"
+        android:textAppearance="@style/TextAppearance.AppCompat.Body2"
+        app:layout_constraintBottom_toTopOf="@+id/vanillaSharedPrefsSwitch"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/useEncryptionSwitch" />
+
+    <Button
+        android:id="@+id/startTestButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:text="Start Test"
+        app:layout_constraintBottom_toTopOf="@+id/viewResultsButton"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/traySwitch" />
+
+    <Switch
+        android:id="@+id/useEncryptionSwitch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:checked="false"
+        android:text="Encrypted"
+        app:layout_constraintBottom_toTopOf="@+id/testSourcesTextView"
+        app:layout_constraintEnd_toEndOf="@+id/testApplySwitch"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="@+id/testApplySwitch"
+        app:layout_constraintTop_toBottomOf="@id/testApplySwitch" />
+
+    <Button
+        android:id="@+id/viewResultsButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="View Results"
+        app:layout_constraintBottom_toTopOf="@+id/guideline"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/startTestButton" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/runningLogsRecyclerView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="8dp"
+        android:padding="8dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/guideline" />
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideline"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintGuide_percent=".75"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <Switch
+        android:id="@+id/traySwitch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:checked="true"
+        android:text="Use Tray"
+        app:layout_constraintBottom_toTopOf="@id/startTestButton"
+        app:layout_constraintEnd_toEndOf="@+id/vanillaSharedPrefsSwitch"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="@+id/vanillaSharedPrefsSwitch"
+        app:layout_constraintTop_toBottomOf="@id/mmkvSwitch" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
