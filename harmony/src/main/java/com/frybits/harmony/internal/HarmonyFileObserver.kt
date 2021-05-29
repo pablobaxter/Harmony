@@ -1,0 +1,48 @@
+@file:JvmName("_InternalCoreHarmony")
+@file:JvmMultifileClass
+
+package com.frybits.harmony.internal
+
+import android.os.FileObserver
+import java.io.File
+
+/*
+ *  Copyright 2020 Pablo Baxter
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ * Created by Pablo Baxter (Github: pablobaxter)
+ * https://github.com/pablobaxter/Harmony
+ */
+
+@Suppress("FunctionName")
+@JvmSynthetic
+internal fun HarmonyFileObserver(
+    file: File,
+    eventFilter: Int,
+    block: (event: Int, path: String?) -> Unit
+): FileObserver {
+    return HarmonyFileObserverImpl(file, eventFilter, block)
+}
+
+@Suppress("DEPRECATION")
+private class HarmonyFileObserverImpl(
+    file: File,
+    eventFilter: Int,
+    private val block: (event: Int, path: String?) -> Unit
+) : FileObserver(file.path, eventFilter) {
+
+    override fun onEvent(event: Int, path: String?) {
+        block(event, path)
+    }
+}

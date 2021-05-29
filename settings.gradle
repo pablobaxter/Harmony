@@ -1,2 +1,2 @@
-include ':app', ':library'
+include ':app', ':harmony', ':crypto'
 rootProject.name='Harmony Preferences'

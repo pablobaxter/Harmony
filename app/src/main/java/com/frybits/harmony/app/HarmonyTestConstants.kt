@@ -1,7 +1,7 @@
 package com.frybits.harmony.app
 
 /*
- *  Copyright 2020 Pablo Baxter
+ *  Copyright 2021 Pablo Baxter
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -19,6 +19,13 @@ package com.frybits.harmony.app
  * https://github.com/pablobaxter/Harmony
  */
 
-const val NUM_TESTS = 10
-const val ITERATIONS = 1000
-const val PREFS_NAME = "timePrefs"
+const val PREFS_NAME_KEY = "prefsName"
+const val LOG_KEY = "logKey"
+const val ITERATIONS_KEY = "iterations"
+const val USE_ENCRYPTION_KEY = "useEncryption"
+const val REMOTE_MESSENGER_KEY = "remoteMessenger"
+const val RESULTS_KEY = "results"
+
+const val ACK_EVENT = 1
+const val LOG_EVENT = 2
+const val RESULTS_EVENT = 3
