@@ -20,6 +20,7 @@ jobs:
           command: |
             ./gradlew :app:assembleDebug
             ./gradlew :harmony:assembleAndroidTest
+            ./gradlew :crypto:assembleAndroidTest
 
       - run:
           name: Store Google Service Account
