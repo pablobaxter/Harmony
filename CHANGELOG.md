@@ -1,9 +1,9 @@
 ## Change Log
 
-### Harmony-Crypto Version 0.0.1 / 2021-05-24
+### Harmony-Crypto Version 0.0.1 / 2021-05-29
 - Initial release!
 
-### Version 1.1.6 / 2021-05-24
+### Version 1.1.6 / 2021-05-29
 - Fixes OnSharedPreferenceChangeListener issue [#13](https://github.com/pablobaxter/Harmony/issues/13)
 - Fixes OOM issue caused by bad transaction read. [#22](https://github.com/pablobaxter/Harmony/issues/22)
 - Adds an API to inject a logger for capturing logs within Harmony. `Harmony.setLogger(harmonyLog: HarmonyLog)`
