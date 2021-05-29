@@ -189,6 +189,7 @@ workflows:
               only:
                 - main
       - Android-Harmony-Maven-Release:
+          name: Android-Crypto-Maven-Release
           requires:
             - Android-Crypto-Upload
           filters:
