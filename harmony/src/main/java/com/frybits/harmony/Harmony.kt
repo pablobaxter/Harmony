@@ -3,6 +3,20 @@
 
 package com.frybits.harmony
 
+import android.content.Context
+import android.content.SharedPreferences
+import android.os.FileObserver
+import android.os.Handler
+import android.os.HandlerThread
+import android.os.SystemClock
+import androidx.annotation.GuardedBy
+import androidx.annotation.VisibleForTesting
+import com.frybits.harmony.internal.HarmonyFileObserver
+import com.frybits.harmony.internal._HarmonyException
+import com.frybits.harmony.internal._InternalHarmonyLog
+import com.frybits.harmony.internal.putHarmony
+import com.frybits.harmony.internal.readHarmony
+import com.frybits.harmony.internal.withFileLock
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.File
@@ -24,20 +38,6 @@ import java.util.zip.CheckedInputStream
 import java.util.zip.CheckedOutputStream
 import kotlin.concurrent.read
 import kotlin.concurrent.write
-import android.content.Context
-import android.content.SharedPreferences
-import android.os.FileObserver
-import android.os.Handler
-import android.os.HandlerThread
-import android.os.SystemClock
-import androidx.annotation.GuardedBy
-import androidx.annotation.VisibleForTesting
-import com.frybits.harmony.internal._InternalHarmonyLog
-import com.frybits.harmony.internal.HarmonyFileObserver
-import com.frybits.harmony.internal._HarmonyException
-import com.frybits.harmony.internal.putHarmony
-import com.frybits.harmony.internal.readHarmony
-import com.frybits.harmony.internal.withFileLock
 import org.json.JSONException
 
 /*
