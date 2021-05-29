@@ -26,10 +26,20 @@ android {
     }
 
     signingConfigs {
+        debug {
+            keyAlias = 'androiddebugkey'
+            keyPassword = 'android'
+            if (file('./keystore.jks').exists()) {
+                storeFile = file('./keystore.jks')
+            }
+            storePassword = 'android'
+        }
         release {
             keyAlias = properties["harmony.keystore.alias"]
             keyPassword = properties["harmony.keystore.alias.password"]
-            storeFile = file(properties["harmony.keystore.file"])
+            if (properties["harmony.keystore.file"] != null || !properties["harmony.keystore.file"].isEmpty()) {
+                storeFile = file(properties["harmony.keystore.file"])
+            }
             storePassword = properties["harmony.keystore.password"]
         }
     }
@@ -39,6 +49,9 @@ android {
             minifyEnabled true
             signingConfig signingConfigs.release
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            signingConfig signingConfigs.debug
         }
     }
 

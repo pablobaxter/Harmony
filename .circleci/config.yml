@@ -1,5 +1,10 @@
 version: 2.1
 
+decode_android_key: &decode_android_key
+  run:
+    name: Decode Android key store
+    command: echo $ANDROID_DEBUG_KEY | base64 -di | tee keystore.jks app/keystore.jks >/dev/null
+
 jobs:
 
   Android-Harmony-Test:
@@ -15,6 +20,7 @@ jobs:
 
     steps:
       - checkout
+      - *decode_android_key
       - run:
           name: Build dummy app apk and test apk
           command: |
