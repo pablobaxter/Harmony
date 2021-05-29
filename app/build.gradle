@@ -37,7 +37,7 @@ android {
         release {
             keyAlias = properties["harmony.keystore.alias"]
             keyPassword = properties["harmony.keystore.alias.password"]
-            if (properties["harmony.keystore.file"] != null || !properties["harmony.keystore.file"].isEmpty()) {
+            if (properties["harmony.keystore.file"] != null && !properties["harmony.keystore.file"].isEmpty()) {
                 storeFile = file(properties["harmony.keystore.file"])
             }
             storePassword = properties["harmony.keystore.password"]
