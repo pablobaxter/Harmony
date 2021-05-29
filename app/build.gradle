@@ -63,9 +63,9 @@ repositories{
 }
 
 dependencies {
-    implementation project (':crypto')
-//    implementation 'com.frybits.harmony:harmony-crypto:0.0.1'
-//    implementation 'com.frybits.harmony:harmony:1.1.6'
+    debugImplementation project (':crypto')
+    releaseImplementation "com.frybits.harmony:harmony-crypto:$crypto_version_name"
+    releaseImplementation "com.frybits.harmony:harmony:$harmony_version_name"
     implementation 'com.tencent:mmkv-static:1.2.8'
     implementation (name: "tray-0.12.0", ext: 'aar')
 

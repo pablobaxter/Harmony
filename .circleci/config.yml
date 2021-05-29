@@ -32,14 +32,28 @@ jobs:
             sudo gcloud --quiet config set project ${GOOGLE_PROJECT_ID}
 
       - run:
-          name: Test with Firebase Test Lab
+          name: Test Harmony with Firebase Test Lab
           command: >
             sudo gcloud firebase test android run \
               --type instrumentation \
               --app ${HOME}/repo/app/build/outputs/apk/debug/app-debug.apk \
               --test ${HOME}/repo/harmony/build/outputs/apk/androidTest/debug/harmony-debug-androidTest.apk \
               --results-bucket cloud-test-${GOOGLE_PROJECT_ID} \
-              --results-dir ${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM} \
+              --results-dir harmony-${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM} \
+              --device model=Pixel2,version=29 \
+              --no-performance-metrics \
+              --no-record-video \
+              --use-orchestrator
+
+      - run:
+          name: Test Crypto with Firebase Test Lab
+          command: >
+            sudo gcloud firebase test android run \
+              --type instrumentation \
+              --app ${HOME}/repo/app/build/outputs/apk/debug/app-debug.apk \
+              --test ${HOME}/repo/crypto/build/outputs/apk/androidTest/debug/crypto-debug-androidTest.apk \
+              --results-bucket cloud-test-${GOOGLE_PROJECT_ID} \
+              --results-dir crypto-${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM} \
               --device model=Pixel2,version=29 \
               --no-performance-metrics \
               --no-record-video \
@@ -49,7 +63,9 @@ jobs:
           name: Install gsutil dependency and copy test results data
           command: |
             sudo pip install -U crcmod
-            sudo gsutil -m cp -r -U `sudo gsutil ls gs://cloud-test-${GOOGLE_PROJECT_ID}/${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM}/Pixel2-29-en-portrait/test_result_1.xml | tail -1` ${HOME}/temp_results/test_result_1.xml | true
+            sudo gsutil -m cp -r -U `sudo gsutil ls gs://cloud-test-${GOOGLE_PROJECT_ID}/harmony-${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM}/Pixel2-29-en-portrait/test_result_1.xml | tail -1` ${HOME}/temp_results/test_result_1_harmony.xml | true
+            sudo gsutil -m cp -r -U `sudo gsutil ls gs://cloud-test-${GOOGLE_PROJECT_ID}/crypto-${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM}/Pixel2-29-en-portrait/test_result_1.xml | tail -1` ${HOME}/temp_results/test_result_1_crypto.xml | true
+
       - store_test_results:
           path: ~/temp_results
 
@@ -67,8 +83,11 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Assemble Harmony Harmony
-          command: ./gradlew :harmony:assembleRelease
+          name: Assemble Harmony
+          command: |
+            ./gradlew :harmony:assembleRelease
+            ./gradlew :harmony:publishToMavenLocal
+            ./gradlew :crypto:assembleRelease
 
   Android-Harmony-Upload:
     docker:
@@ -84,10 +103,29 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Upload Harmony Harmony
+          name: Upload Harmony Library
           command: |
             echo $SIGNING_SECRET | base64 -d > ~/secret.gpg
             ./gradlew :harmony:publishReleaseHarmonyPublicationToSonatypeRepository
+
+  Android-Crypto-Upload:
+    docker:
+      - image: circleci/android:api-29
+
+    environment:
+      # Configure the JVM and Gradle to avoid OOM errors
+      _JAVA_OPTIONS: "-Xmx3g"
+      GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2"
+
+    working_directory: ~/repo
+
+    steps:
+      - checkout
+      - run:
+          name: Upload Harmony Crypto
+          command: |
+            echo $SIGNING_SECRET | base64 -d > ~/secret.gpg
+            ./gradlew :crypto:publishReleaseHarmonyPublicationToSonatypeRepository
 
   Android-Harmony-Maven-Release:
     docker:
@@ -103,7 +141,7 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Release Harmony Harmony
+          name: Release Harmony
           command: ./gradlew closeAndReleaseRepository
 
 workflows:
@@ -112,7 +150,7 @@ workflows:
     jobs:
       - Android-Harmony-Build
       - Android-Harmony-Test
-      - Upload-Approval:
+      - Harmony-Upload-Approval:
           type: approval
           requires:
             - Android-Harmony-Test
@@ -123,7 +161,7 @@ workflows:
                 - main
       - Android-Harmony-Upload:
           requires:
-            - Upload-Approval
+            - Harmony-Upload-Approval
           filters:
             branches:
               only:
@@ -131,6 +169,28 @@ workflows:
       - Android-Harmony-Maven-Release:
           requires:
             - Android-Harmony-Upload
+          filters:
+            branches:
+              only:
+                - main
+      - Crypto-Upload-Approval:
+          type: approval
+          requires:
+            - Android-Harmony-Maven-Release
+          filters:
+            branches:
+              only:
+                - main
+      - Android-Crypto-Upload:
+          requires:
+            - Crypto-Upload-Approval
+          filters:
+            branches:
+              only:
+                - main
+      - Android-Harmony-Maven-Release:
+          requires:
+            - Android-Crypto-Upload
           filters:
             branches:
               only:

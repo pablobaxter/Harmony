@@ -86,30 +86,28 @@ Logic for tests can been seen in the [`TestRunner.kt`](app/src/main/java/com/fry
 
 #### Asynchronous Tests
 
-|Library                                             |Read (avg)|Write (avg)          |IPC (avg)             |
-|----------------------------------------------------|----------|---------------------|----------------------|
-|SharedPreferences                                   |0.001 ms  |0.062 ms             |N/A <sup>1</sup>      |
-|Harmony                                             |0.0007 ms |0.035 ms             |75.591 ms             |
-|[MMKV](https://github.com/Tencent/MMKV) <sup>2</sup>|0.007 ms  |0.049 ms             |93.916 ms <sup>3</sup>|
-|[Tray](https://github.com/GCX-HCI/tray) <sup>2</sup>|2.389 ms  |8.697 ms             |1.795 s               |
+|Library                                             |Read (avg)|Write (avg) |IPC (avg) <sup>1</sup> |
+|----------------------------------------------------|----------|------------|-----------------------|
+|SharedPreferences                                   |0.0006 ms |0.066 ms    |N/A                    |
+|Harmony                                             |0.0008 ms |0.024 ms    |102.018 ms             |
+|[MMKV](https://github.com/Tencent/MMKV) <sup>2</sup>|0.009 ms  |0.051 ms    |93.628 ms <sup>3</sup> |
+|[Tray](https://github.com/GCX-HCI/tray) <sup>2</sup>|2.895 ms  |8.225 ms    |1.928 s                |
 
 
 #### Synchronous Tests
 
-|Library                                             |Read (avg)|Write (avg)           |IPC (avg)              |
-|----------------------------------------------------|----------|----------------------|-----------------------|
-|SharedPreferences                                   |0.002 ms  |9.058 ms              |N/A <sup>1</sup>       |
-|Harmony                                             |0.002 ms  |22.866 ms <sup>4</sup>|29.224 ms              |
-|[MMKV](https://github.com/Tencent/MMKV) <sup>2</sup>|0.010 ms  |0.045 ms              |109.548 ms <sup>3</sup>|
-|[Tray](https://github.com/GCX-HCI/tray) <sup>2</sup>|2.411 ms  |8.306 ms              |1.626 s                |
+|Library                                             |Read (avg)|Write (avg) |IPC (avg) <sup>1</sup> |
+|----------------------------------------------------|----------|------------|-----------------------|
+|SharedPreferences                                   |0.001 ms  |9.214 ms    |N/A                    |
+|Harmony                                             |0.003 ms  |4.626 ms    |13.579 ms              |
+|[MMKV](https://github.com/Tencent/MMKV) <sup>2</sup>|0.010 ms  |0.061 ms    |86.100 ms <sup>3</sup> |
+|[Tray](https://github.com/GCX-HCI/tray) <sup>2</sup>|2.805 ms  |8.168 ms    |1.773 s                |
 
-<sup>1</sup> SharedPreferences doesn't support IPC, so this was not tested.
+<sup>1</sup> IPC is the time it took for the item to be available in a secondary process. SharedPreferences doesn't support IPC.
 
 <sup>2</sup> These libraries don't support asynchronous writes. All tests were synchronous writes by default.
 
 <sup>3</sup> MMKV doesn't support a change listener, so a while-loop in a separate thread was used to determine how soon the data was available in the separate process. See [`MMKVRemoteTestRunnerService.kt`](app/src/main/java/com/frybits/harmony/app/test/MMKVRemoteTestRunnerService.kt) for implementation details.
-
-<sup>4</sup> Harmony performs file locking and file syncing operations on each call to `commit()`, which greatly increases the write time, but decreses the time it takes data to be available in the alternate processes. However, using `apply()` is still recommended.
 
 ## Special thanks
 

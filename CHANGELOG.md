@@ -8,6 +8,8 @@
 - Fixes OOM issue caused by bad transaction read. [#22](https://github.com/pablobaxter/Harmony/issues/22)
 - Adds an API to inject a logger for capturing logs within Harmony. `Harmony.setLogger(harmonyLog: HarmonyLog)`
 - Updates Kotlin library version to 1.5.10
+- Improves performance when using multiple Harmony SharedPreferences
+- Improved `commit()` time, and notification of `commit()` between processes
 
 ### Harmony Version 1.1.5 / 2021-02-27
 - Removed dependency on Kotlin Coroutines. This is to reduce bringing in libraries that may not already exist into the project.

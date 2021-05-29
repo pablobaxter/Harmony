@@ -1,6 +1,7 @@
 package com.frybits.harmony.app.test
 
 import android.util.Log
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.buffer
@@ -17,6 +18,7 @@ class TestSuiteRunner(
 ) {
 
     private val internalLogFlow = MutableSharedFlow<LogEvent>()
+    @ExperimentalCoroutinesApi
     val logFlow = testRunners.mapTo(arrayListOf(internalLogFlow)) { it.logFlow }
         .merge()
         .buffer(capacity = Channel.UNLIMITED)
