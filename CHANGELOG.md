@@ -1,6 +1,6 @@
 ## Change Log
 
-### Version 1.1.7 / 2021-06-1
+### Version 1.1.7 / 2021-06-01
 - Use `Os.fsync()` for Android versions that support it
 - Fast follow improvement when reading transaction file
 
