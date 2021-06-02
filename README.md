@@ -15,7 +15,7 @@ Harmony is a thread-safe, process-safe, full [`SharedPreferences`](https://devel
 - [`OnSharedPreferenceChangeListener`](https://developer.android.com/reference/android/content/SharedPreferences.OnSharedPreferenceChangeListener) emits changes made by other processes
 - Uses no native code (NDK) or any IPC classes such as [`ContentProvider`](https://developer.android.com/reference/android/content/ContentProvider), [`Service`](https://developer.android.com/reference/android/app/Service), [`BroadcastReceiver`](https://developer.android.com/reference/android/content/BroadcastReceiver), or [AIDL](https://developer.android.com/guide/components/aidl)
 - Built-in failed-write recovery similar to the default [`SharedPreferences`](https://developer.android.com/reference/android/content/SharedPreferences)
-- Supports Android API 17+
+- Supports Android API 17+ (Crypto Android API 23+)
 
 ## Download
 The latest release is available on [Maven Central](https://search.maven.org/artifact/com.frybits.harmony/harmony/1.1.7/aar).
