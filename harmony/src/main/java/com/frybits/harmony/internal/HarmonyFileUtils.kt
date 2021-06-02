@@ -3,8 +3,11 @@
 
 package com.frybits.harmony.internal
 
+import android.os.Build
+import android.system.Os
 import androidx.annotation.VisibleForTesting
 import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 import java.io.RandomAccessFile
 import java.nio.channels.FileLock
@@ -72,5 +75,19 @@ internal inline fun <T> RandomAccessFile.withFileLock(shared: Boolean, block: ()
         } catch (e: IOException) {
             throw IOException("Unable to release FileLock!", e)
         }
+    }
+}
+
+@JvmSynthetic
+internal fun File.sync() {
+    outputStream().sync()
+}
+
+@JvmSynthetic
+internal fun FileOutputStream.sync() {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        Os.fsync(fd)
+    } else {
+        fd.sync()
     }
 }
