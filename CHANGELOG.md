@@ -1,5 +1,9 @@
 ## Change Log
 
+### Version 1.1.7 / 2021-06-1
+- Use `Os.fsync()` for Android versions that support it
+- Fast follow improvement when reading transaction file
+
 ### Harmony-Crypto Version 0.0.1 / 2021-05-29
 - Initial release!
 

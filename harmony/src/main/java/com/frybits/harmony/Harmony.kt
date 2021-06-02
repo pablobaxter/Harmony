@@ -16,6 +16,7 @@ import com.frybits.harmony.internal._HarmonyException
 import com.frybits.harmony.internal._InternalHarmonyLog
 import com.frybits.harmony.internal.putHarmony
 import com.frybits.harmony.internal.readHarmony
+import com.frybits.harmony.internal.sync
 import com.frybits.harmony.internal.withFileLock
 import java.io.DataInputStream
 import java.io.DataOutputStream
@@ -347,7 +348,7 @@ private class HarmonyImpl constructor(
                             .putHarmony(prefsName, mainSnapshot)
                             .flush()
                         // Write all changes to the physical storage
-                        mainOutputStream.fd.sync()
+                        mainOutputStream.sync()
                     }
 
                     // Clear all the transactions, as they are committed
@@ -379,13 +380,23 @@ private class HarmonyImpl constructor(
                 }
                 accessFile.seek(lastTransactionPosition) // Read from the last position
                 try {
-                    val (readTransactions, isCorrupted) = FileInputStream(accessFile.fd).buffered()
+                    val partialResult = FileInputStream(accessFile.fd).buffered()
                         .use {
                             _InternalHarmonyLog.i(LOG_TAG, "Generating transactions from handleTransactionUpdate. prefsName=$prefsName")
                             HarmonyTransaction.generateHarmonyTransactions(it)
                         }
-                    lastTransactionPosition =
-                        accessFile.length() // Set the last position to the length of the data
+                    val (readTransactions, isCorrupted) = if (partialResult.second) { // If the partial read failed, force the full read
+                        _InternalHarmonyLog.d(LOG_TAG, "Attempted to read from position=$lastTransactionPosition for file length=${accessFile.length()}")
+                        accessFile.seek(0)
+                        FileInputStream(accessFile.fd).buffered()
+                            .use {
+                                _InternalHarmonyLog.i(LOG_TAG, "Generating transactions from handleTransactionUpdate. prefsName=$prefsName")
+                                HarmonyTransaction.generateHarmonyTransactions(it)
+                            }
+                    } else {
+                        partialResult // Return the results of this partial read if it was successful
+                    }
+                    lastTransactionPosition = accessFile.length() // Set the last position to the length of the data
                     // Only set the latest transaction if the lastReadTransactions has any items
                     lastReadTransactions.maxOrNull()?.let { transaction ->
                         mapReentrantReadWriteLock.write { lastTransaction = maxOf(transaction, lastTransaction) } // Ensure only the latest used transaction is set
@@ -589,7 +600,7 @@ private class HarmonyImpl constructor(
                             transactionQueue.remove(peekedTransaction)
                         }
                         // Write all changes to the physical storage
-                        outputStream.fd.sync()
+                        outputStream.sync()
                     }
                     transactionFileWriteSuccess = true
                 } catch (e: IOException) {
@@ -612,14 +623,25 @@ private class HarmonyImpl constructor(
         val readTransactions: Set<HarmonyTransaction> = try {
             RandomAccessFile(harmonyTransactionsFile, "r").use { accessFile ->
                 accessFile.seek(lastTransactionPosition)
-                val (readTransactions) = FileInputStream(accessFile.fd).buffered()
+                val (readTransactions, failed) = FileInputStream(accessFile.fd).buffered()
                     .use { inputStream ->
                         _InternalHarmonyLog.i(LOG_TAG, "Generating transactions from commitTransactionToMain. prefsName=$prefsName")
                         HarmonyTransaction.generateHarmonyTransactions(inputStream)
                     }
-                return@use sortedSetOf<HarmonyTransaction>().apply {
-                    addAll(lastReadTransactions)
-                    addAll(readTransactions)
+                if (failed) { // Fallback to read the entire file if there was a failure
+                    _InternalHarmonyLog.d(LOG_TAG, "Attempted to read from position=$lastTransactionPosition for file length=${accessFile.length()}")
+                    accessFile.seek(0)
+                    val (fullReadTransactions) = FileInputStream(accessFile.fd).buffered()
+                        .use { inputStream ->
+                            _InternalHarmonyLog.i(LOG_TAG, "Generating transactions from commitTransactionToMain. prefsName=$prefsName")
+                            HarmonyTransaction.generateHarmonyTransactions(inputStream)
+                        }
+                    return@use fullReadTransactions
+                } else {
+                    return@use sortedSetOf<HarmonyTransaction>().apply {
+                        addAll(lastReadTransactions)
+                        addAll(readTransactions)
+                    }
                 }
             }
         } catch (e: IOException) {
@@ -661,7 +683,7 @@ private class HarmonyImpl constructor(
                     .putHarmony(prefsName, currentPrefs)
                     .flush()
                 // Write all changes to the physical storage
-                mainOutputStream.fd.sync()
+                mainOutputStream.sync()
             }
 
             // Clear the transaction file
