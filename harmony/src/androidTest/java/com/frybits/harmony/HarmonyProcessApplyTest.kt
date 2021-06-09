@@ -477,8 +477,15 @@ class HarmonyProcessApplyTest {
         sharedPreferences.edit { putString(TEST_CLEAR_DATA_KEY, clearDataTestString) } // Pre-populate the prefs with known data
 
         val clearDataKeyChangedCompletableDeferred = CompletableDeferred<String?>()
+        val clearEmittedNullValue = CompletableDeferred<Boolean>()
 
         val clearDataChangeListener = SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
+            if (key == null) {
+                clearEmittedNullValue.complete(true)
+                return@OnSharedPreferenceChangeListener
+            } else if (!clearEmittedNullValue.isCompleted) {
+                clearEmittedNullValue.complete(false)
+            }
             assertTrue("Wrong Harmony object was returned") { sharedPreferences == prefs }
             assertTrue("Wrong key was emitted") { key == TEST_CLEAR_DATA_KEY } // We expect the change listener to emit, even though we have the same string. Prefs were cleared.
             clearDataKeyChangedCompletableDeferred.complete(prefs.getString(TEST_CLEAR_DATA_KEY, null))
@@ -492,7 +499,9 @@ class HarmonyProcessApplyTest {
         serviceRule.startService(serviceIntent)
 
         withTimeout(1000) {
+            val emittedNull = clearEmittedNullValue.await()
             val clearDataResponse = clearDataKeyChangedCompletableDeferred.await()
+            assertTrue(emittedNull, "Cleared data change listener didn't emit null first!")
             assertEquals(clearDataTestString, clearDataResponse, "Cleared data change listener failed to emit the correct key!")
         }
 

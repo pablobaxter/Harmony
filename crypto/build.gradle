@@ -10,7 +10,6 @@ android {
 
     defaultConfig {
         minSdkVersion crypto_minSdk_version
-        targetSdkVersion targetSdk_version
         versionName crypto_version_name
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
