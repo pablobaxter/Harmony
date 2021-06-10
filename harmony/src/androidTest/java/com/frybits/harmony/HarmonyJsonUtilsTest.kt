@@ -45,7 +45,7 @@ private const val BASIC_JSON = """
         ]
     }
 """
-private val BASIC_MAP = mapOf<String, Any?>("blah" to "bar")
+private val BASIC_MAP = mapOf<String?, Any?>("blah" to "bar")
 
 private const val MIXED_NAME = "foo"
 private const val MIXED_JSON = """
@@ -77,11 +77,54 @@ private const val MIXED_JSON = """
         ]
     }
 """
-private val MIXED_MAP = mapOf<String, Any?>(
+private val MIXED_MAP = mapOf<String?, Any?>(
     "blah" to "bar",
     "isSomething" to true,
     "time" to 4530349853809348080L,
     "count" to 3
+)
+
+private const val NULL_NAME = "null"
+private const val NULL_JSON = """
+    {
+        "metaData": {
+            "name": "$NULL_NAME"
+        },
+        "data": [
+            {
+                "type": "string",
+                "key": "blah",
+                "value": "bar"
+            },
+            {
+                "type": "boolean",
+                "key": "isSomething",
+                "value": true
+            },
+            {
+                "type": "long",
+                "key": "time",
+                "value": 4530349853809348080
+            },
+            {
+                "type": "int",
+                "key": "count",
+                "value": 3
+            },
+            {
+                "type": "string",
+                "key": null,
+                "value": "this is null"
+            }
+        ]
+    }
+"""
+private val NULL_MAP = mapOf<String?, Any?>(
+    "blah" to "bar",
+    "isSomething" to true,
+    "time" to 4530349853809348080L,
+    "count" to 3,
+    null to "this is null"
 )
 
 @RunWith(AndroidJUnit4::class)
@@ -116,12 +159,20 @@ class HarmonyUtilsTest {
     }
 
     @Test
+    fun nullHarmonyMapToJsonTest() {
+        val stringWriter = StringWriter()
+        stringWriter.putHarmony(NULL_NAME, NULL_MAP).flush()
+        val expected = JSONObject(NULL_JSON).toString()
+        assertEquals(expected, stringWriter.toString(), "JSON strings were not equal")
+    }
+
+    @Test
     fun harmonyMapToJsonAndBackTest() {
         val expectedName = "test${Random.nextInt()}"
         val list = Array(10) {
             "list${Random.nextInt()}"
         }
-        val expectedMap = mapOf<String, Any?>(
+        val expectedMap = mapOf<String?, Any?>(
             "item${Random.nextInt()}" to Random.nextInt(),
             "item${Random.nextInt()}" to Random.nextLong(),
             "item${Random.nextInt()}" to Random.nextBoolean(),
