@@ -5,6 +5,7 @@ package com.frybits.harmony
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.os.Build
 import android.os.FileObserver
 import android.os.Handler
 import android.os.HandlerThread
@@ -114,6 +115,8 @@ private class HarmonyImpl constructor(
 
     // The last read position of the transaction file. Prevents having to read the entire file each update.
     private var lastTransactionPosition = 0L
+
+    private val shouldNotifyClearToListeners = context.applicationContext.applicationInfo.targetSdkVersion >= Build.VERSION_CODES.R
 
     // Runnable to handle transactions. Used as an object to allow the Handler to remove from the queue. Prevents build up of this job in the looper.
     private var transactionUpdateJob = Runnable {
@@ -449,10 +452,14 @@ private class HarmonyImpl constructor(
                 val keysModified = if (notifyListeners) arrayListOf<String?>() else null
                 val listeners = if (notifyListeners) listenerMap.keys.toSet() else null
 
+                var wasCleared = false
                 // Commit all transactions to this snapshot
                 combinedTransactions.forEach { transaction ->
                     val tempTransaction = lastTransaction
                     if (tempTransaction < transaction) {
+                        if (transaction.cleared) {
+                            wasCleared = true
+                        }
                         transaction.commitTransaction(mainCopy, keysModified)
                         lastTransaction = transaction
                     } else {
@@ -465,6 +472,11 @@ private class HarmonyImpl constructor(
                 if (notifyListeners) {
                     requireNotNull(keysModified)
                     mainHandler.post { // Listeners are notified on the main thread
+                        if (shouldNotifyClearToListeners && wasCleared) {
+                            listeners?.forEach { listener ->
+                                listener.onSharedPreferenceChanged(this, null)
+                            }
+                        }
                         keysModified.asReversed().forEach { key ->
                             listeners?.forEach { listener ->
                                 listener.onSharedPreferenceChanged(this@HarmonyImpl, key)
@@ -531,6 +543,7 @@ private class HarmonyImpl constructor(
             val oldMap = harmonyMap
             harmonyMap = mainCopy
 
+            var wasCleared = false
             if (failedRead) { // Default to the old comparison logic
                 _InternalHarmonyLog.e(LOG_TAG, "Old transaction file was corrupted")
                 keysModified?.clear()
@@ -552,6 +565,9 @@ private class HarmonyImpl constructor(
                 combinedTransactions.forEach { transaction ->
                     val tempTransaction = lastTransaction
                     if (tempTransaction < transaction) {
+                        if (transaction.cleared) {
+                            wasCleared = true
+                        }
                         transaction.commitTransaction(oldMainSnapshot, keysModified)
                         lastTransaction = transaction
                     } else {
@@ -563,6 +579,11 @@ private class HarmonyImpl constructor(
             if (notifyListeners) {
                 requireNotNull(keysModified)
                 mainHandler.post { // Listeners are notified on the main thread
+                    if (shouldNotifyClearToListeners && wasCleared) {
+                        listeners?.forEach { listener ->
+                            listener.onSharedPreferenceChanged(this, null)
+                        }
+                    }
                     keysModified.asReversed().forEach { key ->
                         listeners?.forEach { listener ->
                             listener.onSharedPreferenceChanged(this@HarmonyImpl, key)
@@ -804,7 +825,7 @@ private class HarmonyImpl constructor(
                 val keysModified = if (notifyListeners) arrayListOf<String?>() else null
                 val listeners = if (notifyListeners) listenerMap.keys.toSet() else null
 
-                synchronized(this@HarmonyEditor) {
+                val transaction = synchronized(this@HarmonyEditor) {
                     val transaction = harmonyTransaction
                     transaction.memoryCommitTime = SystemClock.elapsedRealtimeNanos() // The current time this "apply()" was called
                     transactionSet.add(transaction) // Add this to the in-flight transaction set for this process
@@ -812,12 +833,18 @@ private class HarmonyImpl constructor(
                     lastTransaction = maxOf(transaction, lastTransaction) // Extremely rare, but if the other process emitted a later transaction, keep that as the last, else use the current transaction
                     harmonyTransaction = HarmonyTransaction() // Generate a new transaction to prevent modifying one in-flight
                     transaction.commitTransaction(harmonyMap, keysModified) // Update the in-process map and get all modified keys
+                    return@synchronized transaction
                 }
 
                 // Notify this process of changes immediately
                 if (notifyListeners) {
                     requireNotNull(keysModified)
                     mainHandler.post { // Listeners are notified on the main thread
+                        if (shouldNotifyClearToListeners && transaction.cleared) {
+                            listeners?.forEach { listener ->
+                                listener.onSharedPreferenceChanged(this@HarmonyImpl, null)
+                            }
+                        }
                         keysModified.asReversed().forEach { key ->
                             listeners?.forEach { listener ->
                                 listener.onSharedPreferenceChanged(this@HarmonyImpl, key)
@@ -856,7 +883,8 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) : C
     private val transactionMap: HashMap<String?, Operation> = hashMapOf()
 
     // Flag for cleared data
-    private var cleared = false
+    var cleared = false
+        private set
 
     // Used to ensure that transactions are applied in the order received
     var memoryCommitTime = 0L
