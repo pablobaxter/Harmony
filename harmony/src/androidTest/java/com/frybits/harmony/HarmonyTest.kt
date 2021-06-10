@@ -125,6 +125,17 @@ class HarmonyTest {
     }
 
     @Test
+    fun testNullKey() {
+        // Context of the app under test.
+        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+        val sharedPreferences = appContext.getHarmonySharedPreferences(PREFS)
+        val randomString = "${Random.nextLong()}"
+        assertFalse { sharedPreferences.contains(null) }
+        sharedPreferences.edit { putString(null, randomString) }
+        assertEquals(randomString, sharedPreferences.getString(null, null))
+    }
+
+    @Test
     fun testOnPreferenceChangeListener() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
