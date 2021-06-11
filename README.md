@@ -2,7 +2,7 @@
 
 [![CircleCI](https://circleci.com/gh/pablobaxter/Harmony/tree/main.svg?style=shield)](https://circleci.com/gh/pablobaxter/Harmony/tree/main)
 [![GitHub](https://img.shields.io/github/license/pablobaxter/harmony)](https://github.com/pablobaxter/Harmony/blob/main/LICENSE)
-[![Maven Central](https://img.shields.io/maven-central/v/com.frybits.harmony/harmony?label=Harmony)](https://search.maven.org/artifact/com.frybits.harmony/harmony/1.1.8/aar) [![Harmony API](https://img.shields.io/badge/API-17%2B-brightgreen.svg?style=flat&label=Harmony%20API)](https://android-arsenal.com/api?level=17) [![Maven Central](https://img.shields.io/maven-central/v/com.frybits.harmony/harmony-crypto?label=Harmony-Crypto)](https://search.maven.org/artifact/com.frybits.harmony/harmony-crypto/0.0.1/aar) [![Crypto API](https://img.shields.io/badge/API-23%2B-purple.svg?style=flat&label=Crypto%20API)](https://android-arsenal.com/api?level=23)
+[![Maven Central](https://img.shields.io/maven-central/v/com.frybits.harmony/harmony?label=Harmony)](https://search.maven.org/artifact/com.frybits.harmony/harmony/1.1.8/aar) [![Harmony API](https://img.shields.io/badge/API-17%2B-brightgreen.svg?style=flat&label=Harmony%20API)](https://android-arsenal.com/api?level=17) [![Maven Central](https://img.shields.io/maven-central/v/com.frybits.harmony/harmony-crypto?label=Harmony-Crypto)](https://search.maven.org/artifact/com.frybits.harmony/harmony-crypto/0.0.2/aar) [![Crypto API](https://img.shields.io/badge/API-23%2B-purple.svg?style=flat&label=Crypto%20API)](https://android-arsenal.com/api?level=23)
 
 Working on multiprocess Android apps is a complex undertaking. One of the biggest challenges is managing shared data between the multiple processes. Most solutions rely on one process to be available for another to read the data, which can be quite slow and could potentially lead to ANRs.
 
@@ -22,7 +22,7 @@ The latest release is available on [Maven Central](https://search.maven.org/arti
 ### Gradle
 ```
 implementation 'com.frybits.harmony:harmony:1.1.8'
-// implementation 'com.frybits.harmony:harmony-crypto:0.0.1' // For Encrypted SharedPreferences
+// implementation 'com.frybits.harmony:harmony-crypto:0.0.2' // For Encrypted SharedPreferences
 ```
 
 ## Usage
