@@ -1,5 +1,8 @@
 ## Change Log
 
+### Harmony-Crypto Version 0.0.2 / 2021-06-11
+- Update to Harmony v1.1.8
+
 ### Version 1.1.8 / 2021-06-11
 - Fixes OnSharedPreferenceChangeListener not emitting `null` issue [#14](https://github.com/pablobaxter/Harmony/issues/14)
 - Removes targetSdk from library

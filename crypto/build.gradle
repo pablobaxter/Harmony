@@ -79,7 +79,7 @@ artifacts {
 dependencies {
     // Harmony
     debugApi project(":harmony")
-    releaseApi "com.frybits.harmony:harmony"
+    releaseApi "com.frybits.harmony:harmony:1.1.8"
 
     // Kotlin
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
