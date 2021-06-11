@@ -20,6 +20,7 @@ package com.frybits.harmony
  */
 
 @Volatile
+@JvmSynthetic
 internal var _harmonyLog: HarmonyLog? = null
 
 /**

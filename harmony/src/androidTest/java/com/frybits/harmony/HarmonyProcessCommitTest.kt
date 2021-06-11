@@ -18,6 +18,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.Before
@@ -345,6 +346,63 @@ class HarmonyProcessCommitTest {
     }
 
     @Test
+    fun testMultiProcessPreferences_String_null_key() {
+        // Setup test
+        val application = InstrumentationRegistry.getInstrumentation().targetContext
+
+        // 5 entries to test
+        val testMap: MutableMap<String?, String?> = mutableMapOf(
+            null to "${Random.nextInt()}",
+            "test-${Random.nextInt()}" to "${Random.nextInt()}",
+            "test-${Random.nextInt()}" to "${Random.nextInt()}",
+            "test-${Random.nextInt()}" to "${Random.nextInt()}",
+            "test-${Random.nextInt()}" to "${Random.nextInt()}"
+        )
+
+        // Setup new looper
+        val handlerThread = HandlerThread("test").apply { start() }
+
+        // Deferrable to wait on while test completes
+        val testDeferred = CompletableDeferred<Exception?>()
+
+        // Setup a messenger to report results back from alternate process
+        val messenger = Messenger(Handler(handlerThread.looper) { msg ->
+            if (testDeferred.isCompleted) return@Handler true
+            val key = msg.data.keySet().first()
+            val value = msg.data[key] as? String
+            val expected = runBlocking(Dispatchers.Main) { testMap.remove(key) } // This is what we should get
+            if (expected != value) {
+                testDeferred.complete(Exception("Values were not equal! expected: $expected, actual: $value"))
+                return@Handler true
+            }
+            runBlocking(Dispatchers.Main) { if (testMap.isEmpty()) testDeferred.complete(null) }
+            return@Handler true
+        })
+
+        val serviceIntent = Intent(application, AlternateProcessService::class.java).apply {
+            putExtra(MESSENGER_KEY, messenger)
+        }
+        serviceRule.startService(serviceIntent)
+
+        // Give the service enough time to setup
+        Thread.sleep(1000)
+
+        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE, TRANSACTION_BATCH_SIZE)
+        runBlocking(Dispatchers.Main) {
+            testMap.forEach { (k, v) ->
+                assertTrue { sharedPreferences.edit().putString(k, v).commit() }
+            }
+        }
+
+        runBlocking {
+            withTimeout(1000) {
+                testDeferred.await()
+            }
+        }?.let { throw it }
+        runBlocking(Dispatchers.Main) { assertTrue("Test Map was not empty!") { testMap.isEmpty() } }
+    }
+
+    @Test
     fun testMultiProcessPreferences_StringSet() {
         // Setup test
         val application = InstrumentationRegistry.getInstrumentation().targetContext
@@ -477,8 +535,15 @@ class HarmonyProcessCommitTest {
         assertTrue { sharedPreferences.edit().putString(TEST_CLEAR_DATA_KEY, clearDataTestString).commit() } // Pre-populate the prefs with known data
 
         val clearDataKeyChangedCompletableDeferred = CompletableDeferred<String?>()
+        val clearEmittedNullValue = CompletableDeferred<Boolean>()
 
         val clearDataChangeListener = SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
+            if (key == null) {
+                clearEmittedNullValue.complete(true)
+                return@OnSharedPreferenceChangeListener
+            } else if (!clearEmittedNullValue.isCompleted) {
+                clearEmittedNullValue.complete(false)
+            }
             assertTrue("Wrong Harmony object was returned") { sharedPreferences == prefs }
             assertTrue("Wrong key was emitted") { key == TEST_CLEAR_DATA_KEY } // We expect the change listener to emit, even though we have the same string. Prefs were cleared.
             clearDataKeyChangedCompletableDeferred.complete(prefs.getString(TEST_CLEAR_DATA_KEY, null))
@@ -492,10 +557,57 @@ class HarmonyProcessCommitTest {
         serviceRule.startService(serviceIntent)
 
         withTimeout(1000) {
+            val emittedNull = clearEmittedNullValue.await()
             val clearDataResponse = clearDataKeyChangedCompletableDeferred.await()
+            assertTrue(emittedNull, "Cleared data change listener didn't emit null first!")
             assertEquals(clearDataTestString, clearDataResponse, "Cleared data change listener failed to emit the correct key!")
         }
 
         sharedPreferences.unregisterOnSharedPreferenceChangeListener(clearDataChangeListener)
+    }
+
+    @Test
+    fun testSpecialCharactersStoreAndNotifyAcrossProcesses() = runBlocking {
+        // Setup test
+        val application = InstrumentationRegistry.getInstrumentation().targetContext
+
+        // Setup new looper
+        val handlerThread = HandlerThread("test").apply { start() }
+
+        val specialString = "†"
+
+        // Deferrable to wait on while test completes
+        val testDeferred = CompletableDeferred<Exception?>()
+
+        // Setup a messenger to report results back from alternate process
+        val messenger = Messenger(Handler(handlerThread.looper) { msg ->
+            if (testDeferred.isCompleted) return@Handler true
+            val key = msg.data.keySet().first()
+            @Suppress("UNCHECKED_CAST") val value = msg.data[key] as? Set<String>
+            if (specialString != value?.first()) {
+                testDeferred.complete(Exception("Values were not equal! expected: $specialString, actual: $value"))
+            } else {
+                testDeferred.complete(null)
+            }
+            return@Handler true
+        })
+
+        val serviceIntent = Intent(application, AlternateProcessService::class.java).apply {
+            putExtra(MESSENGER_KEY, messenger)
+        }
+        serviceRule.startService(serviceIntent)
+
+        // Give the service enough time to setup
+        Thread.sleep(1000)
+
+        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE, TRANSACTION_BATCH_SIZE)
+        assertTrue { sharedPreferences.edit().putStringSet("test", setOf(specialString)).commit() }
+
+        runBlocking {
+            withTimeout(1000) {
+                testDeferred.await()
+            }
+        }?.let { throw it }
+        return@runBlocking
     }
 }

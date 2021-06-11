@@ -48,10 +48,10 @@ private const val SET = "set"
 
 @JvmSynthetic
 @Throws(IOException::class)
-internal fun <T : Reader> T.readHarmony(): Pair<String?, HashMap<String, Any?>> {
+internal fun <T : Reader> T.readHarmony(): Pair<String?, HashMap<String?, Any?>> {
     var prefsName: String? = null
     var currName: String? = null
-    val map = hashMapOf<String, Any?>()
+    val map = hashMapOf<String?, Any?>()
 
     JsonReader(this).apply {
         if (this.peek() == JsonToken.END_DOCUMENT) return prefsName to map
@@ -82,14 +82,19 @@ internal fun <T : Reader> T.readHarmony(): Pair<String?, HashMap<String, Any?>> 
                             while (hasNext()) {
                                 when (nextName()) {
                                     TYPE -> type = nextString()
-                                    KEY -> key = nextString()
+                                    KEY -> key = if (peek() == JsonToken.NULL) {
+                                        nextNull()
+                                        null
+                                    } else {
+                                        nextString()
+                                    }
                                     VALUE -> {
                                         when (type) {
-                                            INT -> key?.let { map[it] = nextInt() }
-                                            LONG -> key?.let { map[it] = nextLong() }
-                                            FLOAT -> key?.let { map[it] = nextDouble().toFloat() }
-                                            BOOLEAN -> key?.let { map[it] = nextBoolean() }
-                                            STRING -> key?.let { map[it] = nextString() }
+                                            INT -> map[key] = nextInt()
+                                            LONG -> map[key] = nextLong()
+                                            FLOAT -> map[key] = nextDouble().toFloat()
+                                            BOOLEAN -> map[key] = nextBoolean()
+                                            STRING -> map[key] = nextString()
                                             SET -> {
                                                 val stringSet = mutableSetOf<String>()
                                                 beginArray()
@@ -97,7 +102,7 @@ internal fun <T : Reader> T.readHarmony(): Pair<String?, HashMap<String, Any?>> 
                                                     stringSet.add(nextString())
                                                 }
                                                 endArray()
-                                                key?.let { map[it] = stringSet }
+                                                map[key] = stringSet
                                             }
                                         }
                                     }
@@ -120,7 +125,7 @@ internal fun <T : Reader> T.readHarmony(): Pair<String?, HashMap<String, Any?>> 
 }
 
 @JvmSynthetic
-internal fun <T : Writer> T.putHarmony(prefsName: String, data: Map<String, Any?>): T {
+internal fun <T : Writer> T.putHarmony(prefsName: String, data: Map<String?, Any?>): T {
     JsonWriter(this).apply {
         beginObject()
 

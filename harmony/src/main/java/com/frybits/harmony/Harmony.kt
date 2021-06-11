@@ -5,6 +5,7 @@ package com.frybits.harmony
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.os.Build
 import android.os.FileObserver
 import android.os.Handler
 import android.os.HandlerThread
@@ -115,6 +116,8 @@ private class HarmonyImpl constructor(
     // The last read position of the transaction file. Prevents having to read the entire file each update.
     private var lastTransactionPosition = 0L
 
+    private val shouldNotifyClearToListeners = context.applicationContext.applicationInfo.targetSdkVersion >= Build.VERSION_CODES.R
+
     // Runnable to handle transactions. Used as an object to allow the Handler to remove from the queue. Prevents build up of this job in the looper.
     private var transactionUpdateJob = Runnable {
         handleTransactionUpdate()
@@ -145,10 +148,10 @@ private class HarmonyImpl constructor(
 
     // In-memory map. Read and modified only under a reentrant lock
     @GuardedBy("mapReentrantReadWriteLock")
-    private var harmonyMap: HashMap<String, Any?> = hashMapOf()
+    private var harmonyMap: HashMap<String?, Any?> = hashMapOf()
 
     // Snapshot of the main file, to base transaction changes off of
-    private var mainSnapshot: HashMap<String, Any?> = hashMapOf()
+    private var mainSnapshot: HashMap<String?, Any?> = hashMapOf()
 
     // In-process transactions in-flight but not yet written to the file
     // This prevents losing changes done in this process
@@ -180,37 +183,37 @@ private class HarmonyImpl constructor(
         harmonyHandler.post(isLoadedTask)
     }
 
-    override fun getInt(key: String, defValue: Int): Int {
+    override fun getInt(key: String?, defValue: Int): Int {
         awaitForLoad()
         val obj = mapReentrantReadWriteLock.read { harmonyMap[key] }
         return obj as Int? ?: defValue
     }
 
-    override fun getLong(key: String, defValue: Long): Long {
+    override fun getLong(key: String?, defValue: Long): Long {
         awaitForLoad()
         val obj = mapReentrantReadWriteLock.read { harmonyMap[key] }
         return obj as Long? ?: defValue
     }
 
-    override fun getFloat(key: String, defValue: Float): Float {
+    override fun getFloat(key: String?, defValue: Float): Float {
         awaitForLoad()
         val obj = mapReentrantReadWriteLock.read { harmonyMap[key] }
         return obj as Float? ?: defValue
     }
 
-    override fun getBoolean(key: String, defValue: Boolean): Boolean {
+    override fun getBoolean(key: String?, defValue: Boolean): Boolean {
         awaitForLoad()
         val obj = mapReentrantReadWriteLock.read { harmonyMap[key] }
         return obj as Boolean? ?: defValue
     }
 
-    override fun getString(key: String, defValue: String?): String? {
+    override fun getString(key: String?, defValue: String?): String? {
         awaitForLoad()
         val obj = mapReentrantReadWriteLock.read { harmonyMap[key] }
         return obj as String? ?: defValue
     }
 
-    override fun getStringSet(key: String, defValues: MutableSet<String>?): MutableSet<String>? {
+    override fun getStringSet(key: String?, defValues: MutableSet<String>?): MutableSet<String>? {
         awaitForLoad()
         val obj = mapReentrantReadWriteLock.read { harmonyMap[key] }
         @Suppress("UNCHECKED_CAST")
@@ -222,12 +225,12 @@ private class HarmonyImpl constructor(
         }
     }
 
-    override fun contains(key: String): Boolean {
+    override fun contains(key: String?): Boolean {
         awaitForLoad()
         return mapReentrantReadWriteLock.read { harmonyMap.containsKey(key) }
     }
 
-    override fun getAll(): MutableMap<String, *> {
+    override fun getAll(): MutableMap<String?, *> {
         awaitForLoad()
         return mapReentrantReadWriteLock.read { harmonyMap.toMutableMap() }
     }
@@ -268,7 +271,7 @@ private class HarmonyImpl constructor(
     }
 
     // Helper function to handle exceptions from reading the main file
-    private fun readHarmonyMapFromStream(prefsReader: Reader): Pair<String?, Map<String, Any?>> {
+    private fun readHarmonyMapFromStream(prefsReader: Reader): Pair<String?, Map<String?, Any?>> {
         return try {
             prefsReader.readHarmony()
         } catch (e: IllegalStateException) {
@@ -446,13 +449,17 @@ private class HarmonyImpl constructor(
                 val mainCopy = HashMap(mainSnapshot)
 
                 val notifyListeners = listenerMap.isNotEmpty()
-                val keysModified = if (notifyListeners) arrayListOf<String>() else null
+                val keysModified = if (notifyListeners) arrayListOf<String?>() else null
                 val listeners = if (notifyListeners) listenerMap.keys.toSet() else null
 
+                var wasCleared = false
                 // Commit all transactions to this snapshot
                 combinedTransactions.forEach { transaction ->
                     val tempTransaction = lastTransaction
                     if (tempTransaction < transaction) {
+                        if (transaction.cleared) {
+                            wasCleared = true
+                        }
                         transaction.commitTransaction(mainCopy, keysModified)
                         lastTransaction = transaction
                     } else {
@@ -465,6 +472,11 @@ private class HarmonyImpl constructor(
                 if (notifyListeners) {
                     requireNotNull(keysModified)
                     mainHandler.post { // Listeners are notified on the main thread
+                        if (shouldNotifyClearToListeners && wasCleared) {
+                            listeners?.forEach { listener ->
+                                listener.onSharedPreferenceChanged(this, null)
+                            }
+                        }
                         keysModified.asReversed().forEach { key ->
                             listeners?.forEach { listener ->
                                 listener.onSharedPreferenceChanged(this@HarmonyImpl, key)
@@ -524,13 +536,14 @@ private class HarmonyImpl constructor(
             transactionSet.forEach { it.commitTransaction(mainCopy) }
 
             val notifyListeners = listenerMap.isNotEmpty()
-            val keysModified = if (notifyListeners) arrayListOf<String>() else null
+            val keysModified = if (notifyListeners) arrayListOf<String?>() else null
             val listeners = if (notifyListeners) listenerMap.keys.toSet() else null
 
             // Store the old map just in case
             val oldMap = harmonyMap
             harmonyMap = mainCopy
 
+            var wasCleared = false
             if (failedRead) { // Default to the old comparison logic
                 _InternalHarmonyLog.e(LOG_TAG, "Old transaction file was corrupted")
                 keysModified?.clear()
@@ -552,6 +565,9 @@ private class HarmonyImpl constructor(
                 combinedTransactions.forEach { transaction ->
                     val tempTransaction = lastTransaction
                     if (tempTransaction < transaction) {
+                        if (transaction.cleared) {
+                            wasCleared = true
+                        }
                         transaction.commitTransaction(oldMainSnapshot, keysModified)
                         lastTransaction = transaction
                     } else {
@@ -563,6 +579,11 @@ private class HarmonyImpl constructor(
             if (notifyListeners) {
                 requireNotNull(keysModified)
                 mainHandler.post { // Listeners are notified on the main thread
+                    if (shouldNotifyClearToListeners && wasCleared) {
+                        listeners?.forEach { listener ->
+                            listener.onSharedPreferenceChanged(this, null)
+                        }
+                    }
                     keysModified.asReversed().forEach { key ->
                         listeners?.forEach { listener ->
                             listener.onSharedPreferenceChanged(this@HarmonyImpl, key)
@@ -718,35 +739,35 @@ private class HarmonyImpl constructor(
         // Container for our current changes
         private var harmonyTransaction = HarmonyTransaction()
 
-        override fun putLong(key: String, value: Long): SharedPreferences.Editor {
+        override fun putLong(key: String?, value: Long): SharedPreferences.Editor {
             synchronized(this) {
                 harmonyTransaction.update(key, value)
                 return this
             }
         }
 
-        override fun putInt(key: String, value: Int): SharedPreferences.Editor {
+        override fun putInt(key: String?, value: Int): SharedPreferences.Editor {
             synchronized(this) {
                 harmonyTransaction.update(key, value)
                 return this
             }
         }
 
-        override fun putBoolean(key: String, value: Boolean): SharedPreferences.Editor {
+        override fun putBoolean(key: String?, value: Boolean): SharedPreferences.Editor {
             synchronized(this) {
                 harmonyTransaction.update(key, value)
                 return this
             }
         }
 
-        override fun putFloat(key: String, value: Float): SharedPreferences.Editor {
+        override fun putFloat(key: String?, value: Float): SharedPreferences.Editor {
             synchronized(this) {
                 harmonyTransaction.update(key, value)
                 return this
             }
         }
 
-        override fun putString(key: String, value: String?): SharedPreferences.Editor {
+        override fun putString(key: String?, value: String?): SharedPreferences.Editor {
             synchronized(this) {
                 harmonyTransaction.update(key, value)
                 return this
@@ -754,7 +775,7 @@ private class HarmonyImpl constructor(
         }
 
         override fun putStringSet(
-            key: String,
+            key: String?,
             values: MutableSet<String>?
         ): SharedPreferences.Editor {
             synchronized(this) {
@@ -770,7 +791,7 @@ private class HarmonyImpl constructor(
             }
         }
 
-        override fun remove(key: String): SharedPreferences.Editor {
+        override fun remove(key: String?): SharedPreferences.Editor {
             synchronized(this) {
                 harmonyTransaction.delete(key)
                 return this
@@ -801,10 +822,10 @@ private class HarmonyImpl constructor(
         private fun commitToMemory() {
             mapReentrantReadWriteLock.write {
                 val notifyListeners = listenerMap.isNotEmpty()
-                val keysModified = if (notifyListeners) arrayListOf<String>() else null
+                val keysModified = if (notifyListeners) arrayListOf<String?>() else null
                 val listeners = if (notifyListeners) listenerMap.keys.toSet() else null
 
-                synchronized(this@HarmonyEditor) {
+                val transaction = synchronized(this@HarmonyEditor) {
                     val transaction = harmonyTransaction
                     transaction.memoryCommitTime = SystemClock.elapsedRealtimeNanos() // The current time this "apply()" was called
                     transactionSet.add(transaction) // Add this to the in-flight transaction set for this process
@@ -812,12 +833,18 @@ private class HarmonyImpl constructor(
                     lastTransaction = maxOf(transaction, lastTransaction) // Extremely rare, but if the other process emitted a later transaction, keep that as the last, else use the current transaction
                     harmonyTransaction = HarmonyTransaction() // Generate a new transaction to prevent modifying one in-flight
                     transaction.commitTransaction(harmonyMap, keysModified) // Update the in-process map and get all modified keys
+                    return@synchronized transaction
                 }
 
                 // Notify this process of changes immediately
                 if (notifyListeners) {
                     requireNotNull(keysModified)
                     mainHandler.post { // Listeners are notified on the main thread
+                        if (shouldNotifyClearToListeners && transaction.cleared) {
+                            listeners?.forEach { listener ->
+                                listener.onSharedPreferenceChanged(this@HarmonyImpl, null)
+                            }
+                        }
                         keysModified.asReversed().forEach { key ->
                             listeners?.forEach { listener ->
                                 listener.onSharedPreferenceChanged(this@HarmonyImpl, key)
@@ -853,19 +880,20 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) : C
     }
 
     // All transaction operations
-    private val transactionMap: HashMap<String, Operation> = hashMapOf()
+    private val transactionMap: HashMap<String?, Operation> = hashMapOf()
 
     // Flag for cleared data
-    private var cleared = false
+    var cleared = false
+        private set
 
     // Used to ensure that transactions are applied in the order received
     var memoryCommitTime = 0L
 
-    fun update(key: String, value: Any?) {
+    fun update(key: String?, value: Any?) {
         transactionMap[key] = value?.let { Operation.Update(it) } ?: Operation.Delete
     }
 
-    fun delete(key: String) {
+    fun delete(key: String?) {
         transactionMap[key] = Operation.Delete
     }
 
@@ -874,8 +902,8 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) : C
     }
 
     fun commitTransaction(
-        dataMap: HashMap<String, Any?>,
-        keysModified: MutableList<String>? = null
+        dataMap: HashMap<String?, Any?>,
+        keysModified: MutableList<String?>? = null
     ) {
         if (cleared) {
             if (dataMap.isNotEmpty()) {
@@ -911,8 +939,9 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) : C
         dataOutputStream.writeLong(memoryCommitTime)
         transactionMap.forEach { (k, v) ->
             dataOutputStream.writeBoolean(true)
-            dataOutputStream.writeInt(k.length)
-            dataOutputStream.write(k.toByteArray()) // Write the key
+            val keyByteArray = k?.toByteArray()
+            dataOutputStream.writeInt(keyByteArray?.size ?: 0)
+            dataOutputStream.write(keyByteArray ?: byteArrayOf()) // Write the key
             when (val d = v.data) { // Write the data
                 is Int -> {
                     dataOutputStream.writeByte(0)
@@ -932,8 +961,9 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) : C
                 }
                 is String -> {
                     dataOutputStream.writeByte(4)
-                    dataOutputStream.writeInt(d.length)
-                    dataOutputStream.write(d.toByteArray())
+                    val byteArray = d.toByteArray()
+                    dataOutputStream.writeInt(byteArray.size)
+                    dataOutputStream.write(byteArray)
                 }
                 is Set<*> -> {
                     dataOutputStream.writeByte(5)
@@ -941,8 +971,9 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) : C
                     @Suppress("UNCHECKED_CAST")
                     val set = d as? Set<String>
                     set?.forEach { s ->
-                        dataOutputStream.writeInt(s.length)
-                        dataOutputStream.write(s.toByteArray())
+                        val byteArray = s.toByteArray()
+                        dataOutputStream.writeInt(byteArray.size)
+                        dataOutputStream.write(byteArray)
                     }
                 }
                 null -> dataOutputStream.writeByte(6)
@@ -989,7 +1020,7 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) : C
 
             var versionByte = dataInputStream.read()
             while (versionByte != -1) {
-                var key = ""
+                var key: String? = ""
                 var data: Any? = null
                 var operation: Operation? = null
                 var expected = 0L
@@ -1013,9 +1044,13 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) : C
                             }
                             TRANSACTION_FILE_VERSION_2 -> {
                                 val size = dataInputStream.readInt()
-                                val byteArray = ByteArray(size)
-                                dataInputStream.read(byteArray)
-                                String(byteArray)
+                                if (size == 0) {
+                                    null
+                                } else {
+                                    val byteArray = ByteArray(size)
+                                    dataInputStream.read(byteArray)
+                                    String(byteArray)
+                                }
                             }
                             else -> {
                                 _InternalHarmonyLog.e(LOG_TAG, "Unable to read key. Incorrect transaction file version $versionByte. Expected $CURR_TRANSACTION_FILE_VERSION")

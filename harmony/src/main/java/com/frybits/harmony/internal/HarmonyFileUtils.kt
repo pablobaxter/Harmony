@@ -79,11 +79,6 @@ internal inline fun <T> RandomAccessFile.withFileLock(shared: Boolean, block: ()
 }
 
 @JvmSynthetic
-internal fun File.sync() {
-    outputStream().sync()
-}
-
-@JvmSynthetic
 internal fun FileOutputStream.sync() {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
         Os.fsync(fd)

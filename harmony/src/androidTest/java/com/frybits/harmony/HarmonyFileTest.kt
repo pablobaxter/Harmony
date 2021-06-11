@@ -98,6 +98,10 @@ private val TEST_PREFS_MAP = mapOf<String, Any?>(
 private val TEST_TRANSACTION_DATA =
     byteArrayOf(127, -91, -85, 82, 118, 5, 86, 77, 106, -113, 39, 6, -52, -29, -123, -107, -55, 0, 0, 0, 0, 0, 5, -37, -6, -121, 1, 0, 7, 116, 101, 115, 116, 75, 101, 121, 4, 0, 9, 116, 101, 115, 116, 86, 97, 108, 117, 101, 0, 0, 0, 0, 0, 0, -40, 24, 17, 20)
 
+// Byte array that is the following transaction: UPDATE(null:"test", cleared=false)
+private val TEST_NULL_KEY_TRANSACTION_DATA =
+    byteArrayOf(126, -38, 33, -55, 56, 127, -87, 74, 97, -95, -111, -49, 53, -58, 66, 122, -45, 0, 0, 0, 77, -69, -4, 30, -15, -8, 1, 0, 0, 0, 0, 4, 0, 0, 0, 4, 116, 101, 115, 116, 0, 0, 0, 0, 0, 0, -128, -103, 14, -83)
+
 @RunWith(AndroidJUnit4::class)
 class HarmonyFileTest {
 
@@ -108,6 +112,25 @@ class HarmonyFileTest {
     fun setup() {
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
         File(appContext.filesDir, HARMONY_PREFS_FOLDER).deleteRecursively()
+    }
+
+    @Test
+    fun testNullKeyTransaction() {
+        // Test Prep
+        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+        val sharedPreferences = appContext.getHarmonySharedPreferences(TEST_PREFS)
+        sharedPreferences.all // Dummy call to wait for shared prefs to load
+        val harmonyFolder = File(appContext.filesDir, HARMONY_PREFS_FOLDER)
+        harmonyFolder.mkdirs()
+        val prefsFolder = File(harmonyFolder, TEST_PREFS).apply { mkdirs() }
+        val transactionFile = File(prefsFolder, PREFS_TRANSACTION_DATA)
+        transactionFile.writeBytes(TEST_NULL_KEY_TRANSACTION_DATA)
+
+        assertEquals(TEST_NULL_KEY_TRANSACTION_DATA.size.toLong(), transactionFile.length(), "Transaction data was modified!")
+
+        Thread.sleep(1000) // Give Harmony time to replicate data from external change
+
+        assertEquals("test", sharedPreferences.getString(null, null), "Value was not stored!")
     }
 
     @Test

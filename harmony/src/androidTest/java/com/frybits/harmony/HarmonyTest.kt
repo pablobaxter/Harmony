@@ -125,6 +125,17 @@ class HarmonyTest {
     }
 
     @Test
+    fun testNullKey() {
+        // Context of the app under test.
+        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+        val sharedPreferences = appContext.getHarmonySharedPreferences(PREFS)
+        val randomString = "${Random.nextLong()}"
+        assertFalse { sharedPreferences.contains(null) }
+        sharedPreferences.edit { putString(null, randomString) }
+        assertEquals(randomString, sharedPreferences.getString(null, null))
+    }
+
+    @Test
     fun testOnPreferenceChangeListener() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
@@ -157,9 +168,16 @@ class HarmonyTest {
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
         val harmonyPrefs = appContext.getHarmonySharedPreferences(PREFS)
         val keyCompletableDeferred = CompletableDeferred<String>()
+        val emittedNullOnClearDeferred = CompletableDeferred<Boolean>()
         val onPreferenChanListener =
             SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences, key ->
                 assertTrue { sharedPreferences === harmonyPrefs }
+                if (key == null) {
+                    emittedNullOnClearDeferred.complete(true)
+                    return@OnSharedPreferenceChangeListener
+                } else if (!emittedNullOnClearDeferred.isCompleted) {
+                    emittedNullOnClearDeferred.complete(false)
+                }
                 keyCompletableDeferred.complete(key)
             }
         val pref1 = "foo${Random.nextInt()}"
@@ -175,6 +193,7 @@ class HarmonyTest {
         }
         runBlocking {
             withTimeout(1000) {
+                assertTrue(emittedNullOnClearDeferred.await(), "Did not emit null first!")
                 assertEquals("test", keyCompletableDeferred.await())
             }
         }
