@@ -565,4 +565,49 @@ class HarmonyProcessApplyTest {
 
         sharedPreferences.unregisterOnSharedPreferenceChangeListener(clearDataChangeListener)
     }
+
+    @Test
+    fun testSpecialCharactersStoreAndNotifyAcrossProcesses() = runBlocking {
+        // Setup test
+        val application = InstrumentationRegistry.getInstrumentation().targetContext
+
+        // Setup new looper
+        val handlerThread = HandlerThread("test").apply { start() }
+
+        val specialString = "†"
+
+        // Deferrable to wait on while test completes
+        val testDeferred = CompletableDeferred<Exception?>()
+
+        // Setup a messenger to report results back from alternate process
+        val messenger = Messenger(Handler(handlerThread.looper) { msg ->
+            if (testDeferred.isCompleted) return@Handler true
+            val key = msg.data.keySet().first()
+            @Suppress("UNCHECKED_CAST") val value = msg.data[key] as? Set<String>
+            if (specialString != value?.first()) {
+                testDeferred.complete(Exception("Values were not equal! expected: $specialString, actual: $value"))
+            } else {
+                testDeferred.complete(null)
+            }
+            return@Handler true
+        })
+
+        val serviceIntent = Intent(application, AlternateProcessService::class.java).apply {
+            putExtra(MESSENGER_KEY, messenger)
+        }
+        serviceRule.startService(serviceIntent)
+
+        // Give the service enough time to setup
+        Thread.sleep(1000)
+
+        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE, TRANSACTION_BATCH_SIZE)
+        sharedPreferences.edit { putStringSet("test", setOf(specialString)) }
+
+        runBlocking {
+            withTimeout(1000) {
+                testDeferred.await()
+            }
+        }?.let { throw it }
+        return@runBlocking
+    }
 }
