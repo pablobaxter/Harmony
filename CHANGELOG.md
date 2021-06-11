@@ -1,5 +1,11 @@
 ## Change Log
 
+### Version 1.1.8 / 2021-06-11
+- Fixes OnSharedPreferenceChangeListener not emitting `null` issue [#14](https://github.com/pablobaxter/Harmony/issues/14)
+- Removes targetSdk from library
+- Adds support for `null` keys [#29](https://github.com/pablobaxter/Harmony/issues/29)
+- Fixes issue with certain strings not being stored in Harmony [#31](https://github.com/pablobaxter/Harmony/issues/31)
+
 ### Version 1.1.7 / 2021-06-01
 - Use `Os.fsync()` for Android versions that support it
 - Fast follow improvement when reading transaction file
