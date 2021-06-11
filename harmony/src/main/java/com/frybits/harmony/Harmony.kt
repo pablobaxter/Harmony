@@ -939,8 +939,9 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) : C
         dataOutputStream.writeLong(memoryCommitTime)
         transactionMap.forEach { (k, v) ->
             dataOutputStream.writeBoolean(true)
-            dataOutputStream.writeInt(k?.length ?: 0)
-            dataOutputStream.write(k?.toByteArray() ?: byteArrayOf()) // Write the key
+            val keyByteArray = k?.toByteArray()
+            dataOutputStream.writeInt(keyByteArray?.size ?: 0)
+            dataOutputStream.write(keyByteArray ?: byteArrayOf()) // Write the key
             when (val d = v.data) { // Write the data
                 is Int -> {
                     dataOutputStream.writeByte(0)
@@ -960,8 +961,9 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) : C
                 }
                 is String -> {
                     dataOutputStream.writeByte(4)
-                    dataOutputStream.writeInt(d.length)
-                    dataOutputStream.write(d.toByteArray())
+                    val byteArray = d.toByteArray()
+                    dataOutputStream.writeInt(byteArray.size)
+                    dataOutputStream.write(byteArray)
                 }
                 is Set<*> -> {
                     dataOutputStream.writeByte(5)
@@ -969,8 +971,9 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) : C
                     @Suppress("UNCHECKED_CAST")
                     val set = d as? Set<String>
                     set?.forEach { s ->
-                        dataOutputStream.writeInt(s.length)
-                        dataOutputStream.write(s.toByteArray())
+                        val byteArray = s.toByteArray()
+                        dataOutputStream.writeInt(byteArray.size)
+                        dataOutputStream.write(byteArray)
                     }
                 }
                 null -> dataOutputStream.writeByte(6)
