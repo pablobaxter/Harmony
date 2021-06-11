@@ -35,7 +35,7 @@ buildscript {
         room_version = "2.3.0"
 
         harmony_version_name = "1.1.8"
-        crypto_version_name = "0.0.1"
+        crypto_version_name = "0.0.2"
 
     }
 
