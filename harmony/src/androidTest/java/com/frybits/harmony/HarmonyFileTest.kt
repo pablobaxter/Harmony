@@ -7,6 +7,7 @@ import android.content.Intent
 import android.os.Binder
 import android.os.IBinder
 import android.os.Process
+import android.os.SystemClock
 import android.system.Os
 import androidx.core.content.edit
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -30,6 +31,8 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 /*
  *  Copyright 2020 Pablo Baxter
@@ -96,11 +99,15 @@ private val TEST_PREFS_MAP = mapOf<String, Any?>(
 
 // Byte array that is the following transaction: UPDATE("testKey":"testValue", cleared=false)
 private val TEST_TRANSACTION_DATA =
-    byteArrayOf(127, -91, -85, 82, 118, 5, 86, 77, 106, -113, 39, 6, -52, -29, -123, -107, -55, 0, 0, 0, 0, 0, 5, -37, -6, -121, 1, 0, 7, 116, 101, 115, 116, 75, 101, 121, 4, 0, 9, 116, 101, 115, 116, 86, 97, 108, 117, 101, 0, 0, 0, 0, 0, 0, -40, 24, 17, 20)
+    byteArrayOf(126, -91, -85, 82, 118, 5, 86, 77, 106, -113, 39, 6, -52, -29, -123, -107, -55, 0, 0, 0, 0, 0, 5, -37, -6, -121, 1, 0, 0, 0, 7, 116, 101, 115, 116, 75, 101, 121, 4, 0, 0, 0, 9, 116, 101, 115, 116, 86, 97, 108, 117, 101, 0, 0, 0, 0, 0, 0, 7, 65, 17, 19)
 
 // Byte array that is the following transaction: UPDATE(null:"test", cleared=false)
 private val TEST_NULL_KEY_TRANSACTION_DATA =
     byteArrayOf(126, -38, 33, -55, 56, 127, -87, 74, 97, -95, -111, -49, 53, -58, 66, 122, -45, 0, 0, 0, 77, -69, -4, 30, -15, -8, 1, 0, 0, 0, 0, 4, 0, 0, 0, 4, 116, 101, 115, 116, 0, 0, 0, 0, 0, 0, -128, -103, 14, -83)
+
+// Byte array that will cause an OOM error
+private val TEST_OOM_TRANSACTION_DATA =
+    byteArrayOf(126, -91, -85, 82, 118, 5, 86, 77, 106, -113, 39, 6, -52, -29, -123, -107, -55, 0, 0, 0, 0, 0, 5, -37, -6, -121, 1, 127, -1, -1, -1)
 
 @RunWith(AndroidJUnit4::class)
 class HarmonyFileTest {
@@ -208,6 +215,58 @@ class HarmonyFileTest {
         transactionFile.appendBytes(Random.nextBytes(10)) // Introduce corrupted data
 
         Thread.sleep(1000) // Give Harmony time to replicate data from external change
+
+        // Data should not be changed
+        assertEquals("testValue", sharedPreferences.getString("testKey", null), "Value was not stored!")
+
+        // Transaction file should be cleared
+        assertEquals(0L, transactionFile.length(), "Transaction data was not cleared!")
+    }
+
+    @Test
+    fun testOOMTransactionFile() {
+        // Test Prep
+        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+
+        val lock = CountDownLatch(1)
+
+        var didGetException = false
+
+        setHarmonyLog(object : HarmonyLog {
+            override fun log(priority: Int, msg: String) {
+                // Do nothing
+            }
+
+            override fun recordException(throwable: Throwable) {
+                if (throwable is OutOfMemoryError) {
+                    didGetException = true
+                    lock.countDown()
+                }
+            }
+        })
+
+        val sharedPreferences = appContext.getHarmonySharedPreferences(TEST_PREFS)
+        sharedPreferences.all // Dummy call to wait for shared prefs to load
+        val harmonyFolder = File(appContext.filesDir, HARMONY_PREFS_FOLDER)
+        harmonyFolder.mkdirs()
+        val prefsFolder = File(harmonyFolder, TEST_PREFS).apply { mkdirs() }
+        val transactionFile = File(prefsFolder, PREFS_TRANSACTION_DATA)
+        transactionFile.writeBytes(TEST_TRANSACTION_DATA)
+
+        assertEquals(TEST_TRANSACTION_DATA.size.toLong(), transactionFile.length(), "Transaction data was modified!")
+
+        Thread.sleep(1000) // Give Harmony time to replicate data from external change
+
+        assertEquals("testValue", sharedPreferences.getString("testKey", null), "Value was not stored!")
+
+        transactionFile.appendBytes(TEST_OOM_TRANSACTION_DATA) // Introduce corrupted data that would cause OOM
+
+        // Quick and easy way to ensure we don't wait longer than 1 second for replication or the countdown latch
+        val currTime = SystemClock.elapsedRealtime()
+        lock.await(1, TimeUnit.SECONDS)
+        Thread.sleep((1000 - (SystemClock.elapsedRealtime() - currTime)).coerceAtLeast(0)) // Give Harmony time to replicate data from external change
+
+        assertTrue(didGetException, "Did not receive OOM error!")
 
         // Data should not be changed
         assertEquals("testValue", sharedPreferences.getString("testKey", null), "Value was not stored!")

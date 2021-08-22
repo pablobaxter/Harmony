@@ -1050,6 +1050,8 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) : C
                                     val byteArray = try {
                                         ByteArray(size)
                                     } catch (e: OutOfMemoryError) { // This was a bug with an old transaction file.
+                                        _InternalHarmonyLog.e(LOG_TAG, "Received OutOfMemoryError while creating ByteArray")
+                                        _InternalHarmonyLog.recordException(e)
                                         return transactionSet to true
                                     }
                                     dataInputStream.read(byteArray)
@@ -1075,6 +1077,8 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) : C
                                     val byteArray = try {
                                         ByteArray(size)
                                     } catch (e: OutOfMemoryError) { // This was a bug with an old transaction file.
+                                        _InternalHarmonyLog.e(LOG_TAG, "Received OutOfMemoryError while creating ByteArray")
+                                        _InternalHarmonyLog.recordException(e)
                                         return transactionSet to true
                                     }
                                     dataInputStream.read(byteArray)
@@ -1098,6 +1102,8 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) : C
                                             val byteArray = try {
                                                 ByteArray(size)
                                             } catch (e: OutOfMemoryError) { // This was a bug with an old transaction file.
+                                                _InternalHarmonyLog.e(LOG_TAG, "Received OutOfMemoryError while creating ByteArray")
+                                                _InternalHarmonyLog.recordException(e)
                                                 return transactionSet to true
                                             }
                                             dataInputStream.read(byteArray)
