@@ -31,7 +31,7 @@ buildscript {
         buildtools_version = '30.0.3'
         nav_version = "2.3.5"
         constraint_version = '2.1.0'
-        hilt_version = '2.35'
+        hilt_version = '2.38.1'
         room_version = "2.3.0"
 
         harmony_version_name = "1.1.9"
@@ -45,10 +45,10 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:4.2.2'
+        classpath 'com.android.tools.build:gradle:7.0.1'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-        classpath 'org.jetbrains.dokka:dokka-gradle-plugin:1.4.32'
-        classpath "io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.22.0"
+        classpath 'org.jetbrains.dokka:dokka-gradle-plugin:1.5.0'
+        classpath "io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.30.0"
         classpath "androidx.navigation:navigation-safe-args-gradle-plugin:$nav_version"
         classpath "com.google.dagger:hilt-android-gradle-plugin:$hilt_version"
         // NOTE: Do not place your application dependencies here; they belong

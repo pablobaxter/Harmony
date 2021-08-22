@@ -10,7 +10,6 @@ android {
 
     defaultConfig {
         minSdkVersion harmony_minSdk_version
-        versionName harmony_version_name
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments clearPackageData: 'true'
