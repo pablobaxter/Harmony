@@ -1047,7 +1047,13 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) : C
                                 if (size == 0) {
                                     null
                                 } else {
-                                    val byteArray = ByteArray(size)
+                                    val byteArray = try {
+                                        ByteArray(size)
+                                    } catch (e: OutOfMemoryError) { // This was a bug with an old transaction file.
+                                        _InternalHarmonyLog.e(LOG_TAG, "Received OutOfMemoryError while creating ByteArray")
+                                        _InternalHarmonyLog.recordException(e)
+                                        return transactionSet to true
+                                    }
                                     dataInputStream.read(byteArray)
                                     String(byteArray)
                                 }
@@ -1068,7 +1074,13 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) : C
                                 }
                                 TRANSACTION_FILE_VERSION_2 -> {
                                     val size = dataInputStream.readInt()
-                                    val byteArray = ByteArray(size)
+                                    val byteArray = try {
+                                        ByteArray(size)
+                                    } catch (e: OutOfMemoryError) { // This was a bug with an old transaction file.
+                                        _InternalHarmonyLog.e(LOG_TAG, "Received OutOfMemoryError while creating ByteArray")
+                                        _InternalHarmonyLog.recordException(e)
+                                        return transactionSet to true
+                                    }
                                     dataInputStream.read(byteArray)
                                     String(byteArray)
                                 }
@@ -1087,7 +1099,13 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) : C
                                         }
                                         TRANSACTION_FILE_VERSION_2 -> {
                                             val size = dataInputStream.readInt()
-                                            val byteArray = ByteArray(size)
+                                            val byteArray = try {
+                                                ByteArray(size)
+                                            } catch (e: OutOfMemoryError) { // This was a bug with an old transaction file.
+                                                _InternalHarmonyLog.e(LOG_TAG, "Received OutOfMemoryError while creating ByteArray")
+                                                _InternalHarmonyLog.recordException(e)
+                                                return transactionSet to true
+                                            }
                                             dataInputStream.read(byteArray)
                                             set.add(String(byteArray))
                                         }
