@@ -1,5 +1,9 @@
 ## Change Log
 
+### Version 1.1.9 / 2021-08-22
+- Fixes crashing issue caused by bad transaction file [#36](https://github.com/pablobaxter/Harmony/pull/36)
+- Update libraries
+
 ### Harmony-Crypto Version 0.0.2 / 2021-06-11
 - Update to Harmony v1.1.8
 
