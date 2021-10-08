@@ -75,7 +75,7 @@ jobs:
               --test ${HOME}/repo/harmony/build/outputs/apk/androidTest/debug/harmony-debug-androidTest.apk \
               --results-bucket cloud-test-${GOOGLE_PROJECT_ID} \
               --results-dir harmony-${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM} \
-              --device model=LG-H932 \
+              --device model=joan,version=26 \
               --no-performance-metrics \
               --no-record-video \
               --use-orchestrator
