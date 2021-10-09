@@ -42,6 +42,14 @@ import kotlin.concurrent.read
 import kotlin.concurrent.write
 import org.json.JSONException
 
+// Empty singleton to support WeakHashmap
+// NOTE: This is intentionally set at the top of this file to force initialization phase of this static object. Do not move.
+private object CONTENT {
+
+    // Hack to force FileObserver to initialize static fields. This starts the ObserverThread.
+    val syncObject: Any = FileObserver::class.java
+}
+
 /*
  *  Copyright 2020 Pablo Baxter
  *
@@ -152,7 +160,7 @@ private class HarmonyImpl constructor(
     private val isLoadedTask = FutureTask {
         // Fixes crashing bug that occurs on LG devices running Android 9 and lower
         if (shouldSynchronizeFileObserver) {
-            synchronized(CONTENT) {
+            synchronized(CONTENT.syncObject) {
                 setupFileObserver()
             }
         } else {
@@ -163,7 +171,7 @@ private class HarmonyImpl constructor(
 
         // Fixes crashing bug that occurs on LG devices running Android 9 and lower
         if (shouldSynchronizeFileObserver) {
-            synchronized(CONTENT) {
+            synchronized(CONTENT.syncObject) {
                 startFileObserver()
             }
         } else {
@@ -1211,9 +1219,6 @@ private const val KILOBYTE = 1024L * Byte.SIZE_BYTES
 private const val TRANSACTION_FILE_VERSION_1 = Byte.MAX_VALUE
 private const val TRANSACTION_FILE_VERSION_2 = (TRANSACTION_FILE_VERSION_1 - 1).toByte()
 private const val CURR_TRANSACTION_FILE_VERSION = TRANSACTION_FILE_VERSION_2.toInt()
-
-// Empty singleton to support WeakHashmap
-private object CONTENT
 
 private object SingletonLockObj
 
