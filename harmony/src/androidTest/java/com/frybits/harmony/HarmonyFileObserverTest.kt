@@ -1,5 +1,7 @@
 package com.frybits.harmony
 
+import android.os.Build
+import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.Dispatchers
@@ -18,6 +20,12 @@ class HarmonyFileObserverTest {
     fun testMultipleHarmonyPrefsImplementation() = runBlocking {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+
+        Log.e("Blah", "Manufacturer: ${Build.MANUFACTURER}")
+        Log.e("Blah", "Model: ${Build.MODEL}")
+        Log.e("Blah", "Brand: ${Build.BRAND}")
+        Thread.currentThread().stackTrace.forEach { Log.e("Blah", it.className) }
+        Log.e("Blah", "Is LG? ${Thread.currentThread().stackTrace.any { it.className.startsWith("com.lge") }}")
 
         val prefsJob = buildList {
             repeat(100) {
