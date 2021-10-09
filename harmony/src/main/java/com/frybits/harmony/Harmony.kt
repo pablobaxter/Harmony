@@ -152,13 +152,13 @@ private class HarmonyImpl constructor(
         initialLoad()
 
         // Fixes crashing bug that occurs on LG devices running Android 9 and lower
-        if (isLgDevice && Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
-            synchronized(CONTENT) { // Reuse the "CONTENT" object to ensure file observers are started synchronously
-                startFileObserver()
-            }
-        } else {
+//        if (isLgDevice && Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
+//            synchronized(CONTENT) { // Reuse the "CONTENT" object to ensure file observers are started synchronously
+//                startFileObserver()
+//            }
+//        } else {
             startFileObserver()
-        }
+//        }
     }
 
     init {
