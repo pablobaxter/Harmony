@@ -118,33 +118,15 @@ private class HarmonyImpl constructor(
 
     private val shouldNotifyClearToListeners = context.applicationContext.applicationInfo.targetSdkVersion >= Build.VERSION_CODES.R
 
+    private val isLgDevice = Build.MANUFACTURER.contains("lge", ignoreCase = true) || Build.BRAND.contains("lge", ignoreCase = true)
+
     // Runnable to handle transactions. Used as an object to allow the Handler to remove from the queue. Prevents build up of this job in the looper.
     private var transactionUpdateJob = Runnable {
         handleTransactionUpdate()
     }
 
     // Observes changes that occur to the backing file of this preference
-    private val harmonyFileObserver =
-        HarmonyFileObserver(harmonyPrefsFolder, FileObserver.CLOSE_WRITE or FileObserver.DELETE) { event, path ->
-            if (path.isNullOrBlank()) return@HarmonyFileObserver
-            if (event == FileObserver.CLOSE_WRITE) {
-                if (path.endsWith(PREFS_TRANSACTIONS)) {
-                    harmonyHandler.removeCallbacks(transactionUpdateJob) // Don't keep a queue of all transaction updates
-                    harmonyHandler.post(transactionUpdateJob)
-                } else if (path.endsWith(PREFS_DATA)) {
-                    harmonyHandler.removeCallbacks(transactionUpdateJob) // Cancel any pending transaction update, as an update to the main supersedes it
-                    harmonyHandler.post {
-                        handleMainUpdateWithFileLock()
-                    }
-                }
-            } else if (event == FileObserver.DELETE && path.endsWith(PREFS_TRANSACTIONS_OLD)) {
-                harmonyHandler.removeCallbacks(transactionUpdateJob) // Ensure the transaction data is cleared when transaction is deleted
-                harmonyHandler.post {
-                    lastReadTransactions = sortedSetOf()
-                    lastTransactionPosition = 0L
-                }
-            }
-        }
+    private lateinit var harmonyFileObserver: FileObserver
 
     // In-memory map. Read and modified only under a reentrant lock
     @GuardedBy("mapReentrantReadWriteLock")
@@ -168,8 +150,15 @@ private class HarmonyImpl constructor(
     // Task for loading Harmony
     private val isLoadedTask = FutureTask {
         initialLoad()
-        // Start the file observer on the the prefs folder for this Harmony object
-        harmonyFileObserver.startWatching()
+
+        // Fixes crashing bug that occurs on LG devices running Android 9 and lower
+        if (isLgDevice && Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
+            synchronized(CONTENT) { // Reuse the "CONTENT" object to ensure file observers are started synchronously
+                startFileObserver()
+            }
+        } else {
+            startFileObserver()
+        }
     }
 
     init {
@@ -251,6 +240,32 @@ private class HarmonyImpl constructor(
         mapReentrantReadWriteLock.write {
             listenerMap.remove(listener)
         }
+    }
+
+    private fun startFileObserver() {
+        harmonyFileObserver = HarmonyFileObserver(harmonyPrefsFolder, FileObserver.CLOSE_WRITE or FileObserver.DELETE) { event, path ->
+            if (path.isNullOrBlank()) return@HarmonyFileObserver
+            if (event == FileObserver.CLOSE_WRITE) {
+                if (path.endsWith(PREFS_TRANSACTIONS)) {
+                    harmonyHandler.removeCallbacks(transactionUpdateJob) // Don't keep a queue of all transaction updates
+                    harmonyHandler.post(transactionUpdateJob)
+                } else if (path.endsWith(PREFS_DATA)) {
+                    harmonyHandler.removeCallbacks(transactionUpdateJob) // Cancel any pending transaction update, as an update to the main supersedes it
+                    harmonyHandler.post {
+                        handleMainUpdateWithFileLock()
+                    }
+                }
+            } else if (event == FileObserver.DELETE && path.endsWith(PREFS_TRANSACTIONS_OLD)) {
+                harmonyHandler.removeCallbacks(transactionUpdateJob) // Ensure the transaction data is cleared when transaction is deleted
+                harmonyHandler.post {
+                    lastReadTransactions = sortedSetOf()
+                    lastTransactionPosition = 0L
+                }
+            }
+        }
+
+        // Start the file observer on the the prefs folder for this Harmony object
+        harmonyFileObserver.startWatching()
     }
 
     private fun awaitForLoad() {
