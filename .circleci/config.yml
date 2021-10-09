@@ -39,6 +39,20 @@ jobs:
             sudo gcloud --quiet config set project ${GOOGLE_PROJECT_ID}
 
       - run:
+          name: Test Harmony with Firebase Test Lab for LG
+          command: >
+            sudo gcloud firebase test android run \
+              --type instrumentation \
+              --app ${HOME}/repo/app/build/outputs/apk/debug/app-debug.apk \
+              --test ${HOME}/repo/harmony/build/outputs/apk/androidTest/debug/harmony-debug-androidTest.apk \
+              --results-bucket cloud-test-${GOOGLE_PROJECT_ID} \
+              --results-dir harmony-${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM} \
+              --device model=joan,version=26 \
+              --no-performance-metrics \
+              --no-record-video \
+              --use-orchestrator
+
+      - run:
           name: Test Harmony with Firebase Test Lab
           command: >
             sudo gcloud firebase test android run \
@@ -62,20 +76,6 @@ jobs:
               --results-bucket cloud-test-${GOOGLE_PROJECT_ID} \
               --results-dir crypto-${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM} \
               --device model=Pixel2,version=29 \
-              --no-performance-metrics \
-              --no-record-video \
-              --use-orchestrator
-
-      - run:
-          name: Test Harmony with Firebase Test Lab for LG
-          command: >
-            sudo gcloud firebase test android run \
-              --type instrumentation \
-              --app ${HOME}/repo/app/build/outputs/apk/debug/app-debug.apk \
-              --test ${HOME}/repo/harmony/build/outputs/apk/androidTest/debug/harmony-debug-androidTest.apk \
-              --results-bucket cloud-test-${GOOGLE_PROJECT_ID} \
-              --results-dir harmony-${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM} \
-              --device model=joan,version=26 \
               --no-performance-metrics \
               --no-record-video \
               --use-orchestrator
