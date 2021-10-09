@@ -30,7 +30,7 @@ buildscript {
         targetSdk_version = 30
         buildtools_version = '30.0.3'
         nav_version = "2.3.5"
-        constraint_version = '2.1.0'
+        constraint_version = '2.1.1'
         hilt_version = '2.38.1'
         room_version = "2.3.0"
 

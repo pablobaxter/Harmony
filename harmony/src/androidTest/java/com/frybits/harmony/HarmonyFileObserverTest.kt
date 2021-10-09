@@ -14,6 +14,7 @@ import java.util.UUID
 class HarmonyFileObserverTest {
 
     // This tests for regression on a bug specific to LG devices running Android 9 and below
+    // See https://github.com/pablobaxter/Harmony/issues/38
     @OptIn(ExperimentalStdlibApi::class)
     @Test
     fun testMultipleHarmonyPrefsImplementation() = runBlocking {
