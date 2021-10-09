@@ -118,7 +118,8 @@ private class HarmonyImpl constructor(
 
     private val shouldNotifyClearToListeners = context.applicationContext.applicationInfo.targetSdkVersion >= Build.VERSION_CODES.R
 
-    private val isLgDevice = Build.MANUFACTURER.contains("lge", ignoreCase = true) || Build.BRAND.contains("lge", ignoreCase = true)
+    // Flag to check if fileobserver should be synchronized
+    private val shouldSynchronizeFileObserver = Build.MANUFACTURER.contains("lge", ignoreCase = true) && Build.VERSION.SDK_INT <= Build.VERSION_CODES.P
 
     // Runnable to handle transactions. Used as an object to allow the Handler to remove from the queue. Prevents build up of this job in the looper.
     private var transactionUpdateJob = Runnable {
@@ -149,11 +150,20 @@ private class HarmonyImpl constructor(
 
     // Task for loading Harmony
     private val isLoadedTask = FutureTask {
+        // Fixes crashing bug that occurs on LG devices running Android 9 and lower
+        if (shouldSynchronizeFileObserver) {
+            synchronized(CONTENT) {
+                setupFileObserver()
+            }
+        } else {
+            setupFileObserver()
+        }
+
         initialLoad()
 
         // Fixes crashing bug that occurs on LG devices running Android 9 and lower
-        if (isLgDevice && Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
-            synchronized(CONTENT) { // Reuse the "CONTENT" object to ensure file observers are started synchronously
+        if (shouldSynchronizeFileObserver) {
+            synchronized(CONTENT) {
                 startFileObserver()
             }
         } else {
@@ -242,7 +252,7 @@ private class HarmonyImpl constructor(
         }
     }
 
-    private fun startFileObserver() {
+    private fun setupFileObserver() {
         harmonyFileObserver = HarmonyFileObserver(harmonyPrefsFolder, FileObserver.CLOSE_WRITE or FileObserver.DELETE) { event, path ->
             if (path.isNullOrBlank()) return@HarmonyFileObserver
             if (event == FileObserver.CLOSE_WRITE) {
@@ -263,7 +273,9 @@ private class HarmonyImpl constructor(
                 }
             }
         }
+    }
 
+    private fun startFileObserver() {
         // Start the file observer on the the prefs folder for this Harmony object
         harmonyFileObserver.startWatching()
     }
