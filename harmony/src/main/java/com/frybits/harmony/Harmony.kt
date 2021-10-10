@@ -118,6 +118,9 @@ private class HarmonyImpl constructor(
 
     private val shouldNotifyClearToListeners = context.applicationContext.applicationInfo.targetSdkVersion >= Build.VERSION_CODES.R
 
+    // Flag to check if fileobserver should be synchronized
+    private val shouldSynchronizeFileObserver = Build.MANUFACTURER.contains("lge", ignoreCase = true) && Build.VERSION.SDK_INT <= Build.VERSION_CODES.P
+
     // Runnable to handle transactions. Used as an object to allow the Handler to remove from the queue. Prevents build up of this job in the looper.
     private var transactionUpdateJob = Runnable {
         handleTransactionUpdate()
@@ -168,8 +171,15 @@ private class HarmonyImpl constructor(
     // Task for loading Harmony
     private val isLoadedTask = FutureTask {
         initialLoad()
-        // Start the file observer on the the prefs folder for this Harmony object
-        harmonyFileObserver.startWatching()
+
+        // Fixes crashing bug that occurs on LG devices running Android 9 and lower
+        if (shouldSynchronizeFileObserver) {
+            synchronized(FILE_OBSERVER_SYNC_OBJECT) {
+                startFileObserver()
+            }
+        } else {
+            startFileObserver()
+        }
     }
 
     init {
@@ -243,7 +253,7 @@ private class HarmonyImpl constructor(
     // This listener will also listen for changes that occur to the Harmony preference with the same name from other processes.
     override fun registerOnSharedPreferenceChangeListener(listener: SharedPreferences.OnSharedPreferenceChangeListener) {
         mapReentrantReadWriteLock.write {
-            listenerMap[listener] = CONTENT
+            listenerMap[listener] = EmptyContent
         }
     }
 
@@ -251,6 +261,11 @@ private class HarmonyImpl constructor(
         mapReentrantReadWriteLock.write {
             listenerMap.remove(listener)
         }
+    }
+
+    private fun startFileObserver() {
+        // Start the file observer on the the prefs folder for this Harmony object
+        harmonyFileObserver.startWatching()
     }
 
     private fun awaitForLoad() {
@@ -1186,7 +1201,10 @@ private const val TRANSACTION_FILE_VERSION_2 = (TRANSACTION_FILE_VERSION_1 - 1).
 private const val CURR_TRANSACTION_FILE_VERSION = TRANSACTION_FILE_VERSION_2.toInt()
 
 // Empty singleton to support WeakHashmap
-private object CONTENT
+private object EmptyContent
+
+// Hack to force FileObserver to initialize static fields. This starts the ObserverThread.
+private val FILE_OBSERVER_SYNC_OBJECT: Any = Class.forName(FileObserver::class.java.name)
 
 private object SingletonLockObj
 
