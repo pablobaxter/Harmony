@@ -127,26 +127,27 @@ private class HarmonyImpl constructor(
     }
 
     // Observes changes that occur to the backing file of this preference
-    private val harmonyFileObserver = HarmonyFileObserver(harmonyPrefsFolder, FileObserver.CLOSE_WRITE or FileObserver.DELETE) { event, path ->
-        if (path.isNullOrBlank()) return@HarmonyFileObserver
-        if (event == FileObserver.CLOSE_WRITE) {
-            if (path.endsWith(PREFS_TRANSACTIONS)) {
-                harmonyHandler.removeCallbacks(transactionUpdateJob) // Don't keep a queue of all transaction updates
-                harmonyHandler.post(transactionUpdateJob)
-            } else if (path.endsWith(PREFS_DATA)) {
-                harmonyHandler.removeCallbacks(transactionUpdateJob) // Cancel any pending transaction update, as an update to the main supersedes it
+    private val harmonyFileObserver =
+        HarmonyFileObserver(harmonyPrefsFolder, FileObserver.CLOSE_WRITE or FileObserver.DELETE) { event, path ->
+            if (path.isNullOrBlank()) return@HarmonyFileObserver
+            if (event == FileObserver.CLOSE_WRITE) {
+                if (path.endsWith(PREFS_TRANSACTIONS)) {
+                    harmonyHandler.removeCallbacks(transactionUpdateJob) // Don't keep a queue of all transaction updates
+                    harmonyHandler.post(transactionUpdateJob)
+                } else if (path.endsWith(PREFS_DATA)) {
+                    harmonyHandler.removeCallbacks(transactionUpdateJob) // Cancel any pending transaction update, as an update to the main supersedes it
+                    harmonyHandler.post {
+                        handleMainUpdateWithFileLock()
+                    }
+                }
+            } else if (event == FileObserver.DELETE && path.endsWith(PREFS_TRANSACTIONS_OLD)) {
+                harmonyHandler.removeCallbacks(transactionUpdateJob) // Ensure the transaction data is cleared when transaction is deleted
                 harmonyHandler.post {
-                    handleMainUpdateWithFileLock()
+                    lastReadTransactions = sortedSetOf()
+                    lastTransactionPosition = 0L
                 }
             }
-        } else if (event == FileObserver.DELETE && path.endsWith(PREFS_TRANSACTIONS_OLD)) {
-            harmonyHandler.removeCallbacks(transactionUpdateJob) // Ensure the transaction data is cleared when transaction is deleted
-            harmonyHandler.post {
-                lastReadTransactions = sortedSetOf()
-                lastTransactionPosition = 0L
-            }
         }
-    }
 
     // In-memory map. Read and modified only under a reentrant lock
     @GuardedBy("mapReentrantReadWriteLock")
