@@ -42,13 +42,9 @@ import kotlin.concurrent.read
 import kotlin.concurrent.write
 import org.json.JSONException
 
-// Empty singleton to support WeakHashmap
+// Hack to force FileObserver to initialize static fields. This starts the ObserverThread.
 // NOTE: This is intentionally set at the top of this file to force initialization phase of this static object. Do not move.
-private object CONTENT {
-
-    // Hack to force FileObserver to initialize static fields. This starts the ObserverThread.
-    val syncObject: Any = FileObserver::class.java
-}
+private val FILE_OBSERVER_SYNC_OBJECT: Any = Class.forName(FileObserver::class.java.name)
 
 /*
  *  Copyright 2020 Pablo Baxter
@@ -160,7 +156,7 @@ private class HarmonyImpl constructor(
     private val isLoadedTask = FutureTask {
         // Fixes crashing bug that occurs on LG devices running Android 9 and lower
         if (shouldSynchronizeFileObserver) {
-            synchronized(CONTENT.syncObject) {
+            synchronized(FILE_OBSERVER_SYNC_OBJECT) {
                 setupFileObserver()
             }
         } else {
@@ -171,7 +167,7 @@ private class HarmonyImpl constructor(
 
         // Fixes crashing bug that occurs on LG devices running Android 9 and lower
         if (shouldSynchronizeFileObserver) {
-            synchronized(CONTENT.syncObject) {
+            synchronized(FILE_OBSERVER_SYNC_OBJECT) {
                 startFileObserver()
             }
         } else {
@@ -1220,7 +1216,9 @@ private const val TRANSACTION_FILE_VERSION_1 = Byte.MAX_VALUE
 private const val TRANSACTION_FILE_VERSION_2 = (TRANSACTION_FILE_VERSION_1 - 1).toByte()
 private const val CURR_TRANSACTION_FILE_VERSION = TRANSACTION_FILE_VERSION_2.toInt()
 
-private object SingletonLockObj
+private object CONTENT
+
+private object HARMONYLOCK
 
 private val SINGLETON_MAP = hashMapOf<String, HarmonyImpl>()
 
@@ -1236,7 +1234,7 @@ internal fun Context.getHarmonySharedPreferences(
     maxTransactionSize: Long,
     maxTransactionBatchCount: Int
 ): SharedPreferences {
-    return SINGLETON_MAP[name] ?: synchronized(SingletonLockObj) {
+    return SINGLETON_MAP[name] ?: synchronized(HARMONYLOCK) {
         SINGLETON_MAP.getOrPut(name) {
             HarmonyImpl(applicationContext, name, maxTransactionSize, maxTransactionBatchCount)
         }
@@ -1267,7 +1265,7 @@ fun Context.getHarmonySharedPreferences(fileName: String): SharedPreferences {
  */
 @JvmName("setLogger")
 fun setHarmonyLog(harmonyLog: HarmonyLog) {
-    synchronized(SingletonLockObj) {
+    synchronized(HARMONYLOCK) {
         if (_harmonyLog == null) {
             _harmonyLog = harmonyLog
         }
