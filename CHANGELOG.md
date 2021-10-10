@@ -1,5 +1,9 @@
 ## Change Log
 
+### Version 1.1.10 / 2021-10-10
+- Fixes crashing issue caused by the `FileObserver.startWatch()` function on LGE devices [#38](https://github.com/pablobaxter/Harmony/pull/38)
+- Update Kotlin version to 1.5.31 and Coroutines to 1.5.2
+
 ### Version 1.1.9 / 2021-08-22
 - Fixes crashing issue caused by bad transaction file [#36](https://github.com/pablobaxter/Harmony/pull/36)
 - Update libraries
