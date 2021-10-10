@@ -42,10 +42,6 @@ import kotlin.concurrent.read
 import kotlin.concurrent.write
 import org.json.JSONException
 
-// Hack to force FileObserver to initialize static fields. This starts the ObserverThread.
-// NOTE: This is intentionally set at the top of this file to force initialization phase of this static object. Do not move.
-private val FILE_OBSERVER_SYNC_OBJECT: Any = Class.forName(FileObserver::class.java.name)
-
 /*
  *  Copyright 2020 Pablo Baxter
  *
@@ -131,7 +127,26 @@ private class HarmonyImpl constructor(
     }
 
     // Observes changes that occur to the backing file of this preference
-    private lateinit var harmonyFileObserver: FileObserver
+    private val harmonyFileObserver = HarmonyFileObserver(harmonyPrefsFolder, FileObserver.CLOSE_WRITE or FileObserver.DELETE) { event, path ->
+        if (path.isNullOrBlank()) return@HarmonyFileObserver
+        if (event == FileObserver.CLOSE_WRITE) {
+            if (path.endsWith(PREFS_TRANSACTIONS)) {
+                harmonyHandler.removeCallbacks(transactionUpdateJob) // Don't keep a queue of all transaction updates
+                harmonyHandler.post(transactionUpdateJob)
+            } else if (path.endsWith(PREFS_DATA)) {
+                harmonyHandler.removeCallbacks(transactionUpdateJob) // Cancel any pending transaction update, as an update to the main supersedes it
+                harmonyHandler.post {
+                    handleMainUpdateWithFileLock()
+                }
+            }
+        } else if (event == FileObserver.DELETE && path.endsWith(PREFS_TRANSACTIONS_OLD)) {
+            harmonyHandler.removeCallbacks(transactionUpdateJob) // Ensure the transaction data is cleared when transaction is deleted
+            harmonyHandler.post {
+                lastReadTransactions = sortedSetOf()
+                lastTransactionPosition = 0L
+            }
+        }
+    }
 
     // In-memory map. Read and modified only under a reentrant lock
     @GuardedBy("mapReentrantReadWriteLock")
@@ -154,15 +169,6 @@ private class HarmonyImpl constructor(
 
     // Task for loading Harmony
     private val isLoadedTask = FutureTask {
-        // Fixes crashing bug that occurs on LG devices running Android 9 and lower
-        if (shouldSynchronizeFileObserver) {
-            synchronized(FILE_OBSERVER_SYNC_OBJECT) {
-                setupFileObserver()
-            }
-        } else {
-            setupFileObserver()
-        }
-
         initialLoad()
 
         // Fixes crashing bug that occurs on LG devices running Android 9 and lower
@@ -246,36 +252,13 @@ private class HarmonyImpl constructor(
     // This listener will also listen for changes that occur to the Harmony preference with the same name from other processes.
     override fun registerOnSharedPreferenceChangeListener(listener: SharedPreferences.OnSharedPreferenceChangeListener) {
         mapReentrantReadWriteLock.write {
-            listenerMap[listener] = CONTENT
+            listenerMap[listener] = EmptyContent
         }
     }
 
     override fun unregisterOnSharedPreferenceChangeListener(listener: SharedPreferences.OnSharedPreferenceChangeListener) {
         mapReentrantReadWriteLock.write {
             listenerMap.remove(listener)
-        }
-    }
-
-    private fun setupFileObserver() {
-        harmonyFileObserver = HarmonyFileObserver(harmonyPrefsFolder, FileObserver.CLOSE_WRITE or FileObserver.DELETE) { event, path ->
-            if (path.isNullOrBlank()) return@HarmonyFileObserver
-            if (event == FileObserver.CLOSE_WRITE) {
-                if (path.endsWith(PREFS_TRANSACTIONS)) {
-                    harmonyHandler.removeCallbacks(transactionUpdateJob) // Don't keep a queue of all transaction updates
-                    harmonyHandler.post(transactionUpdateJob)
-                } else if (path.endsWith(PREFS_DATA)) {
-                    harmonyHandler.removeCallbacks(transactionUpdateJob) // Cancel any pending transaction update, as an update to the main supersedes it
-                    harmonyHandler.post {
-                        handleMainUpdateWithFileLock()
-                    }
-                }
-            } else if (event == FileObserver.DELETE && path.endsWith(PREFS_TRANSACTIONS_OLD)) {
-                harmonyHandler.removeCallbacks(transactionUpdateJob) // Ensure the transaction data is cleared when transaction is deleted
-                harmonyHandler.post {
-                    lastReadTransactions = sortedSetOf()
-                    lastTransactionPosition = 0L
-                }
-            }
         }
     }
 
@@ -1216,9 +1199,13 @@ private const val TRANSACTION_FILE_VERSION_1 = Byte.MAX_VALUE
 private const val TRANSACTION_FILE_VERSION_2 = (TRANSACTION_FILE_VERSION_1 - 1).toByte()
 private const val CURR_TRANSACTION_FILE_VERSION = TRANSACTION_FILE_VERSION_2.toInt()
 
-private object CONTENT
+// Empty singleton to support WeakHashmap
+private object EmptyContent
 
-private object HARMONYLOCK
+// Hack to force FileObserver to initialize static fields. This starts the ObserverThread.
+private val FILE_OBSERVER_SYNC_OBJECT: Any = Class.forName(FileObserver::class.java.name)
+
+private object SingletonLockObj
 
 private val SINGLETON_MAP = hashMapOf<String, HarmonyImpl>()
 
@@ -1234,7 +1221,7 @@ internal fun Context.getHarmonySharedPreferences(
     maxTransactionSize: Long,
     maxTransactionBatchCount: Int
 ): SharedPreferences {
-    return SINGLETON_MAP[name] ?: synchronized(HARMONYLOCK) {
+    return SINGLETON_MAP[name] ?: synchronized(SingletonLockObj) {
         SINGLETON_MAP.getOrPut(name) {
             HarmonyImpl(applicationContext, name, maxTransactionSize, maxTransactionBatchCount)
         }
@@ -1265,7 +1252,7 @@ fun Context.getHarmonySharedPreferences(fileName: String): SharedPreferences {
  */
 @JvmName("setLogger")
 fun setHarmonyLog(harmonyLog: HarmonyLog) {
-    synchronized(HARMONYLOCK) {
+    synchronized(SingletonLockObj) {
         if (_harmonyLog == null) {
             _harmonyLog = harmonyLog
         }
