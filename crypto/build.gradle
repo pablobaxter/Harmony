@@ -29,12 +29,12 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
 
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "11"
     }
 }
 
@@ -47,7 +47,7 @@ dokkaHtml {
             reportUndocumented.set(true)
             platform.set(org.jetbrains.dokka.Platform.jvm)
             sourceRoots.setFrom(file("src/main"))
-            jdkVersion.set(8)
+            jdkVersion.set(11)
 
             perPackageOption {
                 matchingRegex('kotlin($|\\.).*')
@@ -80,7 +80,7 @@ dependencies {
     api project(":harmony")
 
     // Kotlin
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     implementation "androidx.annotation:annotation:$annotation_version"
 
     // Security
@@ -91,8 +91,9 @@ dependencies {
     androidTestImplementation "androidx.core:core-ktx:$corektx_version"
     androidTestImplementation "org.jetbrains.kotlin:kotlin-test:$kotlin_version"
     androidTestImplementation "org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version"
-    androidTestImplementation "androidx.test.ext:junit:$test_ext_version"
+    androidTestImplementation "androidx.test.ext:junit-ktx:$test_ext_version"
     androidTestImplementation "androidx.test:rules:$test_rules_version"
+    androidTestImplementation "androidx.test:runner:$test_runner_version"
     androidTestImplementation "androidx.test.espresso:espresso-core:$espresso_core_version"
     androidTestImplementation "androidx.test.espresso:espresso-remote:$espresso_remote_version"
     androidTestImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlin_coroutine_version"

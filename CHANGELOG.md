@@ -1,5 +1,12 @@
 ## Change Log
 
+### Version 1.1.11 / 2022-03-11
+- Updated Kotlin to 1.6.10
+- Updated `compileSdk` to 31
+- Updated Android Gradle plugin version to 7.0.4
+- Targets Java 11 now
+- Fixes crashing issue caused by `WeakHashMap` throwing a `NoSuchElementException` [#41](https://github.com/pablobaxter/Harmony/issues/41)
+
 ### Version 1.1.10 / 2021-10-10
 - Fixes crashing issue caused by the `FileObserver.startWatch()` function on LGE devices [#38](https://github.com/pablobaxter/Harmony/pull/38)
 - Update Kotlin version to 1.5.31 and Coroutines to 1.5.2
