@@ -70,7 +70,7 @@ jobs:
       - run:
           name: Install gsutil dependency and copy test results data
           command: |
-            sudo pip install -U crcmod
+            sudo pip3 install -U crcmod
             sudo gsutil -m cp -r -U `sudo gsutil ls gs://cloud-test-${GOOGLE_PROJECT_ID}/harmony-${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM}/joan-26-en-portrait/test_result_1.xml | tail -1` ${HOME}/temp_results/test_result_1_harmony.xml | true
             sudo gsutil -m cp -r -U `sudo gsutil ls gs://cloud-test-${GOOGLE_PROJECT_ID}/crypto-${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM}/Pixel2-29-en-portrait/test_result_1.xml | tail -1` ${HOME}/temp_results/test_result_1_crypto.xml | true
 
