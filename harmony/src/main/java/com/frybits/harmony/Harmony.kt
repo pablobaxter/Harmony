@@ -465,7 +465,7 @@ private class HarmonyImpl constructor(
 
                 val notifyListeners = listenerMap.isNotEmpty()
                 val keysModified = if (notifyListeners) arrayListOf<String?>() else null
-                val listeners = if (notifyListeners) listenerMap.keys.toSet() else null
+                val listeners = if (notifyListeners) listenerMap.toSafeSet() else null
 
                 var wasCleared = false
                 // Commit all transactions to this snapshot
@@ -552,7 +552,7 @@ private class HarmonyImpl constructor(
 
             val notifyListeners = listenerMap.isNotEmpty()
             val keysModified = if (notifyListeners) arrayListOf<String?>() else null
-            val listeners = if (notifyListeners) listenerMap.keys.toSet() else null
+            val listeners = if (notifyListeners) listenerMap.toSafeSet() else null
 
             // Store the old map just in case
             val oldMap = harmonyMap
@@ -748,6 +748,21 @@ private class HarmonyImpl constructor(
         return false
     }
 
+    private fun WeakHashMap<SharedPreferences.OnSharedPreferenceChangeListener, *>.toSafeSet(): Set<SharedPreferences.OnSharedPreferenceChangeListener>? {
+        return try {
+            keys.toSet()
+        } catch (e: NoSuchElementException) {
+            _InternalHarmonyLog.e(LOG_TAG, "Failed with using `.toSet()`. size = ${keys.size}")
+            try {
+                HashSet(keys)
+            } catch (e: NoSuchElementException) {
+                _InternalHarmonyLog.e(LOG_TAG, "Failed with using `HashSet()`. size = ${keys.size}")
+                _InternalHarmonyLog.recordException(e)
+                null
+            }
+        }
+    }
+
     // Internal Editor implementation
     private inner class HarmonyEditor : SharedPreferences.Editor {
 
@@ -838,7 +853,7 @@ private class HarmonyImpl constructor(
             mapReentrantReadWriteLock.write {
                 val notifyListeners = listenerMap.isNotEmpty()
                 val keysModified = if (notifyListeners) arrayListOf<String?>() else null
-                val listeners = if (notifyListeners) listenerMap.keys.toSet() else null
+                val listeners = if (notifyListeners) listenerMap.toSafeSet() else null
 
                 val transaction = synchronized(this@HarmonyEditor) {
                     val transaction = harmonyTransaction
