@@ -149,7 +149,7 @@ afterEvaluate {
                     }
                     developers {
                         developer {
-                            id = 'soaboz'
+                            id = 'pablobaxter'
                             name = 'Pablo Baxter'
                             email = 'pablo@frybits.com'
                         }
