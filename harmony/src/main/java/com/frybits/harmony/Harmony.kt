@@ -489,7 +489,11 @@ private class HarmonyImpl constructor(
                     mainHandler.post { // Listeners are notified on the main thread
                         if (shouldNotifyClearToListeners && wasCleared) {
                             listeners?.forEach { listener ->
-                                listener.onSharedPreferenceChanged(this, null)
+                                if (listener is OnHarmonySharedPreferenceChangedListener) {
+                                    listener.onSharedPreferencesCleared(this)
+                                } else {
+                                    listener.onSharedPreferenceChanged(this, null)
+                                }
                             }
                         }
                         keysModified.asReversed().forEach { key ->
@@ -596,7 +600,11 @@ private class HarmonyImpl constructor(
                 mainHandler.post { // Listeners are notified on the main thread
                     if (shouldNotifyClearToListeners && wasCleared) {
                         listeners?.forEach { listener ->
-                            listener.onSharedPreferenceChanged(this, null)
+                            if (listener is OnHarmonySharedPreferenceChangedListener) {
+                                listener.onSharedPreferencesCleared(this)
+                            } else {
+                                listener.onSharedPreferenceChanged(this, null)
+                            }
                         }
                     }
                     keysModified.asReversed().forEach { key ->
@@ -872,7 +880,11 @@ private class HarmonyImpl constructor(
                     mainHandler.post { // Listeners are notified on the main thread
                         if (shouldNotifyClearToListeners && transaction.cleared) {
                             listeners?.forEach { listener ->
-                                listener.onSharedPreferenceChanged(this@HarmonyImpl, null)
+                                if (listener is OnHarmonySharedPreferenceChangedListener) {
+                                    listener.onSharedPreferencesCleared(this@HarmonyImpl)
+                                } else {
+                                    listener.onSharedPreferenceChanged(this@HarmonyImpl, null)
+                                }
                             }
                         }
                         keysModified.asReversed().forEach { key ->

@@ -537,16 +537,19 @@ class HarmonyProcessApplyTest {
         val clearDataKeyChangedCompletableDeferred = CompletableDeferred<String?>()
         val clearEmittedNullValue = CompletableDeferred<Boolean>()
 
-        val clearDataChangeListener = SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
-            if (key == null) {
+        val clearDataChangeListener = object : OnHarmonySharedPreferenceChangedListener {
+            @Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE")
+            override fun onSharedPreferencesCleared(prefs: SharedPreferences) {
                 clearEmittedNullValue.complete(true)
-                return@OnSharedPreferenceChangeListener
-            } else if (!clearEmittedNullValue.isCompleted) {
-                clearEmittedNullValue.complete(false)
+                assertTrue("Wrong Harmony object was returned") { sharedPreferences == prefs }
             }
-            assertTrue("Wrong Harmony object was returned") { sharedPreferences == prefs }
-            assertTrue("Wrong key was emitted") { key == TEST_CLEAR_DATA_KEY } // We expect the change listener to emit, even though we have the same string. Prefs were cleared.
-            clearDataKeyChangedCompletableDeferred.complete(prefs.getString(TEST_CLEAR_DATA_KEY, null))
+
+            override fun onSharedPreferenceChanged(prefs: SharedPreferences, key: String?) {
+                clearEmittedNullValue.complete(false)
+                assertTrue("Wrong Harmony object was returned") { sharedPreferences == prefs }
+                assertTrue("Wrong key was emitted") { key == TEST_CLEAR_DATA_KEY } // We expect the change listener to emit, even though we have the same string. Prefs were cleared.
+                clearDataKeyChangedCompletableDeferred.complete(prefs.getString(TEST_CLEAR_DATA_KEY, null))
+            }
         }
 
         sharedPreferences.registerOnSharedPreferenceChangeListener(clearDataChangeListener)
