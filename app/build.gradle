@@ -15,7 +15,7 @@ if (propertiesFile.exists()) {
 
 android {
     compileSdkVersion compileSdk_version
-    buildToolsVersion buildtools_version
+
     defaultConfig {
         applicationId "com.frybits.harmony.app"
         minSdkVersion crypto_minSdk_version
@@ -69,16 +69,10 @@ android {
     }
 }
 
-repositories{
-    flatDir{
-        dirs 'libs'
-    }
-}
-
 dependencies {
     implementation project (':crypto')
     implementation 'com.tencent:mmkv-static:1.2.8'
-    implementation (name: "tray-0.12.0", ext: 'aar')
+    implementation files('libs/tray-0.12.0.aar')
 
     // Kotlin
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
@@ -88,6 +82,7 @@ dependencies {
     // Android
     implementation "androidx.appcompat:appcompat:$appcompat_version"
     implementation "androidx.core:core-ktx:$corektx_version"
+    implementation "com.google.android.material:material:$material_version"
     implementation "androidx.lifecycle:lifecycle-runtime-ktx:$lifecycle_scope_version"
     implementation "androidx.navigation:navigation-fragment-ktx:$nav_version"
     implementation "androidx.navigation:navigation-ui-ktx:$nav_version"

@@ -6,8 +6,6 @@ apply plugin: 'signing'
 
 android {
     compileSdkVersion compileSdk_version
-    buildToolsVersion buildtools_version
-
     defaultConfig {
         minSdkVersion crypto_minSdk_version
 
@@ -187,9 +185,9 @@ signing {
     sign publishing.publications
 }
 
-nexusStaging {
-    packageGroup = 'com.frybits.harmony'
-    stagingProfileId = '38e43065571d'
-    username = ossrhUsername
-    password = ossrhPassword
-}
+//nexusStaging {
+//    packageGroup = 'com.frybits.harmony'
+//    stagingProfileId = '38e43065571d'
+//    username = ossrhUsername
+//    password = ossrhPassword
+//}

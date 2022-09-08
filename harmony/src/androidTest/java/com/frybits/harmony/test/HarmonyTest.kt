@@ -1,9 +1,11 @@
-package com.frybits.harmony
+package com.frybits.harmony.test
 
 import android.content.SharedPreferences
 import androidx.core.content.edit
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.frybits.harmony.OnHarmonySharedPreferenceChangedListener
+import com.frybits.harmony.getHarmonySharedPreferences
 import kotlin.random.Random
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

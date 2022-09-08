@@ -1,4 +1,4 @@
-package com.frybits.harmony
+package com.frybits.harmony.test
 
 import android.app.ActivityManager
 import android.app.Service
@@ -13,7 +13,10 @@ import androidx.core.content.edit
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.ServiceTestRule
+import com.frybits.harmony.HarmonyLog
+import com.frybits.harmony.getHarmonySharedPreferences
 import com.frybits.harmony.internal.withFileLock
+import com.frybits.harmony.setHarmonyLog
 import java.io.File
 import java.io.IOException
 import java.io.RandomAccessFile

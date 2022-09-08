@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.frybits.harmony">
+    package="com.frybits.harmony.test">
 
-    <uses-sdk android:targetSdkVersion="30"/>
+    <uses-sdk android:targetSdkVersion="33"/>
 
     <application>
         <service

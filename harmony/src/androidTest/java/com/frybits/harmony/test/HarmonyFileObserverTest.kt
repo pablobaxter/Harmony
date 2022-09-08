@@ -1,7 +1,8 @@
-package com.frybits.harmony
+package com.frybits.harmony.test
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.frybits.harmony.getHarmonySharedPreferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll

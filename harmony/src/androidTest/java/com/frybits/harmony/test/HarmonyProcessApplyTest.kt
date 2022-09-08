@@ -1,4 +1,4 @@
-package com.frybits.harmony
+package com.frybits.harmony.test
 
 import android.app.ActivityManager
 import android.content.Context
@@ -12,6 +12,8 @@ import androidx.core.content.edit
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.ServiceTestRule
+import com.frybits.harmony.OnHarmonySharedPreferenceChangedListener
+import com.frybits.harmony.getHarmonySharedPreferences
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.random.Random
 import kotlin.test.assertEquals

@@ -1,4 +1,4 @@
-package com.frybits.harmony
+package com.frybits.harmony.test
 
 import android.app.ActivityManager
 import android.app.Service
@@ -12,6 +12,7 @@ import android.os.Messenger
 import android.os.Process
 import androidx.core.content.edit
 import androidx.core.os.bundleOf
+import com.frybits.harmony.getHarmonySharedPreferences
 import kotlin.random.Random
 import kotlin.test.assertTrue
 
