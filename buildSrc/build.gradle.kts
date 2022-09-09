@@ -24,3 +24,12 @@ repositories {
     google()
     mavenCentral()
 }
+
+gradlePlugin {
+    plugins {
+        create("frybitsAppPlugin") {
+            id = "frybits-application"
+            implementationClass = "com.frybits.harmony.gradle.ApplicationPlugin"
+        }
+    }
+}

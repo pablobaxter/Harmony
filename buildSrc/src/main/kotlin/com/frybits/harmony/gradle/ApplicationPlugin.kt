@@ -8,6 +8,7 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.apply
 import org.gradle.kotlin.dsl.configure
+import org.gradle.kotlin.dsl.create
 import org.jetbrains.kotlin.gradle.internal.Kapt3GradleSubplugin
 import org.jetbrains.kotlin.gradle.internal.ParcelizeSubplugin
 import org.jetbrains.kotlin.gradle.plugin.KaptExtension
@@ -18,7 +19,10 @@ class ApplicationPlugin: Plugin<Project> {
     override fun apply(target: Project) {
         target.applyAppPlugins()
 
+        target.extensions.create<HarmonyExtension>("harmonyAndroid")
+
         target.configure<ApplicationExtension> {
+            configureCommonAndroid()
 
         }
     }

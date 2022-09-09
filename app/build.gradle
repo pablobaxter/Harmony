@@ -1,4 +1,4 @@
-apply plugin: 'com.android.application'
+apply plugin: 'frybits-application'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-parcelize'
 apply plugin: "androidx.navigation.safeargs.kotlin"
@@ -11,6 +11,12 @@ def properties = new Properties()
 
 if (propertiesFile.exists()) {
     properties.load(new FileInputStream(propertiesFile))
+}
+
+harmonyAndroid {
+    defaultConfig {
+
+    }
 }
 
 android {
