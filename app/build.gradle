@@ -1,77 +1,11 @@
 apply plugin: 'frybits-application'
-apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-parcelize'
-apply plugin: "androidx.navigation.safeargs.kotlin"
-apply plugin: 'kotlin-kapt'
-apply plugin: 'dagger.hilt.android.plugin'
-
-def propertiesFile = rootProject.file("local.properties")
-
-def properties = new Properties()
-
-if (propertiesFile.exists()) {
-    properties.load(new FileInputStream(propertiesFile))
-}
-
-harmonyAndroid {
-    defaultConfig {
-
-    }
-}
 
 android {
-    compileSdkVersion compileSdk_version
-
     defaultConfig {
         applicationId "com.frybits.harmony.app"
-        minSdkVersion crypto_minSdk_version
         targetSdkVersion targetSdk_version
         versionCode 1
         versionName "1.0"
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-    }
-
-    signingConfigs {
-        debug {
-            keyAlias = 'androiddebugkey'
-            keyPassword = 'android'
-            if (file('./keystore.jks').exists()) {
-                storeFile = file('./keystore.jks')
-            }
-            storePassword = 'android'
-        }
-        release {
-            keyAlias = properties["harmony.keystore.alias"]
-            keyPassword = properties["harmony.keystore.alias.password"]
-            if (properties["harmony.keystore.file"] != null && !properties["harmony.keystore.file"].isEmpty()) {
-                storeFile = file(properties["harmony.keystore.file"])
-            }
-            storePassword = properties["harmony.keystore.password"]
-        }
-    }
-
-    buildTypes {
-        release {
-            minifyEnabled true
-            signingConfig signingConfigs.release
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-        }
-        debug {
-            signingConfig signingConfigs.debug
-        }
-    }
-
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
-    }
-
-    kotlinOptions {
-        jvmTarget = "11"
-    }
-
-    buildFeatures {
-        viewBinding true
     }
 }
 

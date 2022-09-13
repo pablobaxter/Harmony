@@ -34,6 +34,13 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
+
+    publishing {
+        singleVariant("release") {
+            withJavadocJar()
+            withSourcesJar()
+        }
+    }
 }
 
 dokkaHtml {
@@ -57,21 +64,21 @@ dokkaHtml {
     }
 }
 
-// build a jar with source files
-task sourcesJar(type: Jar) {
-    from android.sourceSets.main.java.srcDirs
-    archiveClassifier = 'sources'
-}
-
-task javadocJar(type: Jar, dependsOn: dokkaHtml) {
-    from "$buildDir/dokka"
-    archiveClassifier = 'javadoc'
-}
-
-artifacts {
-    archives sourcesJar
-    archives javadocJar
-}
+//// build a jar with source files
+//task sourcesJar(type: Jar) {
+//    from android.sourceSets.main.java.srcDirs
+//    archiveClassifier = 'sources'
+//}
+//
+//task javadocJar(type: Jar, dependsOn: dokkaHtml) {
+//    from "$buildDir/dokka"
+//    archiveClassifier = 'javadoc'
+//}
+//
+//artifacts {
+//    archives sourcesJar
+//    archives javadocJar
+//}
 
 dependencies {
     // Harmony
@@ -134,13 +141,13 @@ afterEvaluate {
                 artifactId = 'harmony-crypto'
                 version = crypto_version_name
 
-                artifact sourcesJar {
-                    archiveClassifier = 'sources'
-                }
-
-                artifact javadocJar {
-                    archiveClassifier = 'javadoc'
-                }
+//                artifact sourcesJar {
+//                    archiveClassifier = 'sources'
+//                }
+//
+//                artifact javadocJar {
+//                    archiveClassifier = 'javadoc'
+//                }
 
                 pom {
                     name = 'Harmony Crypto'

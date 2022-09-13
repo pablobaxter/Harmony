@@ -1,22 +1,11 @@
-//plugins {
-//    id "com.android.application" version "7.2.2" apply false
-//    id "com.android.library" version "7.2.2" apply false
-//    id "org.jetbrains.kotlin.android" version "1.7.10" apply false
-//    id "org.jetbrains.kotlin.android.extensions" version "1.7.10" apply false
-//    id "org.jetbrains.dokka" version "1.6.10" apply false
-//    id "io.codearte.nexus-staging" version "0.30.0" apply true
-//    id "androidx.navigation.safeargs" version "2.5.1" apply false
-//    id "com.google.dagger.hilt.android" version "2.43.2" apply false
-//}
-
 ext {
     kotlin_version = '1.7.10'
     kotlin_coroutine_version = '1.6.4'
     lifecycle_scope_version = '2.3.1'
 
     // Android libraries
-    appcompat_version = '1.5.0'
-    corektx_version = '1.8.0'
+    appcompat_version = '1.5.1'
+    corektx_version = '1.9.0'
     annotation_version = '1.4.0'
     androidx_crypto_version = "1.0.0"
     tink_version = "1.6.1"
