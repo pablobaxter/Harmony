@@ -113,7 +113,7 @@ jobs:
           name: Upload Harmony Library
           command: |
             echo $SIGNING_SECRET | base64 -d > ~/secret.gpg
-            ./gradlew :harmony:publishReleaseHarmonyPublicationToSonatypeRepository
+            ./gradlew :harmony:publishReleasePublicationToSonatypeRepository
 
   Android-Crypto-Upload:
     docker:
@@ -132,7 +132,7 @@ jobs:
           name: Upload Harmony Crypto
           command: |
             echo $SIGNING_SECRET | base64 -d > ~/secret.gpg
-            ./gradlew :crypto:publishReleaseHarmonyPublicationToSonatypeRepository
+            ./gradlew :crypto:publishReleasePublicationToSonatypeRepository
 
   Android-Harmony-Maven-Release:
     docker:

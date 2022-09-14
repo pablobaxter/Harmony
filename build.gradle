@@ -12,7 +12,7 @@ ext {
     corektx_version = '1.9.0'
     annotation_version = '1.4.0'
     androidx_crypto_version = "1.0.0"
-    tink_version = "1.6.1"
+    tink_version = "1.7.0"
     material_version = "1.6.1"
 
     // Test
@@ -47,6 +47,7 @@ ext["signing.password"] = ''
 ext["signing.secretKeyRingFile"] = ''
 ext["ossrhUsername"] = ''
 ext["ossrhPassword"] = ''
+ext["profileId"] = ''
 
 File secretPropsFile = project.rootProject.file('local.properties')
 if (secretPropsFile.exists()) {
@@ -63,13 +64,14 @@ if (secretPropsFile.exists()) {
     ext["signing.secretKeyRingFile"] = System.getenv('SIGNING_SECRET_KEY_RING_FILE')
     ext["ossrhUsername"] = System.getenv('MAVEN_USERNAME')
     ext["ossrhPassword"] = System.getenv('MAVEN_PASSWORD')
+    ext["profileId"] = System.getenv('STAGING_PROFILE_ID')
 }
 
 nexusPublishing {
     packageGroup = 'com.frybits.harmony'
     repositories {
         sonatype {
-            stagingProfileId = '38e43065571d'
+            stagingProfileId = profileId
             username = ossrhUsername
             password = ossrhPassword
         }
