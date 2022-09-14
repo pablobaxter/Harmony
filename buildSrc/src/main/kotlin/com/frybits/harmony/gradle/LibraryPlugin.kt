@@ -157,7 +157,7 @@ private fun MavenPublication.configurePom(
         }
         developers {
             developer {
-                id.set("soaboz")
+                id.set("pablobaxter")
                 name.set("Pablo Baxter")
                 email.set("pablo@frybits.com")
             }
