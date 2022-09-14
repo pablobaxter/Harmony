@@ -67,12 +67,12 @@ private fun ApplicationExtension.configureAndroidApplication(properties: Propert
     buildTypes {
         maybeCreate("release").apply {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = signingConfigs.getByName(name)
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
 
         maybeCreate("debug").apply {
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName(name)
         }
     }
 

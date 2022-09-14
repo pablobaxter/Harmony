@@ -1,3 +1,7 @@
+plugins {
+    id("io.github.gradle-nexus.publish-plugin")
+}
+
 ext {
     kotlin_version = '1.7.10'
     kotlin_coroutine_version = '1.6.4'
@@ -36,4 +40,38 @@ ext {
 
 task clean(type: Delete) {
     delete rootProject.buildDir
+}
+
+ext["signing.keyId"] = ''
+ext["signing.password"] = ''
+ext["signing.secretKeyRingFile"] = ''
+ext["ossrhUsername"] = ''
+ext["ossrhPassword"] = ''
+
+File secretPropsFile = project.rootProject.file('local.properties')
+if (secretPropsFile.exists()) {
+    println "Found secret props file, loading props"
+    Properties p = new Properties()
+    p.load(new FileInputStream(secretPropsFile))
+    p.each { name, value ->
+        ext[name] = value
+    }
+} else {
+    println "No props file, loading env vars"
+    ext["signing.keyId"] = System.getenv('SIGNING_KEY_ID')
+    ext["signing.password"] = System.getenv('SIGNING_PASSWORD')
+    ext["signing.secretKeyRingFile"] = System.getenv('SIGNING_SECRET_KEY_RING_FILE')
+    ext["ossrhUsername"] = System.getenv('MAVEN_USERNAME')
+    ext["ossrhPassword"] = System.getenv('MAVEN_PASSWORD')
+}
+
+nexusPublishing {
+    packageGroup = 'com.frybits.harmony'
+    repositories {
+        sonatype {
+            stagingProfileId = '38e43065571d'
+            username = ossrhUsername
+            password = ossrhPassword
+        }
+    }
 }
