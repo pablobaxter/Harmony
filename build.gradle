@@ -29,7 +29,7 @@ ext {
     crypto_minSdk_version = 23
     compileSdk_version = 33
     targetSdk_version = 33
-    nav_version = "2.5.1"
+    nav_version = "2.5.2"
     constraint_version = '2.1.4'
     hilt_version = '2.43.2'
     room_version = "2.4.3"

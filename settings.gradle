@@ -17,4 +17,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "Harmony Preferences"
-include ":app", ":harmony", ":crypto"
+include ":app", ":harmony", ":crypto", ":target31test"

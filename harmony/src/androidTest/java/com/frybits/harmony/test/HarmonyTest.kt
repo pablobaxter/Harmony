@@ -170,16 +170,9 @@ class HarmonyTest {
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
         val harmonyPrefs = appContext.getHarmonySharedPreferences(PREFS)
         val keyCompletableDeferred = CompletableDeferred<String>()
-        val emittedNullOnClearDeferred = CompletableDeferred<Boolean>()
         val onPreferenChanListener =
             SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences, key ->
                 assertTrue { sharedPreferences === harmonyPrefs }
-                if (key == null) {
-                    emittedNullOnClearDeferred.complete(true)
-                    return@OnSharedPreferenceChangeListener
-                } else if (!emittedNullOnClearDeferred.isCompleted) {
-                    emittedNullOnClearDeferred.complete(false)
-                }
                 keyCompletableDeferred.complete(key)
             }
         val pref1 = "foo${Random.nextInt()}"
@@ -195,7 +188,6 @@ class HarmonyTest {
         }
         runBlocking {
             withTimeout(1000) {
-                assertTrue(emittedNullOnClearDeferred.await(), "Did not emit null first!")
                 assertEquals("test", keyCompletableDeferred.await())
             }
         }
@@ -208,15 +200,12 @@ class HarmonyTest {
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
         val harmonyPrefs = appContext.getHarmonySharedPreferences(PREFS)
         val keyCompletableDeferred = CompletableDeferred<String?>()
-        val emittedNullOnClearDeferred = CompletableDeferred<Boolean>()
         val onPreferenChanListener = object : OnHarmonySharedPreferenceChangedListener {
             override fun onSharedPreferencesCleared(sharedPreferences: SharedPreferences) {
                 assertTrue { sharedPreferences === harmonyPrefs }
-                emittedNullOnClearDeferred.complete(true)
             }
 
             override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String?) {
-                emittedNullOnClearDeferred.complete(false)
                 keyCompletableDeferred.complete(key)
             }
         }
@@ -233,7 +222,6 @@ class HarmonyTest {
         }
         runBlocking {
             withTimeout(1000) {
-                assertTrue(emittedNullOnClearDeferred.await(), "Did not emit null first!")
                 assertEquals("test", keyCompletableDeferred.await())
             }
         }

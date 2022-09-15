@@ -12,7 +12,6 @@ import androidx.core.content.edit
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.ServiceTestRule
-import com.frybits.harmony.OnHarmonySharedPreferenceChangedListener
 import com.frybits.harmony.getHarmonySharedPreferences
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.random.Random
@@ -522,53 +521,6 @@ class HarmonyProcessApplyTest {
         }
 
         sharedPreferences.unregisterOnSharedPreferenceChangeListener(simpleChangeListener)
-    }
-
-    @Test
-    fun testClearedDataChangesNotifiesAcrossProcesses() = runBlocking {
-        // Setup test
-        val application = InstrumentationRegistry.getInstrumentation().targetContext
-
-        val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE, TRANSACTION_BATCH_SIZE)
-
-        // Start clear data + simple change notify test
-        val clearDataTestString = "clearData${Random.nextInt(0, Int.MAX_VALUE)}"
-
-        sharedPreferences.edit { putString(TEST_CLEAR_DATA_KEY, clearDataTestString) } // Pre-populate the prefs with known data
-
-        val clearDataKeyChangedCompletableDeferred = CompletableDeferred<String?>()
-        val clearEmittedNullValue = CompletableDeferred<Boolean>()
-
-        val clearDataChangeListener = object : OnHarmonySharedPreferenceChangedListener {
-            @Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE")
-            override fun onSharedPreferencesCleared(prefs: SharedPreferences) {
-                clearEmittedNullValue.complete(true)
-                assertTrue("Wrong Harmony object was returned") { sharedPreferences == prefs }
-            }
-
-            override fun onSharedPreferenceChanged(prefs: SharedPreferences, key: String?) {
-                clearEmittedNullValue.complete(false)
-                assertTrue("Wrong Harmony object was returned") { sharedPreferences == prefs }
-                assertTrue("Wrong key was emitted") { key == TEST_CLEAR_DATA_KEY } // We expect the change listener to emit, even though we have the same string. Prefs were cleared.
-                clearDataKeyChangedCompletableDeferred.complete(prefs.getString(TEST_CLEAR_DATA_KEY, null))
-            }
-        }
-
-        sharedPreferences.registerOnSharedPreferenceChangeListener(clearDataChangeListener)
-
-        val serviceIntent = Intent(application, ClearDataApplyService::class.java).apply {
-            putExtra(TEST_CLEAR_DATA_KEY, clearDataTestString) // Pass the same string
-        }
-        serviceRule.startService(serviceIntent)
-
-        withTimeout(1000) {
-            val emittedNull = clearEmittedNullValue.await()
-            val clearDataResponse = clearDataKeyChangedCompletableDeferred.await()
-            assertTrue(emittedNull, "Cleared data change listener didn't emit null first!")
-            assertEquals(clearDataTestString, clearDataResponse, "Cleared data change listener failed to emit the correct key!")
-        }
-
-        sharedPreferences.unregisterOnSharedPreferenceChangeListener(clearDataChangeListener)
     }
 
     @Test

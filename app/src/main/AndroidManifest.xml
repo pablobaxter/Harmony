@@ -29,5 +29,14 @@
         <service android:name=".test.TrayRemoteTestRunnerService"
             android:process=":remote"/>
 
+        <service
+            android:name=".ClearDataApplyService"
+            android:exported="true"
+            android:process=":alternate" />
+        <service
+            android:name=".ClearDataCommitService"
+            android:exported="true"
+            android:process=":alternate" />
+
     </application>
 </manifest>

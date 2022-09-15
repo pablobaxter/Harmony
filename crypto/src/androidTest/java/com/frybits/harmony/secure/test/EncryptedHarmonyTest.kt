@@ -207,38 +207,6 @@ class EncryptedHarmonyTest {
         assertEquals(pref2, harmonyPrefs.getString(null, null))
     }
 
-    @Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE")
-    @Test
-    fun testOnPreferenceOnClearCalled() {
-        val harmonyPrefs = sharedPreferences
-        val keyCompletableDeferred = CompletableDeferred<Unit>()
-        val onPreferenceChangeListener = object : OnHarmonySharedPreferenceChangedListener {
-            override fun onSharedPreferencesCleared(prefs: SharedPreferences) {
-                assertTrue { prefs === harmonyPrefs }
-                keyCompletableDeferred.complete(Unit)
-            }
-
-            override fun onSharedPreferenceChanged(prefs: SharedPreferences?, key: String?) {
-                fail("onSharedPreferenceChanged Should not be called!")
-            }
-        }
-        val pref1 = "foo${Random.nextInt()}"
-        assertFalse { harmonyPrefs.contains(null) }
-        harmonyPrefs.edit { putString(null, pref1) }
-        assertTrue { harmonyPrefs.contains(null) }
-        assertEquals(pref1, harmonyPrefs.getString(null, null))
-        harmonyPrefs.registerOnSharedPreferenceChangeListener(onPreferenceChangeListener)
-        harmonyPrefs.edit {
-            clear()
-        }
-        runBlocking {
-            withTimeout(1000) {
-                keyCompletableDeferred.await()
-            }
-        }
-        assertNotEquals(pref1, harmonyPrefs.getString(null, null))
-    }
-
     @Test
     fun testEncryptedIntStorage() {
         val unencryptedPrefs = InstrumentationRegistry
