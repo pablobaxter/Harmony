@@ -30,6 +30,7 @@ import com.frybits.harmony._harmonyLog
 
 private val LOG = false
 
+@PublishedApi
 internal object _InternalHarmonyLog {
 
     @JvmSynthetic
@@ -57,6 +58,7 @@ internal object _InternalHarmonyLog {
     }
 
     @JvmSynthetic
+    @PublishedApi
     internal fun w(tag: String, msg: String, throwable: Throwable? = null) {
         log(Log.WARN, tag, msg)
         throwable?.let {

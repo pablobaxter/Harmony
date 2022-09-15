@@ -3,17 +3,13 @@
 
 package com.frybits.harmony.internal
 
-import android.os.Build
-import android.system.Os
 import androidx.annotation.VisibleForTesting
-import java.io.File
-import java.io.FileOutputStream
 import java.io.IOException
 import java.io.RandomAccessFile
 import java.nio.channels.FileLock
 
 /*
- *  Copyright 2020 Pablo Baxter
+ *  Copyright 2022 Pablo Baxter
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -30,37 +26,15 @@ import java.nio.channels.FileLock
  * Created by Pablo Baxter (Github: pablobaxter)
  * https://github.com/pablobaxter/Harmony
  *
- * FileLock tool
  */
 
-private const val LOG_TAG = "HarmonyFileUtils"
-
-@JvmSynthetic
-internal inline fun <T> File.withFileLock(shared: Boolean = false, block: () -> T): T? {
-    return synchronized(this) {
-        var randomAccessFile: RandomAccessFile? = null
-        try {
-            randomAccessFile = RandomAccessFile(this, if (shared) "r" else "rw")
-            return@synchronized randomAccessFile.withFileLock(shared, block)
-        } catch (e: IOException) {
-            _InternalHarmonyLog.w(LOG_TAG, "IOException while obtaining file lock", e)
-        } catch (e: Error) {
-            _InternalHarmonyLog.w(LOG_TAG, "Error while obtaining file lock", e)
-        } finally {
-            // The object may have a bad file descriptor, but if we don't call "close()", this will lead to a crash when GC cleans this object up
-            try {
-                randomAccessFile?.close()
-            } catch (e: IOException) {
-                _InternalHarmonyLog.w(LOG_TAG, "Exception thrown while closing the RandomAccessFile", e)
-            }
-        }
-        return@synchronized null
-    }
-}
+@PublishedApi
+internal const val FILE_UTILS_LOG_TAG = "HarmonyFileUtils"
 
 @Throws(IOException::class)
 @JvmSynthetic
 @VisibleForTesting
+@PublishedApi
 internal inline fun <T> RandomAccessFile.withFileLock(shared: Boolean, block: () -> T): T {
     // Lock the file to prevent other process from writing to it while this read is occurring. This is reentrant
     var lock: FileLock? = null
@@ -75,14 +49,5 @@ internal inline fun <T> RandomAccessFile.withFileLock(shared: Boolean, block: ()
         } catch (e: IOException) {
             throw IOException("Unable to release FileLock!", e)
         }
-    }
-}
-
-@JvmSynthetic
-internal fun FileOutputStream.sync() {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-        Os.fsync(fd)
-    } else {
-        fd.sync()
     }
 }

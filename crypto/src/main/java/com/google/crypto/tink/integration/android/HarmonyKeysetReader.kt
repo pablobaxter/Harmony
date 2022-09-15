@@ -1,5 +1,6 @@
 package com.google.crypto.tink.integration.android
 
+import com.frybits.harmony.withFileLock
 import com.google.crypto.tink.KeysetReader
 import com.google.crypto.tink.proto.EncryptedKeyset
 import com.google.crypto.tink.proto.Keyset

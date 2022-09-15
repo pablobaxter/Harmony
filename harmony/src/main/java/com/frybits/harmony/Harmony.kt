@@ -17,8 +17,6 @@ import com.frybits.harmony.internal._HarmonyException
 import com.frybits.harmony.internal._InternalHarmonyLog
 import com.frybits.harmony.internal.putHarmony
 import com.frybits.harmony.internal.readHarmony
-import com.frybits.harmony.internal.sync
-import com.frybits.harmony.internal.withFileLock
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.File

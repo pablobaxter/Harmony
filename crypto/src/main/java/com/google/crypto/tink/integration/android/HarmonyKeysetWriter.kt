@@ -1,6 +1,8 @@
 package com.google.crypto.tink.integration.android
 
 import android.annotation.SuppressLint
+import com.frybits.harmony.sync
+import com.frybits.harmony.withFileLock
 import com.google.crypto.tink.KeysetWriter
 import com.google.crypto.tink.proto.EncryptedKeyset
 import com.google.crypto.tink.proto.Keyset
@@ -18,13 +20,19 @@ class HarmonyKeysetWriter(private val keysetFile: File, private val keysetFileLo
 
     override fun write(keyset: EncryptedKeyset) {
         keysetFileLock.withFileLock {
-            keysetFile.outputStream().use(keyset::writeTo)
+            keysetFile.outputStream().use {
+                keyset.writeTo(it)
+                it.sync()
+            }
         }
     }
 
     override fun write(keyset: Keyset) {
         keysetFileLock.withFileLock {
-            keysetFile.outputStream().use(keyset::writeTo)
+            keysetFile.outputStream().use {
+                keyset.writeTo(it)
+                it.sync()
+            }
         }
     }
 }
