@@ -1,7 +1,7 @@
 ## Change Log
 
 ### Version 1.2.0 / 2022-09-15
-- Adds new `OnHarmonySharedPreferenceChangedListener` that provides an explicit callback for `clear()` events, instead of just emitting `null`
+- Adds new `OnHarmonySharedPreferenceChangedListener` that provides an explicit callback for `clear()` events, instead of just emitting `null` keys
 - Exposes `withFileLock()` and `FileInputStream.sync()` utility functions for public use
 - Updated Kotlin to 1.7.10
 - Updated `compileSdk` to 33
