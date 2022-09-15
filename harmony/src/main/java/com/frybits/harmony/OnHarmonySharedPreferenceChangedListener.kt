@@ -44,4 +44,18 @@ interface OnHarmonySharedPreferenceChangedListener: SharedPreferences.OnSharedPr
      * @param sharedPreferences The [SharedPreferences] that received the change.
      */
     fun onSharedPreferencesCleared(sharedPreferences: SharedPreferences)
+
+    /**
+     * Called when a shared preference is changed, added, or removed. This
+     * may be called even if a preference is set to its existing value.
+     *
+     * This callback will be run on your main thread.
+     *
+     * **Note**: On Harmony, this will not emit `null` if preferences are cleared when targeting [Build.VERSION_CODES.R].
+     * Instead, [onSharedPreferencesCleared] will be called. However, if used with Android [SharedPreferences],
+     * this will behave just like [SharedPreferences.OnSharedPreferenceChangeListener], and emit `null`.
+     *
+     * @see [SharedPreferences.OnSharedPreferenceChangeListener.onSharedPreferenceChanged]
+     */
+    override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String?)
 }

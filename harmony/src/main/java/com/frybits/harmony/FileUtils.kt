@@ -31,7 +31,7 @@ import java.io.RandomAccessFile
  */
 
 /**
- * Helper util for obtaining and holding a file lock until the given lambda completes
+ * Helper function for obtaining and holding a file lock until the given lambda completes
  *
  * @param shared Flag to indicate if the lock is shared. Defaults to false.
  */
@@ -58,7 +58,7 @@ inline fun <T> File.withFileLock(shared: Boolean = false, block: () -> T): T? {
 }
 
 /**
- * Extension function to sync the given [FileOutputStream]
+ * Helper function for performing an fsync() on the given [FileOutputStream]
  */
 fun FileOutputStream.sync() {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
