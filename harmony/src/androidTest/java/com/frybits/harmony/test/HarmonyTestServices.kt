@@ -86,9 +86,10 @@ class AlternateProcessService : HarmonyService() {
         testPrefs.registerOnSharedPreferenceChangeListener(sharedPreferenceChangeListener)
     }
 
+    @Suppress("DEPRECATION")
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent != null) {
-            messenger = intent.getParcelableExtra(MESSENGER_KEY, Messenger::class.java)!!
+            messenger = intent.getParcelableExtra(MESSENGER_KEY)!!
         }
         return START_NOT_STICKY
     }
