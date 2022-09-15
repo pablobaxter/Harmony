@@ -88,7 +88,7 @@ class AlternateProcessService : HarmonyService() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent != null) {
-            messenger = intent.getParcelableExtra(MESSENGER_KEY)!!
+            messenger = intent.getParcelableExtra(MESSENGER_KEY, Messenger::class.java)!!
         }
         return START_NOT_STICKY
     }

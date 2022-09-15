@@ -17,6 +17,7 @@ import com.frybits.harmony.HarmonyLog
 import com.frybits.harmony.getHarmonySharedPreferences
 import com.frybits.harmony.internal.withFileLock
 import com.frybits.harmony.setHarmonyLog
+import com.frybits.harmony.withFileLock
 import java.io.File
 import java.io.IOException
 import java.io.RandomAccessFile
