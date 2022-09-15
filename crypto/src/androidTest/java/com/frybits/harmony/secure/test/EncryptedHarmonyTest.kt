@@ -179,12 +179,13 @@ class EncryptedHarmonyTest {
     fun testOnPreferenceNullKey() {
         val harmonyPrefs = sharedPreferences
         val keyCompletableDeferred = CompletableDeferred<String?>()
+        @Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE")
         val onPreferenceChangeListener = object : OnHarmonySharedPreferenceChangedListener {
             override fun onSharedPreferencesCleared(sharedPreferences: SharedPreferences) {
                 fail("onSharedPreferencesCleared Should not be called!")
             }
 
-            override fun onSharedPreferenceChanged(prefs: SharedPreferences?, key: String?) {
+            override fun onSharedPreferenceChanged(prefs: SharedPreferences, key: String?) {
                 assertTrue { prefs === harmonyPrefs }
                 keyCompletableDeferred.complete(key)
             }
