@@ -1,11 +1,12 @@
 package com.frybits.harmony.secure.test
 
+import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
 import com.frybits.harmony.OnHarmonySharedPreferenceChangedListener
 import com.frybits.harmony.getHarmonySharedPreferences
 import com.frybits.harmony.secure.getEncryptedHarmonySharedPreferences
@@ -18,7 +19,6 @@ import org.junit.runner.RunWith
 import kotlin.random.Random
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.test.fail
@@ -54,7 +54,7 @@ class EncryptedHarmonyTest {
     @Before
     fun setup() {
         // Context of the app under test.
-        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+        val appContext = ApplicationProvider.getApplicationContext<Context>()
         sharedPreferences = appContext.getEncryptedHarmonySharedPreferences(
             PREFS,
             masterKeyAlias,
@@ -209,9 +209,7 @@ class EncryptedHarmonyTest {
 
     @Test
     fun testEncryptedIntStorage() {
-        val unencryptedPrefs = InstrumentationRegistry
-            .getInstrumentation()
-            .targetContext.getHarmonySharedPreferences(PREFS)
+        val unencryptedPrefs = ApplicationProvider.getApplicationContext<Context>().getHarmonySharedPreferences(PREFS)
 
         // Everything should be empty
         assertFalse { unencryptedPrefs.contains("test") }
@@ -234,9 +232,7 @@ class EncryptedHarmonyTest {
 
     @Test
     fun testEncryptedLongStorage() {
-        val unencryptedPrefs = InstrumentationRegistry
-            .getInstrumentation()
-            .targetContext.getHarmonySharedPreferences(PREFS)
+        val unencryptedPrefs = ApplicationProvider.getApplicationContext<Context>().getHarmonySharedPreferences(PREFS)
 
         // Everything should be empty
         assertFalse { unencryptedPrefs.contains("test") }
@@ -259,9 +255,7 @@ class EncryptedHarmonyTest {
 
     @Test
     fun testEncryptedFloatStorage() {
-        val unencryptedPrefs = InstrumentationRegistry
-            .getInstrumentation()
-            .targetContext.getHarmonySharedPreferences(PREFS)
+        val unencryptedPrefs = ApplicationProvider.getApplicationContext<Context>().getHarmonySharedPreferences(PREFS)
 
         // Everything should be empty
         assertFalse { unencryptedPrefs.contains("test") }
@@ -285,9 +279,7 @@ class EncryptedHarmonyTest {
 
     @Test
     fun testEncryptedBooleanStorage() {
-        val unencryptedPrefs = InstrumentationRegistry
-            .getInstrumentation()
-            .targetContext.getHarmonySharedPreferences(PREFS)
+        val unencryptedPrefs = ApplicationProvider.getApplicationContext<Context>().getHarmonySharedPreferences(PREFS)
 
         // Everything should be empty
         assertFalse { unencryptedPrefs.contains("test") }
@@ -310,9 +302,7 @@ class EncryptedHarmonyTest {
 
     @Test
     fun testEncryptedStringStorage() {
-        val unencryptedPrefs = InstrumentationRegistry
-            .getInstrumentation()
-            .targetContext.getHarmonySharedPreferences(PREFS)
+        val unencryptedPrefs = ApplicationProvider.getApplicationContext<Context>().getHarmonySharedPreferences(PREFS)
 
         // Everything should be empty
         assertFalse { unencryptedPrefs.contains("test") }
@@ -335,9 +325,7 @@ class EncryptedHarmonyTest {
 
     @Test
     fun testEncryptedStringSetStorage() {
-        val unencryptedPrefs = InstrumentationRegistry
-            .getInstrumentation()
-            .targetContext.getHarmonySharedPreferences(PREFS)
+        val unencryptedPrefs = ApplicationProvider.getApplicationContext<Context>().getHarmonySharedPreferences(PREFS)
 
         // Everything should be empty
         assertFalse { unencryptedPrefs.contains("test") }

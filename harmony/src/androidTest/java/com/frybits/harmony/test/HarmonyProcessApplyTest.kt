@@ -9,8 +9,8 @@ import android.os.HandlerThread
 import android.os.Messenger
 import android.os.Process
 import androidx.core.content.edit
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.ServiceTestRule
 import com.frybits.harmony.getHarmonySharedPreferences
 import java.util.concurrent.ConcurrentHashMap
@@ -55,7 +55,7 @@ class HarmonyProcessApplyTest {
     @Before
     fun setup() {
         // Context of the app under test.
-        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+        val appContext = ApplicationProvider.getApplicationContext<Context>()
         appContext.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE, TRANSACTION_BATCH_SIZE).edit(true) { clear() }
 
         // Ensure we are in the right process
@@ -74,7 +74,7 @@ class HarmonyProcessApplyTest {
     @Test
     fun testMultiProcessPreferences_Int() {
         // Setup test
-        val application = InstrumentationRegistry.getInstrumentation().targetContext
+        val application = ApplicationProvider.getApplicationContext<Context>()
 
         // 5 entries to test
         val testMap = ConcurrentHashMap(mutableMapOf(
@@ -95,7 +95,7 @@ class HarmonyProcessApplyTest {
         val messenger = Messenger(Handler(handlerThread.looper) { msg ->
             if (testDeferred.isCompleted) return@Handler true
             val key = msg.data.keySet().first()
-            val value = msg.data[key] as? Int
+            val value = msg.data.getInt(key)
             val expected = testMap.remove(key) // This is what we should get
             if (expected != value) {
                 testDeferred.complete(Exception("Values were not equal! expected: $expected, actual: $value"))
@@ -129,7 +129,7 @@ class HarmonyProcessApplyTest {
     @Test
     fun testMultiProcessPreferences_Long() {
         // Setup test
-        val application = InstrumentationRegistry.getInstrumentation().targetContext
+        val application = ApplicationProvider.getApplicationContext<Context>()
 
         // 5 entries to test
         val testMap = ConcurrentHashMap(mutableMapOf(
@@ -150,7 +150,7 @@ class HarmonyProcessApplyTest {
         val messenger = Messenger(Handler(handlerThread.looper) { msg ->
             if (testDeferred.isCompleted) return@Handler true
             val key = msg.data.keySet().first()
-            val value = msg.data[key] as? Long
+            val value = msg.data.getLong(key)
             val expected = testMap.remove(key) // This is what we should get
             if (expected != value) {
                 testDeferred.complete(Exception("Values were not equal! expected: $expected, actual: $value"))
@@ -184,7 +184,7 @@ class HarmonyProcessApplyTest {
     @Test
     fun testMultiProcessPreferences_Float() {
         // Setup test
-        val application = InstrumentationRegistry.getInstrumentation().targetContext
+        val application = ApplicationProvider.getApplicationContext<Context>()
 
         // 5 entries to test
         val testMap = ConcurrentHashMap(mutableMapOf(
@@ -205,7 +205,7 @@ class HarmonyProcessApplyTest {
         val messenger = Messenger(Handler(handlerThread.looper) { msg ->
             if (testDeferred.isCompleted) return@Handler true
             val key = msg.data.keySet().first()
-            val value = msg.data[key] as? Float
+            val value = msg.data.getFloat(key)
             val expected = testMap.remove(key) // This is what we should get
             if (expected != value) {
                 testDeferred.complete(Exception("Values were not equal! expected: $expected, actual: $value"))
@@ -239,7 +239,7 @@ class HarmonyProcessApplyTest {
     @Test
     fun testMultiProcessPreferences_Boolean() {
         // Setup test
-        val application = InstrumentationRegistry.getInstrumentation().targetContext
+        val application = ApplicationProvider.getApplicationContext<Context>()
 
         // 5 entries to test
         val testMap = ConcurrentHashMap(mutableMapOf(
@@ -260,7 +260,7 @@ class HarmonyProcessApplyTest {
         val messenger = Messenger(Handler(handlerThread.looper) { msg ->
             if (testDeferred.isCompleted) return@Handler true
             val key = msg.data.keySet().first()
-            val value = msg.data[key] as? Boolean
+            val value = msg.data.getBoolean(key)
             val expected = testMap.remove(key) // This is what we should get
             if (expected != value) {
                 testDeferred.complete(Exception("Values were not equal! expected: $expected, actual: $value"))
@@ -294,7 +294,7 @@ class HarmonyProcessApplyTest {
     @Test
     fun testMultiProcessPreferences_String() {
         // Setup test
-        val application = InstrumentationRegistry.getInstrumentation().targetContext
+        val application = ApplicationProvider.getApplicationContext<Context>()
 
         // 5 entries to test
         val testMap = ConcurrentHashMap(mutableMapOf(
@@ -315,7 +315,7 @@ class HarmonyProcessApplyTest {
         val messenger = Messenger(Handler(handlerThread.looper) { msg ->
             if (testDeferred.isCompleted) return@Handler true
             val key = msg.data.keySet().first()
-            val value = msg.data[key] as? String
+            val value = msg.data.getString(key)
             val expected = testMap.remove(key) // This is what we should get
             if (expected != value) {
                 testDeferred.complete(Exception("Values were not equal! expected: $expected, actual: $value"))
@@ -349,7 +349,7 @@ class HarmonyProcessApplyTest {
     @Test
     fun testMultiProcessPreferences_String_null_key() {
         // Setup test
-        val application = InstrumentationRegistry.getInstrumentation().targetContext
+        val application = ApplicationProvider.getApplicationContext<Context>()
 
         // 5 entries to test
         val testMap: MutableMap<String?, String?> = mutableMapOf(
@@ -370,7 +370,7 @@ class HarmonyProcessApplyTest {
         val messenger = Messenger(Handler(handlerThread.looper) { msg ->
             if (testDeferred.isCompleted) return@Handler true
             val key = msg.data.keySet().first()
-            val value = msg.data[key] as? String
+            val value = msg.data.getString(key)
             val expected = runBlocking(Dispatchers.Main) { testMap.remove(key) } // This is what we should get
             if (expected != value) {
                 testDeferred.complete(Exception("Values were not equal! expected: $expected, actual: $value"))
@@ -406,7 +406,7 @@ class HarmonyProcessApplyTest {
     @Test
     fun testMultiProcessPreferences_StringSet() {
         // Setup test
-        val application = InstrumentationRegistry.getInstrumentation().targetContext
+        val application = ApplicationProvider.getApplicationContext<Context>()
 
         // 5 entries to test
         val testMap = ConcurrentHashMap(mutableMapOf(
@@ -427,7 +427,7 @@ class HarmonyProcessApplyTest {
         val messenger = Messenger(Handler(handlerThread.looper) { msg ->
             if (testDeferred.isCompleted) return@Handler true
             val key = msg.data.keySet().first()
-            @Suppress("UNCHECKED_CAST") val value = msg.data[key] as? Set<String>
+            @Suppress("UNCHECKED_CAST", "DEPRECATION") val value = msg.data[key] as? Set<String>
             val expected = testMap.remove(key) // This is what we should get
             if (expected != value) {
                 testDeferred.complete(Exception("Values were not equal! expected: $expected, actual: $value"))
@@ -461,7 +461,7 @@ class HarmonyProcessApplyTest {
     @Test
     fun testOldDataIsNotReinserted() {
         // Setup test
-        val application = InstrumentationRegistry.getInstrumentation().targetContext
+        val application = ApplicationProvider.getApplicationContext<Context>()
 
         val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE, TRANSACTION_BATCH_SIZE)
 
@@ -491,7 +491,7 @@ class HarmonyProcessApplyTest {
     @Test
     fun testDataChangesNotifiesAcrossProcesses() = runBlocking {
         // Setup test
-        val application = InstrumentationRegistry.getInstrumentation().targetContext
+        val application = ApplicationProvider.getApplicationContext<Context>()
 
         val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE, TRANSACTION_BATCH_SIZE)
 
@@ -526,7 +526,7 @@ class HarmonyProcessApplyTest {
     @Test
     fun testSpecialCharactersStoreAndNotifyAcrossProcesses() = runBlocking {
         // Setup test
-        val application = InstrumentationRegistry.getInstrumentation().targetContext
+        val application = ApplicationProvider.getApplicationContext<Context>()
 
         // Setup new looper
         val handlerThread = HandlerThread("test").apply { start() }
@@ -540,7 +540,7 @@ class HarmonyProcessApplyTest {
         val messenger = Messenger(Handler(handlerThread.looper) { msg ->
             if (testDeferred.isCompleted) return@Handler true
             val key = msg.data.keySet().first()
-            @Suppress("UNCHECKED_CAST") val value = msg.data[key] as? Set<String>
+            @Suppress("UNCHECKED_CAST", "DEPRECATION") val value = msg.data[key] as? Set<String>
             if (specialString != value?.first()) {
                 testDeferred.complete(Exception("Values were not equal! expected: $specialString, actual: $value"))
             } else {

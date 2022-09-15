@@ -8,13 +8,13 @@ import android.os.Process
 import androidx.core.content.edit
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.rule.ServiceTestRule
 import com.frybits.harmony.OnHarmonySharedPreferenceChangedListener
 import com.frybits.harmony.app.ALTERNATE_PROCESS_NAME
 import com.frybits.harmony.app.ClearDataCommitService
 import com.frybits.harmony.app.PREF_NAME
 import com.frybits.harmony.app.TEST_CLEAR_DATA_KEY
 import com.frybits.harmony.getHarmonySharedPreferences
-import com.frybits.harmony.test.utils.ForegroundServiceTestRule
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -31,7 +31,7 @@ import kotlin.test.assertTrue
 class HarmonyProcessCommitTest31 {
 
     @get:Rule
-    val serviceRule = ForegroundServiceTestRule()
+    val serviceRule = ServiceTestRule()
 
     @Before
     fun setup() {
@@ -90,7 +90,7 @@ class HarmonyProcessCommitTest31 {
             putExtra(TEST_CLEAR_DATA_KEY, clearDataTestString) // Pass the same string
         }
 
-        serviceRule.startForegroundService(serviceIntent)
+        serviceRule.startService(serviceIntent)
 
         withTimeout(1000) {
             val emittedNull = clearEmittedNullValue.await()

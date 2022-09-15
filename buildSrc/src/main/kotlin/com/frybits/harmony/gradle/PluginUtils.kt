@@ -9,7 +9,6 @@ import org.gradle.api.JavaVersion
 import org.gradle.api.Project
 import org.gradle.api.plugins.ExtensionAware
 import org.gradle.kotlin.dsl.configure
-import org.gradle.kotlin.dsl.extra
 import org.jetbrains.kotlin.gradle.dsl.KotlinJvmOptions
 
 /*
@@ -34,6 +33,7 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinJvmOptions
 private const val CRYPTO = "crypto"
 private const val HARMONY = "harmony"
 
+@Suppress("UnstableApiUsage")
 internal fun <BuildFeaturesT : BuildFeatures, BuildTypeT : BuildType, DefaultConfigT : DefaultConfig, ProductFlavorT : ProductFlavor>
         CommonExtension<BuildFeaturesT, BuildTypeT, DefaultConfigT, ProductFlavorT>.configureCommonAndroid() {
     compileSdk = 33
@@ -43,11 +43,6 @@ internal fun <BuildFeaturesT : BuildFeatures, BuildTypeT : BuildType, DefaultCon
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments["clearPackageData"] = "true"
-
-        compileOptions {
-            sourceCompatibility = JavaVersion.VERSION_11
-            targetCompatibility = JavaVersion.VERSION_11
-        }
     }
 
     testOptions {

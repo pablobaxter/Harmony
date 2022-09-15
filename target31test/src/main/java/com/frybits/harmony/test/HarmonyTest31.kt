@@ -1,9 +1,10 @@
 package com.frybits.harmony.test
 
+import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
 import com.frybits.harmony.OnHarmonySharedPreferenceChangedListener
 import com.frybits.harmony.getHarmonySharedPreferences
 import kotlinx.coroutines.CompletableDeferred
@@ -24,7 +25,7 @@ class HarmonyTest31 {
     @Test
     fun testOnPreferenceChangeListenerWithClear() {
         // Context of the app under test.
-        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+        val appContext = ApplicationProvider.getApplicationContext<Context>()
         val harmonyPrefs = appContext.getHarmonySharedPreferences(PREFS)
         val keyCompletableDeferred = CompletableDeferred<String>()
         val emittedNullOnClearDeferred = CompletableDeferred<Boolean>()
@@ -62,7 +63,7 @@ class HarmonyTest31 {
     @Test
     fun testOnHarmonyPreferenceChangeListenerWithClear() {
         // Context of the app under test.
-        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+        val appContext = ApplicationProvider.getApplicationContext<Context>()
         val harmonyPrefs = appContext.getHarmonySharedPreferences(PREFS)
         val keyCompletableDeferred = CompletableDeferred<String?>()
         val emittedNullOnClearDeferred = CompletableDeferred<Boolean>()

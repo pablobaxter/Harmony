@@ -1,11 +1,12 @@
 package com.frybits.harmony.test.secure
 
+import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
 import com.frybits.harmony.OnHarmonySharedPreferenceChangedListener
 import com.frybits.harmony.secure.getEncryptedHarmonySharedPreferences
 import kotlinx.coroutines.CompletableDeferred
@@ -29,7 +30,7 @@ class EncryptedHarmonyTest31 {
     @Before
     fun setup() {
         // Context of the app under test.
-        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+        val appContext = ApplicationProvider.getApplicationContext<Context>()
         sharedPreferences = appContext.getEncryptedHarmonySharedPreferences(
             PREFS,
             masterKeyAlias,
