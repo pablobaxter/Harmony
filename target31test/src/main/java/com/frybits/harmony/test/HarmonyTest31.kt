@@ -10,6 +10,7 @@ import com.frybits.harmony.getHarmonySharedPreferences
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import kotlin.random.Random
@@ -21,6 +22,13 @@ private const val PREFS = "prefs"
 
 @RunWith(AndroidJUnit4::class)
 class HarmonyTest31 {
+
+    @Before
+    fun setup() {
+        // Context of the app under test.
+        val appContext = ApplicationProvider.getApplicationContext<Context>()
+        appContext.getHarmonySharedPreferences(PREFS).edit(true) { clear() }
+    }
 
     @Test
     fun testOnPreferenceChangeListenerWithClear() {
