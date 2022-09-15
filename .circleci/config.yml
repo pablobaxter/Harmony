@@ -48,7 +48,7 @@ jobs:
               --test ${HOME}/repo/harmony/build/outputs/apk/androidTest/debug/harmony-debug-androidTest.apk \
               --results-bucket cloud-test-${GOOGLE_PROJECT_ID} \
               --results-dir harmony-${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM} \
-              --device model=lv0,version=23 \
+              --device model=redfin,version=30 \
               --no-performance-metrics \
               --no-record-video \
               --use-orchestrator
