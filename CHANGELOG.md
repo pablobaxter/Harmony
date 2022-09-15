@@ -9,7 +9,7 @@
 - Moves all build logic to custom plugins in the `buildSrc` directory
 - Moves tests specific for apps that target SDK 31 to a test module
 
-### Harmony-Crypto Version 0.2.0 / 2022-09-15
+### Harmony-Crypto Version 0.1.0 / 2022-09-15
 - Fixes bug where `contains()` would be `false` for `null` keys
 - Allows usage of new `OnHarmonySharedPreferenceChangedListener` from Harmony
 - Updates `HarmonyKeysetManager` to more closely reflect the [`AndroidKeysetManager`](https://github.com/google/tink/blob/master/java_src/src/main/java/com/google/crypto/tink/integration/android/AndroidKeysetManager.java) from the [Google/Tink](https://github.com/google/tink) project
