@@ -27,7 +27,7 @@ jobs:
             ./gradlew :app:assembleDebug
             ./gradlew :harmony:assembleAndroidTest
             ./gradlew :crypto:assembleAndroidTest
-            ./gradlew :target31test:assembleAndroidTest
+            ./gradlew :target31test:assemble
 
       - run:
           name: Store Google Service Account

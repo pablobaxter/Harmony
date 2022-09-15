@@ -52,7 +52,7 @@ class EncryptedHarmonyTest31 {
                 keyCompletableDeferred.complete(Unit)
             }
 
-            override fun onSharedPreferenceChanged(prefs: SharedPreferences?, key: String?) {
+            override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String?) {
                 fail("onSharedPreferenceChanged Should not be called!")
             }
         }
