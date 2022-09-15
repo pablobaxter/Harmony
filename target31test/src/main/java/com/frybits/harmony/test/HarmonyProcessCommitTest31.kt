@@ -67,8 +67,8 @@ class HarmonyProcessCommitTest31 {
         val clearDataKeyChangedCompletableDeferred = CompletableDeferred<String?>()
         val clearEmittedNullValue = CompletableDeferred<Boolean>()
 
+        @Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE")
         val clearDataChangeListener = object : OnHarmonySharedPreferenceChangedListener {
-            @Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE")
             override fun onSharedPreferencesCleared(prefs: SharedPreferences) {
                 clearEmittedNullValue.complete(true)
 
