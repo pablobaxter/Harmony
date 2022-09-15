@@ -58,6 +58,7 @@ private fun Project.applyAppPlugins() {
     apply<HiltGradlePlugin>()
 }
 
+@Suppress("UnstableApiUsage")
 private fun ApplicationExtension.configureAndroidApplication(properties: Properties) {
     configureCommonAndroid()
 
@@ -79,7 +80,7 @@ private fun ApplicationExtension.configureAndroidApplication(properties: Propert
             if (!fileProperty.isNullOrBlank()) {
                 storeFile = File(fileProperty)
             }
-            storePassword = properties["harmony.keystore.property"] as? String?
+            storePassword = properties["harmony.keystore.password"] as? String?
         }
     }
 
