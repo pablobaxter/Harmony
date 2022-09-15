@@ -64,7 +64,7 @@ internal fun <BuildFeaturesT : BuildFeatures, BuildTypeT : BuildType, DefaultCon
     }
 }
 
-fun Project.calculateArtifactId(): String {
+internal fun Project.harmonyArtifactId(): String {
     return when (name) {
         CRYPTO -> "harmony-crypto"
         HARMONY -> "harmony"
@@ -72,15 +72,7 @@ fun Project.calculateArtifactId(): String {
     }
 }
 
-fun Project.calculateArtifactVersion(): String {
-    return when (name) {
-        CRYPTO -> rootProject.extra["crypto_version_name"].toString()
-        HARMONY -> rootProject.extra["harmony_version_name"].toString()
-        else -> throw IllegalArgumentException("Unknown project $name")
-    }
-}
-
-fun Project.calculatePomName(): String {
+internal fun Project.harmonyPomName(): String {
     return when (name) {
         CRYPTO -> "Harmony Crypto"
         HARMONY -> "Harmony"
@@ -88,7 +80,7 @@ fun Project.calculatePomName(): String {
     }
 }
 
-fun Project.calculateDescription(): String {
+internal fun Project.harmonyDescription(): String {
     return when (name) {
         CRYPTO -> "A process-safe Encrypted SharedPreferences implementation"
         HARMONY -> "A process-safe SharedPreferences implementation"

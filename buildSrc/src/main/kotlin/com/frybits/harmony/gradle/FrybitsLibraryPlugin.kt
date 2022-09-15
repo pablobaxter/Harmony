@@ -46,7 +46,7 @@ import java.io.File
  * https://github.com/pablobaxter/Harmony
  */
 
-class LibraryPlugin : Plugin<Project> {
+class FrybitsLibraryPlugin : Plugin<Project> {
 
     override fun apply(target: Project) {
         target.applyLibraryPlugins()
@@ -79,8 +79,7 @@ private fun LibraryExtension.configureAndroidLibrary() {
     }
 
     publishing {
-        multipleVariants {
-            includeBuildTypeValues("release")
+        singleVariant("release") {
             withSourcesJar()
             withJavadocJar()
         }
@@ -124,9 +123,8 @@ private fun Project.configurePublishing() {
                 whenObjectAdded {
                     if (this is MavenPublication) {
                         group = "com.frybits.harmony"
-                        artifactId = calculateArtifactId()
-                        version = calculateArtifactVersion()
-                        configurePom(calculatePomName(), calculateDescription())
+                        artifactId = harmonyArtifactId()
+                        configurePom(harmonyPomName(), harmonyDescription())
                     }
                 }
                 create<MavenPublication>("release") {

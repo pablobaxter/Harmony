@@ -2,7 +2,7 @@ apply plugin: 'frybits-library'
 
 android {
     defaultConfig {
-        minSdkVersion crypto_minSdk_version
+        minSdk crypto_minSdk_version
     }
 }
 

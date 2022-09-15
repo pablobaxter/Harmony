@@ -33,7 +33,7 @@ import java.util.Properties
  * https://github.com/pablobaxter/Harmony
  */
 
-class ApplicationPlugin: Plugin<Project> {
+class FrybitsApplicationPlugin: Plugin<Project> {
 
     override fun apply(target: Project) {
         target.applyAppPlugins()

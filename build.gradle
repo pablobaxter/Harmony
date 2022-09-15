@@ -33,9 +33,6 @@ ext {
     constraint_version = '2.1.4'
     hilt_version = '2.43.2'
     room_version = "2.4.3"
-
-    harmony_version_name = "1.1.11"
-    crypto_version_name = "0.0.2"
 }
 
 task clean(type: Delete) {

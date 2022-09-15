@@ -1,4 +1,4 @@
-package com.frybits.harmony.secure
+package com.frybits.harmony.secure.test
 
 import android.content.SharedPreferences
 import androidx.core.content.edit
@@ -6,7 +6,9 @@ import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.frybits.harmony.OnHarmonySharedPreferenceChangedListener
 import com.frybits.harmony.getHarmonySharedPreferences
+import com.frybits.harmony.secure.getEncryptedHarmonySharedPreferences
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -15,10 +17,11 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import kotlin.random.Random
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.test.fail
 
 /*
  *  Copyright 2020 Pablo Baxter
@@ -40,8 +43,6 @@ import kotlin.test.assertTrue
  */
 
 private const val PREFS = "prefs"
-private const val KEY_KEYSET_ALIAS = "__androidx_security_crypto_encrypted_prefs_key_keyset__"
-private const val VALUE_KEYSET_ALIAS = "__androidx_security_crypto_encrypted_prefs_value_keyset__"
 
 @RunWith(AndroidJUnit4::class)
 class EncryptedHarmonyTest {
@@ -145,19 +146,23 @@ class EncryptedHarmonyTest {
     @Test
     fun testOnPreferenceChangeListenerWithClear() {
         val harmonyPrefs = sharedPreferences
-        val keyCompletableDeferred = CompletableDeferred<String>()
-        val onPreferenChanListener =
-            SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences, key ->
+        val keyCompletableDeferred = CompletableDeferred<String?>()
+        val onPreferenceChangeListener = object : OnHarmonySharedPreferenceChangedListener {
+            override fun onSharedPreferencesCleared(sharedPreferences: SharedPreferences) {
+            }
+
+            override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String?) {
                 assertTrue { sharedPreferences === harmonyPrefs }
                 keyCompletableDeferred.complete(key)
             }
+        }
         val pref1 = "foo${Random.nextInt()}"
         val pref2 = "bar${Random.nextInt()}"
         assertFalse { harmonyPrefs.contains("test") }
         harmonyPrefs.edit { putString("test", pref1) }
         assertTrue { harmonyPrefs.contains("test") }
         assertEquals(pref1, harmonyPrefs.getString("test", null))
-        harmonyPrefs.registerOnSharedPreferenceChangeListener(onPreferenChanListener)
+        harmonyPrefs.registerOnSharedPreferenceChangeListener(onPreferenceChangeListener)
         harmonyPrefs.edit {
             clear()
             putString("test", pref2)
@@ -171,6 +176,70 @@ class EncryptedHarmonyTest {
     }
 
     @Test
+    fun testOnPreferenceNullKey() {
+        val harmonyPrefs = sharedPreferences
+        val keyCompletableDeferred = CompletableDeferred<String?>()
+        val onPreferenceChangeListener = object : OnHarmonySharedPreferenceChangedListener {
+            override fun onSharedPreferencesCleared(sharedPreferences: SharedPreferences) {
+                fail("onSharedPreferencesCleared Should not be called!")
+            }
+
+            override fun onSharedPreferenceChanged(prefs: SharedPreferences?, key: String?) {
+                assertTrue { prefs === harmonyPrefs }
+                keyCompletableDeferred.complete(key)
+            }
+        }
+        val pref1 = "foo${Random.nextInt()}"
+        val pref2 = "bar${Random.nextInt()}"
+        assertFalse { harmonyPrefs.contains(null) }
+        harmonyPrefs.edit { putString(null, pref1) }
+        assertTrue { harmonyPrefs.contains(null) }
+        assertEquals(pref1, harmonyPrefs.getString(null, null))
+        harmonyPrefs.registerOnSharedPreferenceChangeListener(onPreferenceChangeListener)
+        harmonyPrefs.edit {
+            putString(null, pref2)
+        }
+        runBlocking {
+            withTimeout(1000) {
+                assertEquals(null, keyCompletableDeferred.await())
+            }
+        }
+        assertEquals(pref2, harmonyPrefs.getString(null, null))
+    }
+
+    @Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE")
+    @Test
+    fun testOnPreferenceOnClearCalled() {
+        val harmonyPrefs = sharedPreferences
+        val keyCompletableDeferred = CompletableDeferred<Unit>()
+        val onPreferenceChangeListener = object : OnHarmonySharedPreferenceChangedListener {
+            override fun onSharedPreferencesCleared(prefs: SharedPreferences) {
+                assertTrue { prefs === harmonyPrefs }
+                keyCompletableDeferred.complete(Unit)
+            }
+
+            override fun onSharedPreferenceChanged(prefs: SharedPreferences?, key: String?) {
+                fail("onSharedPreferenceChanged Should not be called!")
+            }
+        }
+        val pref1 = "foo${Random.nextInt()}"
+        assertFalse { harmonyPrefs.contains(null) }
+        harmonyPrefs.edit { putString(null, pref1) }
+        assertTrue { harmonyPrefs.contains(null) }
+        assertEquals(pref1, harmonyPrefs.getString(null, null))
+        harmonyPrefs.registerOnSharedPreferenceChangeListener(onPreferenceChangeListener)
+        harmonyPrefs.edit {
+            clear()
+        }
+        runBlocking {
+            withTimeout(1000) {
+                keyCompletableDeferred.await()
+            }
+        }
+        assertNotEquals(pref1, harmonyPrefs.getString(null, null))
+    }
+
+    @Test
     fun testEncryptedIntStorage() {
         val unencryptedPrefs = InstrumentationRegistry
             .getInstrumentation()
@@ -180,7 +249,7 @@ class EncryptedHarmonyTest {
         assertFalse { unencryptedPrefs.contains("test") }
         assertFalse { sharedPreferences.contains("test") }
 
-        assertEquals(2, unencryptedPrefs.all.size) // There should be 2 items, for the encryption keys
+        assertEquals(0, unencryptedPrefs.all.size)
         assertEquals(0, sharedPreferences.all.size)
 
         val randomInt = Random.nextInt()
@@ -188,7 +257,7 @@ class EncryptedHarmonyTest {
 
         assertFalse { unencryptedPrefs.contains("test") } // Keys are encrypted, so this should be false
         assertTrue { sharedPreferences.contains("test") }
-        assertEquals(3, unencryptedPrefs.all.size) // We should have one item, but we need to account for the encryption keys
+        assertEquals(1, unencryptedPrefs.all.size) // We should have one item
         assertEquals(1, sharedPreferences.all.size)
 
         assertEquals(-1, unencryptedPrefs.getInt("test", -1)) // This key is encrypted, so it should return null
@@ -205,7 +274,7 @@ class EncryptedHarmonyTest {
         assertFalse { unencryptedPrefs.contains("test") }
         assertFalse { sharedPreferences.contains("test") }
 
-        assertEquals(2, unencryptedPrefs.all.size) // There should be 2 items, for the encryption keys
+        assertEquals(0, unencryptedPrefs.all.size)
         assertEquals(0, sharedPreferences.all.size)
 
         val randomLong = Random.nextLong()
@@ -213,7 +282,7 @@ class EncryptedHarmonyTest {
 
         assertFalse { unencryptedPrefs.contains("test") } // Keys are encrypted, so this should be false
         assertTrue { sharedPreferences.contains("test") }
-        assertEquals(3, unencryptedPrefs.all.size) // We should have one item, but we need to account for the encryption keys
+        assertEquals(1, unencryptedPrefs.all.size) // We should have one item
         assertEquals(1, sharedPreferences.all.size)
 
         assertEquals(-1L, unencryptedPrefs.getLong("test", -1L)) // This key is encrypted, so it should return null
@@ -230,7 +299,7 @@ class EncryptedHarmonyTest {
         assertFalse { unencryptedPrefs.contains("test") }
         assertFalse { sharedPreferences.contains("test") }
 
-        assertEquals(2, unencryptedPrefs.all.size) // There should be 2 items, for the encryption keys
+        assertEquals(0, unencryptedPrefs.all.size)
         assertEquals(0, sharedPreferences.all.size)
 
         val randomFloat = Random.nextFloat()
@@ -238,7 +307,7 @@ class EncryptedHarmonyTest {
 
         assertFalse { unencryptedPrefs.contains("test") } // Keys are encrypted, so this should be false
         assertTrue { sharedPreferences.contains("test") }
-        assertEquals(3, unencryptedPrefs.all.size) // We should have one item, but we need to account for the encryption keys
+        assertEquals(1, unencryptedPrefs.all.size) // We should have one item
         assertEquals(1, sharedPreferences.all.size)
 
         assertEquals(-1F, unencryptedPrefs.getFloat("test", -1F)) // This key is encrypted, so it should return null
@@ -256,7 +325,7 @@ class EncryptedHarmonyTest {
         assertFalse { unencryptedPrefs.contains("test") }
         assertFalse { sharedPreferences.contains("test") }
 
-        assertEquals(2, unencryptedPrefs.all.size) // There should be 2 items, for the encryption keys
+        assertEquals(0, unencryptedPrefs.all.size)
         assertEquals(0, sharedPreferences.all.size)
 
         val randomBoolean = Random.nextBoolean()
@@ -264,7 +333,7 @@ class EncryptedHarmonyTest {
 
         assertFalse { unencryptedPrefs.contains("test") } // Keys are encrypted, so this should be false
         assertTrue { sharedPreferences.contains("test") }
-        assertEquals(3, unencryptedPrefs.all.size) // We should have one item, but we need to account for the encryption keys
+        assertEquals(1, unencryptedPrefs.all.size) // We should have one item
         assertEquals(1, sharedPreferences.all.size)
 
         assertEquals(!randomBoolean, unencryptedPrefs.getBoolean("test", !randomBoolean)) // This key is encrypted, so it should return null
@@ -281,7 +350,7 @@ class EncryptedHarmonyTest {
         assertFalse { unencryptedPrefs.contains("test") }
         assertFalse { sharedPreferences.contains("test") }
 
-        assertEquals(2, unencryptedPrefs.all.size) // There should be 2 items, for the encryption keys
+        assertEquals(0, unencryptedPrefs.all.size)
         assertEquals(0, sharedPreferences.all.size)
 
         val randomString = "${Random.nextInt()}"
@@ -289,7 +358,7 @@ class EncryptedHarmonyTest {
 
         assertFalse { unencryptedPrefs.contains("test") } // Keys are encrypted, so this should be false
         assertTrue { sharedPreferences.contains("test") }
-        assertEquals(3, unencryptedPrefs.all.size) // We should have one item, but we need to account for the encryption keys
+        assertEquals(1, unencryptedPrefs.all.size) // We should have one item
         assertEquals(1, sharedPreferences.all.size)
 
         assertNull(unencryptedPrefs.getString("test", null)) // This key is encrypted, so it should return null
@@ -306,7 +375,7 @@ class EncryptedHarmonyTest {
         assertFalse { unencryptedPrefs.contains("test") }
         assertFalse { sharedPreferences.contains("test") }
 
-        assertEquals(2, unencryptedPrefs.all.size) // There should be 2 items, for the encryption keys
+        assertEquals(0, unencryptedPrefs.all.size)
         assertEquals(0, sharedPreferences.all.size)
 
         val randomStringSet = hashSetOf<String>().apply {
@@ -318,24 +387,10 @@ class EncryptedHarmonyTest {
 
         assertFalse { unencryptedPrefs.contains("test") } // Keys are encrypted, so this should be false
         assertTrue { sharedPreferences.contains("test") }
-        assertEquals(3, unencryptedPrefs.all.size) // We should have one item, but we need to account for the encryption keys
+        assertEquals(1, unencryptedPrefs.all.size) // We should have one item
         assertEquals(1, sharedPreferences.all.size)
 
         assertNull(unencryptedPrefs.getStringSet("test", null)) // This key is encrypted, so it should return null
         assertEquals(randomStringSet, sharedPreferences.getStringSet("test", null))
-    }
-
-    @Test
-    fun testReservedKeyManipulation() {
-        assertFalse(sharedPreferences.all.containsKey(KEY_KEYSET_ALIAS)) // Shouldn't contain the keyset
-
-        val editor = sharedPreferences.edit()
-        assertFailsWith<SecurityException> { editor.putString(KEY_KEYSET_ALIAS, "Not a keyset") }
-        assertFailsWith<SecurityException> { editor.remove(KEY_KEYSET_ALIAS) }
-
-        assertFalse(sharedPreferences.all.containsKey(VALUE_KEYSET_ALIAS)) // Shouldn't contain the keyset
-
-        assertFailsWith<SecurityException> { editor.putString(VALUE_KEYSET_ALIAS, "Not a keyset") }
-        assertFailsWith<SecurityException> { editor.remove(VALUE_KEYSET_ALIAS) }
     }
 }

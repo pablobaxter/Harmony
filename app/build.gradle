@@ -31,9 +31,4 @@ dependencies {
     kapt "com.google.dagger:hilt-compiler:$hilt_version"
     implementation "androidx.room:room-ktx:$room_version"
     kapt "androidx.room:room-compiler:$room_version"
-
-    // Test
-    testImplementation "junit:junit:$junit_version"
-    androidTestImplementation "androidx.test.ext:junit-ktx:$test_ext_version"
-    androidTestImplementation "androidx.test.espresso:espresso-core:$espresso_core_version"
 }

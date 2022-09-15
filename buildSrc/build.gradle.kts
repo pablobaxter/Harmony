@@ -30,12 +30,17 @@ gradlePlugin {
     plugins {
         create("frybitsAppPlugin") {
             id = "frybits-application"
-            implementationClass = "com.frybits.harmony.gradle.ApplicationPlugin"
+            implementationClass = "com.frybits.harmony.gradle.FrybitsApplicationPlugin"
         }
 
         create("frybitsLibraryPlugin") {
             id = "frybits-library"
-            implementationClass = "com.frybits.harmony.gradle.LibraryPlugin"
+            implementationClass = "com.frybits.harmony.gradle.FrybitsLibraryPlugin"
+        }
+
+        create("frybitsTestPlugin") {
+            id = "frybits-test"
+            implementationClass = "com.frybits.harmony.gradle.FrybitsTestPlugin"
         }
     }
 }
