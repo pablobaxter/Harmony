@@ -118,7 +118,7 @@ class HarmonyKeysetManager private constructor(builder: Builder) {
         @GuardedBy("this")
         lateinit var keysetManager: KeysetManager
 
-        /** Reads and writes the keyset from shared preferences.  */
+        /** Reads and writes the keyset from harmony shared preferences directory.  */
         fun withSharedPref(context: Context, type: String, prefFileName: String): Builder {
             val keysetFile = context.keysetFile(prefFileName, type)
             val keysetFileLock = context.keysetFileLock(prefFileName, type)
