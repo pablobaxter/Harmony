@@ -18,7 +18,6 @@ dependencies {
     implementation("org.jetbrains.dokka:dokka-gradle-plugin:1.7.10")
     implementation("androidx.navigation:navigation-safe-args-gradle-plugin:2.5.2")
     implementation("com.google.dagger:hilt-android-gradle-plugin:2.43.2")
-    implementation("io.github.gradle-nexus:publish-plugin:1.1.0")
 }
 
 repositories {
