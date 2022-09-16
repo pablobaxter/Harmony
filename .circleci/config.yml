@@ -175,7 +175,7 @@ workflows:
       - Crypto-Upload-Approval:
           type: approval
           requires:
-            - Android-Harmony-Maven-Release
+            - Android-Harmony-Upload
           filters:
             branches:
               only:
