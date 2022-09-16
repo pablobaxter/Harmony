@@ -112,6 +112,8 @@ private fun Project.configureDokka() {
             from("$buildDir/dokka")
             archiveClassifier.set(DocsType.JAVADOC)
         }
+        
+        // This avoids the NoSuchMethodError described in https://github.com/Kotlin/dokka/issues/2472
         tasks.withType<JavaDocGenerationTask>().forEach { it.enabled = false }
     }
 }
