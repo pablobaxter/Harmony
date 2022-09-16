@@ -24,7 +24,6 @@ import java.io.File
  * Created by Pablo Baxter (Github: pablobaxter)
  * https://github.com/pablobaxter/Harmony
  *
- * FileLock tool
  */
 
 private const val HARMONY_PREFS_FOLDER = "harmony_prefs"
