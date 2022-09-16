@@ -129,7 +129,7 @@ jobs:
           name: Upload Harmony Library
           command: |
             echo $SIGNING_SECRET | base64 -d > ~/secret.gpg
-            ./gradlew :harmony:publishReleasePublicationToSonatypeRepository
+            ./gradlew :harmony:publishReleasePublicationToSonatypeRepository closeAndReleaseStagingRepository
 
   Android-Crypto-Upload:
     docker:
@@ -148,24 +148,7 @@ jobs:
           name: Upload Harmony Crypto
           command: |
             echo $SIGNING_SECRET | base64 -d > ~/secret.gpg
-            ./gradlew :crypto:publishReleasePublicationToSonatypeRepository
-
-  Android-Harmony-Maven-Release:
-    docker:
-      - image: cimg/android:2022.09.1
-
-    environment:
-      # Configure the JVM and Gradle to avoid OOM errors
-      _JAVA_OPTIONS: "-Xmx3g"
-      GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2"
-
-    working_directory: ~/repo
-
-    steps:
-      - checkout
-      - run:
-          name: Release Harmony
-          command: ./gradlew closeAndReleaseStagingRepository
+            ./gradlew :crypto:publishReleasePublicationToSonatypeRepository closeAndReleaseStagingRepository
 
 workflows:
   version: 2
@@ -189,13 +172,6 @@ workflows:
             branches:
               only:
                 - main
-      - Android-Harmony-Maven-Release:
-          requires:
-            - Android-Harmony-Upload
-          filters:
-            branches:
-              only:
-                - main
       - Crypto-Upload-Approval:
           type: approval
           requires:
@@ -207,14 +183,6 @@ workflows:
       - Android-Crypto-Upload:
           requires:
             - Crypto-Upload-Approval
-          filters:
-            branches:
-              only:
-                - main
-      - Android-Harmony-Maven-Release:
-          name: Android-Crypto-Maven-Release
-          requires:
-            - Android-Crypto-Upload
           filters:
             branches:
               only:
