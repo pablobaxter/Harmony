@@ -3,6 +3,7 @@ package com.google.crypto.tink.integration.android
 import android.content.Context
 import android.os.Build
 import android.util.Log
+import androidx.annotation.ChecksSdkIntAtLeast
 import androidx.annotation.GuardedBy
 import com.google.crypto.tink.Aead
 import com.google.crypto.tink.CleartextKeysetHandle
@@ -21,11 +22,11 @@ import java.security.KeyStoreException
 import java.security.ProviderException
 
 /**
- * A wrapper of [KeysetManager] that supports reading/writing [com.google.crypto.tink.proto.Keyset] to/from private harmony shared preferences on Android.
+ * A wrapper of [KeysetManager] that supports reading/writing [com.google.crypto.tink.proto.Keyset] across multiple processes.
  *
  * Warning
  *
- * This class reads and writes to harmony shared preferences, thus is best not to run on the UI thread.
+ * This class reads and writes to a file, thus is best not to run on the UI thread.
  *
  * Usage
  *
@@ -35,21 +36,20 @@ import java.security.ProviderException
  * // Instead of repeatedly instantiating these crypto objects, instantiate them once and save for
  * // later use.
  * HarmonyKeysetManager manager = HarmonyKeysetManager.Builder()
- * .withSharedPref(getApplicationContext(), "my_keyset_name", "my_pref_file_name")
+ * .withSharedPref(getApplicationContext(), "my_pref_file_name")
  * .withKeyTemplate(AesGcmHkfStreamingKeyManager.aes128GcmHkdf4KBTemplate())
  * .build();
  * StreamingAead streamingAead = manager.getKeysetHandle().getPrimitive(StreamingAead.class);
  *
  * </pre>
  *
- * This will read a keyset stored in the `my_keyset_name` preference of the `my_pref_file_name` preferences file. If the preference file name is null, it uses the default
- * preferences file.
+ * This will read a keyset stored in the `my_pref_file_name` preferences folder. The preference file name cannot be null.
  *
  * If a keyset is found, but it is invalid, an [IOException] is thrown. The most common
  * cause is when you decrypted a keyset with a wrong master key. In this case, an [InvalidProtocolBufferException] would be thrown. This is an irrecoverable error. You'd have
- * to delete the keyset in Shared Preferences and all existing data encrypted with it.
+ * to delete the keyset file in Harmony Shared Preferences folder and all existing data encrypted with it.
  * If a keyset is not found, and a [KeyTemplate] is set with [HarmonyKeysetManager.Builder.withKeyTemplate], a fresh
- * keyset is generated and is written to the `my_keyset_name` preference of the `my_pref_file_name` shared preferences file.
+ * keyset is generated and is written to the `harmony.keyset` file.
  *
  * Key rotation
  *
@@ -79,8 +79,7 @@ import java.security.ProviderException
  * running on the same device. Moreover, as of July 2020, most active Android devices support either
  * full-disk encryption or file-based encryption, which provide strong security protection against
  * key theft even from attackers with physical access to the device. Android Keystore is only useful
- * when you want to [require user
- * authentication for key use](https://developer.android.com/training/articles/keystore#UserAuthentication), which should be done if and only if you're absolutely sure that
+ * when you want to [require user authentication for key use](https://developer.android.com/training/articles/keystore#UserAuthentication), which should be done if and only if you're absolutely sure that
  * Android Keystore is working properly on your target devices.
  *
  * The master key URI must start with `android-keystore://`. The remaining of the URI is
@@ -119,10 +118,12 @@ class HarmonyKeysetManager private constructor(builder: Builder) {
         @GuardedBy("this")
         lateinit var keysetManager: KeysetManager
 
-        /** Reads and writes the keyset from shared preferences.  */
-        fun withSharedPref(context: Context, keysetName: String, prefFileName: String?): Builder {
-            reader = HarmonyKeysetReader(context, keysetName, prefFileName)
-            writer = HarmonyKeysetWriter(context, keysetName, prefFileName)
+        /** Reads and writes the keyset from harmony shared preferences directory.  */
+        fun withSharedPref(context: Context, type: String, prefFileName: String): Builder {
+            val keysetFile = context.keysetFile(prefFileName, type)
+            val keysetFileLock = context.keysetFileLock(prefFileName, type)
+            reader = HarmonyKeysetReader(keysetFile, keysetFileLock)
+            writer = HarmonyKeysetWriter(keysetFile, keysetFileLock)
             return this
         }
 
@@ -238,7 +239,7 @@ class HarmonyKeysetManager private constructor(builder: Builder) {
                 return read()
             } catch (ex: FileNotFoundException) {
                 // Not found, handle below.
-                Log.w(TAG, "keyset not found, will generate a new one", ex)
+                Log.i(TAG, "keyset not found, will generate a new one. ${ex.message}")
             }
 
             // Not found.
@@ -425,6 +426,7 @@ class HarmonyKeysetManager private constructor(builder: Builder) {
         }
     }
 
+    @ChecksSdkIntAtLeast(api = Build.VERSION_CODES.M)
     private fun shouldUseKeystore(): Boolean {
         return masterKey != null && isAtLeastM
     }
@@ -441,6 +443,7 @@ class HarmonyKeysetManager private constructor(builder: Builder) {
             }
         }
 
+        @ChecksSdkIntAtLeast(api = Build.VERSION_CODES.M)
         private val isAtLeastM: Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
     }
 }

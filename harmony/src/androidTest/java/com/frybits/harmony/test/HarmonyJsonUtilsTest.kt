@@ -1,4 +1,4 @@
-package com.frybits.harmony
+package com.frybits.harmony.test
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.frybits.harmony.internal.putHarmony

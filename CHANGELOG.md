@@ -1,5 +1,21 @@
 ## Change Log
 
+### Version 1.2.0 / 2022-09-15
+- Adds new `OnHarmonySharedPreferenceChangedListener` that provides an explicit callback for `clear()` events, instead of just emitting `null` keys
+- Exposes `withFileLock()` and `FileInputStream.sync()` utility functions for public use
+- Updated Kotlin to 1.7.10
+- Updated `compileSdk` to 33
+- Updated Android Gradle plugin version to 7.2.2
+- Moves all build logic to custom plugins in the `buildSrc` directory
+- Moves tests specific for apps that target SDK 31 to a test module
+
+### Harmony-Crypto Version 0.1.0 / 2022-09-15
+- Fixes bug where `contains()` would be `false` for `null` keys
+- Allows usage of new `OnHarmonySharedPreferenceChangedListener` from Harmony
+- Updates `HarmonyKeysetManager` to more closely reflect the [`AndroidKeysetManager`](https://github.com/google/tink/blob/master/java_src/src/main/java/com/google/crypto/tink/integration/android/AndroidKeysetManager.java) from the [Google/Tink](https://github.com/google/tink) project
+- Utilizes a custom `KeysetReader` and `KeysetWriter` that stores and reads keys using a file rather than the shared preferences
+- Encrypted Harmony shared preferences can now handle notifying when `clear()` is called
+
 ### Version 1.1.11 / 2022-03-11
 - Updated Kotlin to 1.6.10
 - Updated `compileSdk` to 31

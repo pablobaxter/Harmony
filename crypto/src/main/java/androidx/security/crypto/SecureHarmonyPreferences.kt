@@ -6,6 +6,7 @@ package androidx.security.crypto
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.ArraySet
+import com.frybits.harmony.OnHarmonySharedPreferenceChangedListener
 import com.frybits.harmony.getHarmonySharedPreferences
 import com.google.crypto.tink.Aead
 import com.google.crypto.tink.DeterministicAead
@@ -17,8 +18,6 @@ import com.google.crypto.tink.subtle.Base64
 import java.nio.ByteBuffer
 import java.security.GeneralSecurityException
 import java.util.WeakHashMap
-import java.util.concurrent.CopyOnWriteArrayList
-import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.text.Charsets.UTF_8
 
 /*
@@ -42,8 +41,8 @@ import kotlin.text.Charsets.UTF_8
  * An implementation of {@link SharedPreferences} that encrypts keys and values and is process-safe.
  */
 
-private const val KEY_KEYSET_ALIAS = "__androidx_security_crypto_encrypted_prefs_key_keyset__"
-private const val VALUE_KEYSET_ALIAS = "__androidx_security_crypto_encrypted_prefs_value_keyset__"
+internal const val KEY_KEYSET = "KEY_KEYSET"
+internal const val VALUE_KEYSET = "VALUE_KEYSET"
 private const val NULL_VALUE = "__NULL__"
 
 private class SecureHarmonyPreferencesImpl(
@@ -55,11 +54,7 @@ private class SecureHarmonyPreferencesImpl(
 
     private val changedListeners = WeakHashMap<SharedPreferences.OnSharedPreferenceChangeListener, SecureWrappedOnSharedPreferenceChangeListener>()
 
-    private inner class SecureEditor : SharedPreferences.Editor {
-
-        private val editor = sharedPreferences.edit()
-        private val clearRequested = AtomicBoolean()
-        private val keysChanged = CopyOnWriteArrayList<String>()
+    private inner class SecureEditor(private val editor: SharedPreferences.Editor) : SharedPreferences.Editor by editor {
 
         override fun putString(key: String?, value: String?): SharedPreferences.Editor {
             val mutableValue: String = value ?: NULL_VALUE
@@ -125,55 +120,7 @@ private class SecureHarmonyPreferencesImpl(
             return this
         }
 
-        override fun remove(key: String?): SharedPreferences.Editor {
-            if (isReservedKey(key)) {
-                throw SecurityException("$key is a reserved key for the encryption keyset.")
-            }
-            editor.remove(encryptKey(key))
-            keysChanged.remove(key)
-            return this
-        }
-
-        override fun clear(): SharedPreferences.Editor {
-            // Set the flag to clear on commit, this operation happens first on commit.
-            // Cannot use underlying clear operation, it will remove the keysets and
-            // break the editor.
-            clearRequested.set(true)
-            return this
-        }
-
-        override fun commit(): Boolean {
-            clearKeysIfNeeded()
-            try {
-                return editor.commit()
-            } finally {
-                keysChanged.clear()
-            }
-        }
-
-        override fun apply() {
-            clearKeysIfNeeded()
-            editor.apply()
-            keysChanged.clear()
-        }
-
-        private fun clearKeysIfNeeded() {
-            // Call "clear" first as per the documentation, remove all keys that haven't
-            // been modified in this editor.
-            if (clearRequested.getAndSet(false)) {
-                all.keys.forEach { key ->
-                    if (!keysChanged.contains(key) && !isReservedKey(key)) {
-                        editor.remove(encryptKey(key))
-                    }
-                }
-            }
-        }
-
         private fun putEncryptedObject(key: String?, value: ByteArray) {
-            if (isReservedKey(key)) {
-                throw SecurityException("$key is a reserved key for the encryption keyset.")
-            }
-            keysChanged.add(key)
             val mutableKey = key ?: NULL_VALUE
             try {
                 val encryptedPair = encryptKeyValuePair(mutableKey, value)
@@ -189,10 +136,8 @@ private class SecureHarmonyPreferencesImpl(
     override fun getAll(): MutableMap<String?, *> {
         val allEntries = hashMapOf<String?, Any?>()
         sharedPreferences.all.keys.forEach { key ->
-            if (!isReservedKey(key)) {
-                val decryptedKey = decryptKey(key)
-                allEntries[decryptedKey] = getDecryptedObject(decryptedKey)
-            }
+            val decryptedKey = decryptKey(key)
+            allEntries[decryptedKey] = getDecryptedObject(decryptedKey)
         }
         return allEntries
     }
@@ -234,15 +179,12 @@ private class SecureHarmonyPreferencesImpl(
     }
 
     override fun contains(key: String?): Boolean {
-        if (isReservedKey(key)) {
-            throw SecurityException("$key is a reserved key for the encryption keyset.")
-        }
         val encryptedKey = encryptKey(key)
         return sharedPreferences.contains(encryptedKey)
     }
 
     override fun edit(): SharedPreferences.Editor {
-        return SecureEditor()
+        return SecureEditor(sharedPreferences.edit())
     }
 
     override fun registerOnSharedPreferenceChangeListener(listener: SharedPreferences.OnSharedPreferenceChangeListener) {
@@ -275,10 +217,6 @@ private class SecureHarmonyPreferencesImpl(
     }
 
     private fun getDecryptedObject(key: String?): Any? {
-
-        if (isReservedKey(key)) {
-            throw SecurityException("$key is a reserved key for the encryption keyset.")
-        }
         val mutableKey: String = key ?: NULL_VALUE
 
         try {
@@ -330,7 +268,7 @@ private class SecureHarmonyPreferencesImpl(
     }
 
     private fun encryptKey(key: String?): String {
-        val k = key ?: return NULL_VALUE
+        val k = key ?: NULL_VALUE
         try {
             val encryptedKeyBytes = deterministicAead.encryptDeterministically(k.toByteArray(UTF_8), fileName.toByteArray())
             return Base64.encode(encryptedKeyBytes)
@@ -352,18 +290,6 @@ private class SecureHarmonyPreferencesImpl(
         }
     }
 
-    /**
-     * Check usage of the key and value keysets.
-     *
-     * @param key the plain text key
-     */
-    fun isReservedKey(key: String?): Boolean {
-        if (key == KEY_KEYSET_ALIAS || key == VALUE_KEYSET_ALIAS) {
-            return true
-        }
-        return false
-    }
-
     private fun encryptKeyValuePair(key: String?, bytes: ByteArray): Pair<String, String> {
         val encryptedKey = encryptKey(key)
         val cipherText = aead.encrypt(bytes, encryptedKey.toByteArray(UTF_8))
@@ -374,11 +300,17 @@ private class SecureHarmonyPreferencesImpl(
 private class SecureWrappedOnSharedPreferenceChangeListener(
     private val secureHarmonyPreferences: SecureHarmonyPreferencesImpl,
     private val onSharedPreferenceChangeListener: SharedPreferences.OnSharedPreferenceChangeListener
-) : SharedPreferences.OnSharedPreferenceChangeListener {
+) : OnHarmonySharedPreferenceChangedListener {
 
-    override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
-        if (!secureHarmonyPreferences.isReservedKey(key)) {
-            onSharedPreferenceChangeListener.onSharedPreferenceChanged(secureHarmonyPreferences, key?.let { secureHarmonyPreferences.decryptKey(it) })
+    override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String?) {
+        onSharedPreferenceChangeListener.onSharedPreferenceChanged(secureHarmonyPreferences, key?.let { secureHarmonyPreferences.decryptKey(it) })
+    }
+
+    override fun onSharedPreferencesCleared(sharedPreferences: SharedPreferences) {
+        if (onSharedPreferenceChangeListener is OnHarmonySharedPreferenceChangedListener) {
+            onSharedPreferenceChangeListener.onSharedPreferencesCleared(secureHarmonyPreferences)
+        } else {
+            onSharedPreferenceChangeListener.onSharedPreferenceChanged(secureHarmonyPreferences, null)
         }
     }
 }
@@ -397,12 +329,12 @@ internal fun SecureHarmonyPreferences(
 
     val daeadKeysetHandle: KeysetHandle = HarmonyKeysetManager.Builder()
         .withKeyTemplate(prefKeyEncryptionScheme.keyTemplate)
-        .withSharedPref(context, KEY_KEYSET_ALIAS, fileName)
+        .withSharedPref(context, KEY_KEYSET, fileName)
         .withMasterKeyUri(MasterKeys.KEYSTORE_PATH_URI + masterKeyAlias)
         .build().keysetHandle
     val aeadKeysetHandle: KeysetHandle = HarmonyKeysetManager.Builder()
         .withKeyTemplate(prefValueEncryptionScheme.keyTemplate)
-        .withSharedPref(context, VALUE_KEYSET_ALIAS, fileName)
+        .withSharedPref(context, VALUE_KEYSET, fileName)
         .withMasterKeyUri(MasterKeys.KEYSTORE_PATH_URI + masterKeyAlias)
         .build().keysetHandle
 

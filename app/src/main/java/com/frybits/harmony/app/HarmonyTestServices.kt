@@ -1,4 +1,4 @@
-package com.frybits.harmony
+package com.frybits.harmony.app
 
 import android.app.ActivityManager
 import android.app.Service
@@ -7,12 +7,9 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Binder
 import android.os.IBinder
-import android.os.Message
-import android.os.Messenger
 import android.os.Process
 import androidx.core.content.edit
-import androidx.core.os.bundleOf
-import kotlin.random.Random
+import com.frybits.harmony.getHarmonySharedPreferences
 import kotlin.test.assertTrue
 
 /*
@@ -34,13 +31,11 @@ import kotlin.test.assertTrue
  * https://github.com/pablobaxter/Harmony
  */
 
-internal const val PREF_NAME = "prefName"
-internal const val ALTERNATE_PROCESS_NAME = ":alternate"
-internal const val MESSENGER_KEY = "messenger"
-internal const val TEST_SIMPLE_KEY = "testSimple"
-internal const val TEST_CLEAR_DATA_KEY = "testClearedData"
-internal const val TRANSACTION_SIZE = 4 * 1024L
-internal const val TRANSACTION_BATCH_SIZE = 250
+const val PREF_NAME = "prefName"
+const val ALTERNATE_PROCESS_NAME = ":alternate"
+const val MESSENGER_KEY = "messenger"
+const val TEST_SIMPLE_KEY = "testSimple"
+const val TEST_CLEAR_DATA_KEY = "testClearedData"
 
 abstract class HarmonyService : Service() {
 
@@ -50,7 +45,7 @@ abstract class HarmonyService : Service() {
         super.onCreate()
         assertTrue("Service is not running in alternate process!") { getServiceProcess().endsWith(ALTERNATE_PROCESS_NAME) }
 
-        testPrefs = getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE, TRANSACTION_BATCH_SIZE)
+        testPrefs = getHarmonySharedPreferences(PREF_NAME)
     }
 
     // Binder cannot be null. Returning NoOp instead
@@ -65,48 +60,6 @@ abstract class HarmonyService : Service() {
             }
         }
         return ""
-    }
-}
-
-class AlternateProcessService : HarmonyService() {
-
-    private val sharedPreferenceChangeListener =
-        SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
-            val value = prefs.all[key]
-            messenger.send(Message.obtain().apply {
-                data = bundleOf(key to value)
-            })
-        }
-
-    private lateinit var messenger: Messenger
-
-    override fun onCreate() {
-        super.onCreate()
-        testPrefs.registerOnSharedPreferenceChangeListener(sharedPreferenceChangeListener)
-    }
-
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent != null) {
-            messenger = intent.getParcelableExtra(MESSENGER_KEY)!!
-        }
-        return START_NOT_STICKY
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        testPrefs.unregisterOnSharedPreferenceChangeListener(sharedPreferenceChangeListener)
-    }
-}
-
-class MassInputService : HarmonyService() {
-
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent != null) {
-            repeat(10_000) {
-                testPrefs.edit { putString("$it", "${Random.nextLong()}") }
-            }
-        }
-        return START_NOT_STICKY
     }
 }
 

@@ -1,84 +1,19 @@
-apply plugin: 'com.android.application'
-apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-parcelize'
-apply plugin: "androidx.navigation.safeargs.kotlin"
-apply plugin: 'kotlin-kapt'
-apply plugin: 'dagger.hilt.android.plugin'
-
-def propertiesFile = rootProject.file("local.properties")
-
-def properties = new Properties()
-
-if (propertiesFile.exists()) {
-    properties.load(new FileInputStream(propertiesFile))
-}
+apply plugin: 'frybits-application'
 
 android {
-    compileSdkVersion compileSdk_version
-    buildToolsVersion buildtools_version
     defaultConfig {
         applicationId "com.frybits.harmony.app"
-        minSdkVersion crypto_minSdk_version
-        targetSdkVersion targetSdk_version
+        targetSdk targetSdk_version
+        minSdk crypto_minSdk_version
         versionCode 1
         versionName "1.0"
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-    }
-
-    signingConfigs {
-        debug {
-            keyAlias = 'androiddebugkey'
-            keyPassword = 'android'
-            if (file('./keystore.jks').exists()) {
-                storeFile = file('./keystore.jks')
-            }
-            storePassword = 'android'
-        }
-        release {
-            keyAlias = properties["harmony.keystore.alias"]
-            keyPassword = properties["harmony.keystore.alias.password"]
-            if (properties["harmony.keystore.file"] != null && !properties["harmony.keystore.file"].isEmpty()) {
-                storeFile = file(properties["harmony.keystore.file"])
-            }
-            storePassword = properties["harmony.keystore.password"]
-        }
-    }
-
-    buildTypes {
-        release {
-            minifyEnabled true
-            signingConfig signingConfigs.release
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-        }
-        debug {
-            signingConfig signingConfigs.debug
-        }
-    }
-
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
-    }
-
-    kotlinOptions {
-        jvmTarget = "11"
-    }
-
-    buildFeatures {
-        viewBinding true
-    }
-}
-
-repositories{
-    flatDir{
-        dirs 'libs'
     }
 }
 
 dependencies {
     implementation project (':crypto')
     implementation 'com.tencent:mmkv-static:1.2.8'
-    implementation (name: "tray-0.12.0", ext: 'aar')
+    implementation files('libs/tray-0.12.0.aar')
 
     // Kotlin
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
@@ -88,6 +23,7 @@ dependencies {
     // Android
     implementation "androidx.appcompat:appcompat:$appcompat_version"
     implementation "androidx.core:core-ktx:$corektx_version"
+    implementation "com.google.android.material:material:$material_version"
     implementation "androidx.lifecycle:lifecycle-runtime-ktx:$lifecycle_scope_version"
     implementation "androidx.navigation:navigation-fragment-ktx:$nav_version"
     implementation "androidx.navigation:navigation-ui-ktx:$nav_version"
@@ -98,7 +34,5 @@ dependencies {
     kapt "androidx.room:room-compiler:$room_version"
 
     // Test
-    testImplementation "junit:junit:$junit_version"
-    androidTestImplementation "androidx.test.ext:junit-ktx:$test_ext_version"
-    androidTestImplementation "androidx.test.espresso:espresso-core:$espresso_core_version"
+    implementation "org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version"
 }

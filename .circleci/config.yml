@@ -9,7 +9,7 @@ jobs:
 
   Android-Harmony-Test:
     docker:
-      - image: cimg/android:2022.03.1
+      - image: cimg/android:2022.09.1
 
     environment:
       # Configure the JVM and Gradle to avoid OOM errors
@@ -27,6 +27,7 @@ jobs:
             ./gradlew :app:assembleDebug
             ./gradlew :harmony:assembleAndroidTest
             ./gradlew :crypto:assembleAndroidTest
+            ./gradlew :target31test:assemble
 
       - run:
           name: Store Google Service Account
@@ -47,7 +48,7 @@ jobs:
               --test ${HOME}/repo/harmony/build/outputs/apk/androidTest/debug/harmony-debug-androidTest.apk \
               --results-bucket cloud-test-${GOOGLE_PROJECT_ID} \
               --results-dir harmony-${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM} \
-              --device model=joan,version=26 \
+              --device model=redfin,version=30 \
               --no-performance-metrics \
               --no-record-video \
               --use-orchestrator
@@ -67,17 +68,32 @@ jobs:
               --use-orchestrator
 
       - run:
+          name: Test target SDK 31 with Firebase Test Lab
+          command: >
+            sudo gcloud firebase test android run \
+              --type instrumentation \
+              --app ${HOME}/repo/app/build/outputs/apk/debug/app-debug.apk \
+              --test ${HOME}/repo/target31test/build/outputs/apk/debug/target31test-debug.apk \
+              --results-bucket cloud-test-${GOOGLE_PROJECT_ID} \
+              --results-dir target31test-${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM} \
+              --device model=Pixel2,version=29 \
+              --no-performance-metrics \
+              --no-record-video \
+              --use-orchestrator
+
+      - run:
           name: Install gsutil dependency and copy test results data
           command: |
-            sudo gsutil -m cp -r -U `sudo gsutil ls gs://cloud-test-${GOOGLE_PROJECT_ID}/harmony-${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM}/joan-26-en-portrait/test_result_1.xml | tail -1` ${HOME}/temp_results/test_result_1_harmony.xml | true
+            sudo gsutil -m cp -r -U `sudo gsutil ls gs://cloud-test-${GOOGLE_PROJECT_ID}/harmony-${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM}/redfin-30-en-portrait/test_result_1.xml | tail -1` ${HOME}/temp_results/test_result_1_harmony.xml | true
             sudo gsutil -m cp -r -U `sudo gsutil ls gs://cloud-test-${GOOGLE_PROJECT_ID}/crypto-${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM}/Pixel2-29-en-portrait/test_result_1.xml | tail -1` ${HOME}/temp_results/test_result_1_crypto.xml | true
+            sudo gsutil -m cp -r -U `sudo gsutil ls gs://cloud-test-${GOOGLE_PROJECT_ID}/target31test-${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM}/Pixel2-29-en-portrait/test_result_1.xml | tail -1` ${HOME}/temp_results/test_result_1_target31test.xml | true
 
       - store_test_results:
           path: ~/temp_results
 
   Android-Harmony-Build:
     docker:
-      - image: cimg/android:2022.03.1
+      - image: cimg/android:2022.09.1
 
     environment:
       # Configure the JVM and Gradle to avoid OOM errors
@@ -98,7 +114,7 @@ jobs:
 
   Android-Harmony-Upload:
     docker:
-      - image: cimg/android:2022.03.1
+      - image: cimg/android:2022.09.1
 
     environment:
       # Configure the JVM and Gradle to avoid OOM errors
@@ -113,11 +129,11 @@ jobs:
           name: Upload Harmony Library
           command: |
             echo $SIGNING_SECRET | base64 -d > ~/secret.gpg
-            ./gradlew :harmony:publishReleaseHarmonyPublicationToSonatypeRepository
+            ./gradlew :harmony:publishReleasePublicationToSonatypeRepository
 
   Android-Crypto-Upload:
     docker:
-      - image: cimg/android:2022.03.1
+      - image: cimg/android:2022.09.1
 
     environment:
       # Configure the JVM and Gradle to avoid OOM errors
@@ -132,11 +148,11 @@ jobs:
           name: Upload Harmony Crypto
           command: |
             echo $SIGNING_SECRET | base64 -d > ~/secret.gpg
-            ./gradlew :crypto:publishReleaseHarmonyPublicationToSonatypeRepository
+            ./gradlew :crypto:publishReleasePublicationToSonatypeRepository
 
   Android-Harmony-Maven-Release:
     docker:
-      - image: cimg/android:2022.03.1
+      - image: cimg/android:2022.09.1
 
     environment:
       # Configure the JVM and Gradle to avoid OOM errors

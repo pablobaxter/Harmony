@@ -1,4 +1,4 @@
-package com.frybits.harmony
+package com.frybits.harmony.test
 
 import android.app.ActivityManager
 import android.app.Service
@@ -10,10 +10,14 @@ import android.os.Process
 import android.os.SystemClock
 import android.system.Os
 import androidx.core.content.edit
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.ServiceTestRule
+import com.frybits.harmony.HarmonyLog
+import com.frybits.harmony.getHarmonySharedPreferences
 import com.frybits.harmony.internal.withFileLock
+import com.frybits.harmony.setHarmonyLog
+import com.frybits.harmony.withFileLock
 import java.io.File
 import java.io.IOException
 import java.io.RandomAccessFile
@@ -117,14 +121,14 @@ class HarmonyFileTest {
 
     @Before
     fun setup() {
-        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+        val appContext = ApplicationProvider.getApplicationContext<Context>()
         File(appContext.filesDir, HARMONY_PREFS_FOLDER).deleteRecursively()
     }
 
     @Test
     fun testNullKeyTransaction() {
         // Test Prep
-        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+        val appContext = ApplicationProvider.getApplicationContext<Context>()
         val sharedPreferences = appContext.getHarmonySharedPreferences(TEST_PREFS)
         sharedPreferences.all // Dummy call to wait for shared prefs to load
         val harmonyFolder = File(appContext.filesDir, HARMONY_PREFS_FOLDER)
@@ -143,7 +147,7 @@ class HarmonyFileTest {
     @Test
     fun testCorruptedFile() {
         // Test Prep
-        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+        val appContext = ApplicationProvider.getApplicationContext<Context>()
         val harmonyFolder = File(appContext.filesDir, HARMONY_PREFS_FOLDER)
         harmonyFolder.mkdirs()
         val prefsFolder = File(harmonyFolder, TEST_PREFS).apply { mkdirs() }
@@ -163,7 +167,7 @@ class HarmonyFileTest {
     @Test
     fun testCorruptedTransactionFile() {
         // Test Prep
-        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+        val appContext = ApplicationProvider.getApplicationContext<Context>()
         val sharedPreferences = appContext.getHarmonySharedPreferences(TEST_PREFS)
         sharedPreferences.all // Dummy call to wait for shared prefs to load
         val harmonyFolder = File(appContext.filesDir, HARMONY_PREFS_FOLDER)
@@ -197,7 +201,7 @@ class HarmonyFileTest {
     @Test
     fun testPartialCorruptedTransactionFile() {
         // Test Prep
-        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+        val appContext = ApplicationProvider.getApplicationContext<Context>()
         val sharedPreferences = appContext.getHarmonySharedPreferences(TEST_PREFS)
         sharedPreferences.all // Dummy call to wait for shared prefs to load
         val harmonyFolder = File(appContext.filesDir, HARMONY_PREFS_FOLDER)
@@ -226,7 +230,7 @@ class HarmonyFileTest {
     @Test
     fun testOOMTransactionFile() {
         // Test Prep
-        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+        val appContext = ApplicationProvider.getApplicationContext<Context>()
 
         val lock = CountDownLatch(1)
 
@@ -278,7 +282,7 @@ class HarmonyFileTest {
     @Test
     fun testBackupFileRecovery() {
         // Test Prep
-        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+        val appContext = ApplicationProvider.getApplicationContext<Context>()
         val harmonyFolder = File(appContext.filesDir, HARMONY_PREFS_FOLDER)
         harmonyFolder.mkdirs()
         val prefsFolder = File(harmonyFolder, TEST_PREFS).apply { mkdirs() }
@@ -311,7 +315,7 @@ class HarmonyFileTest {
     @Test
     fun testSharedFileLock() {
         // Setup test
-        val application = InstrumentationRegistry.getInstrumentation().targetContext
+        val application = ApplicationProvider.getApplicationContext<Context>()
 
         val executor = Executors.newCachedThreadPool()
 
@@ -356,7 +360,7 @@ class HarmonyFileTest {
     @Test
     fun testUnsharedFileLock() {
         // Setup test
-        val application = InstrumentationRegistry.getInstrumentation().targetContext
+        val application = ApplicationProvider.getApplicationContext<Context>()
 
         val executor = Executors.newCachedThreadPool()
 
@@ -402,7 +406,7 @@ class HarmonyFileTest {
     @Test
     fun testBadFileDescriptorLockReleaseCrash() {
         // Setup test
-        val application = InstrumentationRegistry.getInstrumentation().targetContext
+        val application = ApplicationProvider.getApplicationContext<Context>()
 
         val testFile = File(application.filesDir, TEST_PREFS)
 

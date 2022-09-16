@@ -17,8 +17,6 @@ import com.frybits.harmony.internal._HarmonyException
 import com.frybits.harmony.internal._InternalHarmonyLog
 import com.frybits.harmony.internal.putHarmony
 import com.frybits.harmony.internal.readHarmony
-import com.frybits.harmony.internal.sync
-import com.frybits.harmony.internal.withFileLock
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.File
@@ -489,7 +487,11 @@ private class HarmonyImpl constructor(
                     mainHandler.post { // Listeners are notified on the main thread
                         if (shouldNotifyClearToListeners && wasCleared) {
                             listeners?.forEach { listener ->
-                                listener.onSharedPreferenceChanged(this, null)
+                                if (listener is OnHarmonySharedPreferenceChangedListener) {
+                                    listener.onSharedPreferencesCleared(this)
+                                } else {
+                                    listener.onSharedPreferenceChanged(this, null)
+                                }
                             }
                         }
                         keysModified.asReversed().forEach { key ->
@@ -596,7 +598,11 @@ private class HarmonyImpl constructor(
                 mainHandler.post { // Listeners are notified on the main thread
                     if (shouldNotifyClearToListeners && wasCleared) {
                         listeners?.forEach { listener ->
-                            listener.onSharedPreferenceChanged(this, null)
+                            if (listener is OnHarmonySharedPreferenceChangedListener) {
+                                listener.onSharedPreferencesCleared(this)
+                            } else {
+                                listener.onSharedPreferenceChanged(this, null)
+                            }
                         }
                     }
                     keysModified.asReversed().forEach { key ->
@@ -872,7 +878,11 @@ private class HarmonyImpl constructor(
                     mainHandler.post { // Listeners are notified on the main thread
                         if (shouldNotifyClearToListeners && transaction.cleared) {
                             listeners?.forEach { listener ->
-                                listener.onSharedPreferenceChanged(this@HarmonyImpl, null)
+                                if (listener is OnHarmonySharedPreferenceChangedListener) {
+                                    listener.onSharedPreferencesCleared(this@HarmonyImpl)
+                                } else {
+                                    listener.onSharedPreferenceChanged(this@HarmonyImpl, null)
+                                }
                             }
                         }
                         keysModified.asReversed().forEach { key ->
