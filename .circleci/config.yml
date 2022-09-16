@@ -165,7 +165,7 @@ jobs:
       - checkout
       - run:
           name: Release Harmony
-          command: ./gradlew closeAndReleaseRepository
+          command: ./gradlew closeAndReleaseStagingRepository
 
 workflows:
   version: 2
