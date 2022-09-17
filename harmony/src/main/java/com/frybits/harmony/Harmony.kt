@@ -221,11 +221,11 @@ private class HarmonyImpl constructor(
         return obj as String? ?: defValue
     }
 
-    override fun getStringSet(key: String?, defValues: MutableSet<String>?): MutableSet<String>? {
+    override fun getStringSet(key: String?, defValues: MutableSet<String?>?): MutableSet<String?>? {
         awaitForLoad()
         val obj = mapReentrantReadWriteLock.read { harmonyMap[key] }
         @Suppress("UNCHECKED_CAST")
-        val result = (obj as Set<String>?)?.toMutableSet() ?: hashSetOf()
+        val result = (obj as Set<String?>?)?.toMutableSet() ?: hashSetOf()
         return if (result.size > 0) {
             result
         } else {
@@ -812,7 +812,7 @@ private class HarmonyImpl constructor(
 
         override fun putStringSet(
             key: String?,
-            values: MutableSet<String>?
+            values: MutableSet<String?>?
         ): SharedPreferences.Editor {
             synchronized(this) {
                 harmonyTransaction.update(key, values?.toHashSet())
@@ -861,6 +861,7 @@ private class HarmonyImpl constructor(
                 val keysModified = if (notifyListeners) arrayListOf<String?>() else null
                 val listeners = if (notifyListeners) listenerMap.toSafeSet() else null
 
+                @Suppress("BlockingMethodInNonBlockingContext")
                 val transaction = synchronized(this@HarmonyEditor) {
                     val transaction = harmonyTransaction
                     transaction.memoryCommitTime = SystemClock.elapsedRealtimeNanos() // The current time this "apply()" was called
@@ -930,6 +931,8 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) : C
     var memoryCommitTime = 0L
 
     fun update(key: String?, value: Any?) {
+        // Setting the value to `null` is equivalent to deleting it, according to SharedPrefs comments
+        // https://cs.android.com/android/platform/superproject/+/master:frameworks/base/core/java/android/app/SharedPreferencesImpl.java;l=558;drc=8e742f928e0b3d242a290fb46d80a2c892dd18a3
         transactionMap[key] = value?.let { Operation.Update(it) } ?: Operation.Delete
     }
 
@@ -981,7 +984,7 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) : C
             dataOutputStream.writeBoolean(true)
             val keyByteArray = k?.toByteArray()
             dataOutputStream.writeInt(keyByteArray?.size ?: 0)
-            dataOutputStream.write(keyByteArray ?: byteArrayOf()) // Write the key
+            dataOutputStream.write(keyByteArray ?: EMPTY_BYTE_ARRAY) // Write the key
             when (val d = v.data) { // Write the data
                 is Int -> {
                     dataOutputStream.writeByte(0)
@@ -1009,11 +1012,11 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) : C
                     dataOutputStream.writeByte(5)
                     dataOutputStream.writeInt(d.size)
                     @Suppress("UNCHECKED_CAST")
-                    val set = d as? Set<String>
+                    val set = d as? Set<String?>
                     set?.forEach { s ->
-                        val byteArray = s.toByteArray()
-                        dataOutputStream.writeInt(byteArray.size)
-                        dataOutputStream.write(byteArray)
+                        val byteArray = s?.toByteArray()
+                        dataOutputStream.writeInt(byteArray?.size ?: 0)
+                        dataOutputStream.write(byteArray ?: EMPTY_BYTE_ARRAY)
                     }
                 }
                 null -> dataOutputStream.writeByte(6)
@@ -1131,7 +1134,7 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) : C
                             }
                             5.toByte() -> {
                                 val count = dataInputStream.readInt()
-                                val set = hashSetOf<String>()
+                                val set = hashSetOf<String?>()
                                 repeat(count) {
                                     when (versionByte.toByte()) {
                                         TRANSACTION_FILE_VERSION_1 -> { // Unused. Here for compat purposes
@@ -1139,15 +1142,19 @@ private class HarmonyTransaction(private val uuid: UUID = UUID.randomUUID()) : C
                                         }
                                         TRANSACTION_FILE_VERSION_2 -> {
                                             val size = dataInputStream.readInt()
-                                            val byteArray = try {
-                                                ByteArray(size)
-                                            } catch (e: OutOfMemoryError) { // This was a bug with an old transaction file.
-                                                _InternalHarmonyLog.e(LOG_TAG, "Received OutOfMemoryError while creating ByteArray")
-                                                _InternalHarmonyLog.recordException(e)
-                                                return transactionSet to true
+                                            if (size == 0) {
+                                                set.add(null)
+                                            } else {
+                                                val byteArray = try {
+                                                    ByteArray(size)
+                                                } catch (e: OutOfMemoryError) { // This was a bug with an old transaction file.
+                                                    _InternalHarmonyLog.e(LOG_TAG, "Received OutOfMemoryError while creating ByteArray")
+                                                    _InternalHarmonyLog.recordException(e)
+                                                    return transactionSet to true
+                                                }
+                                                dataInputStream.read(byteArray)
+                                                set.add(String(byteArray))
                                             }
-                                            dataInputStream.read(byteArray)
-                                            set.add(String(byteArray))
                                         }
                                         else -> {
                                             _InternalHarmonyLog.e(LOG_TAG, "Unable to read String set. Incorrect transaction file version $versionByte. Expected $CURR_TRANSACTION_FILE_VERSION")
@@ -1219,6 +1226,7 @@ private const val PREFS_TRANSACTIONS_OLD = "prefs.transaction.old"
 private const val PREFS_DATA_LOCK = "prefs.data.lock"
 private const val PREFS_BACKUP = "prefs.backup"
 private const val KILOBYTE = 1024L * Byte.SIZE_BYTES
+private val EMPTY_BYTE_ARRAY = byteArrayOf()
 
 // Original version was Byte MAX_VALUE. All new transaction file versions should be one lower from the previous.
 private const val TRANSACTION_FILE_VERSION_1 = Byte.MAX_VALUE

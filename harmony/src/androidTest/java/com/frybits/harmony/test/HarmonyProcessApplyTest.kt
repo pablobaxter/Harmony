@@ -414,7 +414,8 @@ class HarmonyProcessApplyTest {
             "test-${Random.nextInt()}" to Array(5) { "${Random.nextInt()}" }.toSet(),
             "test-${Random.nextInt()}" to Array(5) { "${Random.nextInt()}" }.toSet(),
             "test-${Random.nextInt()}" to Array(5) { "${Random.nextInt()}" }.toSet(),
-            "test-${Random.nextInt()}" to Array(5) { "${Random.nextInt()}" }.toSet()
+            "test-${Random.nextInt()}" to Array(5) { "${Random.nextInt()}" }.toSet(),
+            "test-${Random.nextInt()}" to Array(5) { "${Random.nextInt()}" }.toSet() + null
         ))
 
         // Setup new looper
@@ -555,6 +556,7 @@ class HarmonyProcessApplyTest {
         serviceRule.startService(serviceIntent)
 
         // Give the service enough time to setup
+        @Suppress("BlockingMethodInNonBlockingContext")
         Thread.sleep(1000)
 
         val sharedPreferences = application.getHarmonySharedPreferences(PREF_NAME, TRANSACTION_SIZE, TRANSACTION_BATCH_SIZE)

@@ -1,5 +1,8 @@
 ## Change Log
 
+### Version 1.2.1 / 2022-09-17
+- Fixes crash with putting a string set with a `null` item [#46](https://github.com/pablobaxter/Harmony/issues/46)
+
 ### Version 1.2.0 / 2022-09-15
 - Adds new `OnHarmonySharedPreferenceChangedListener` that provides an explicit callback for `clear()` events, instead of just emitting `null` keys
 - Exposes `withFileLock()` and `FileInputStream.sync()` utility functions for public use
