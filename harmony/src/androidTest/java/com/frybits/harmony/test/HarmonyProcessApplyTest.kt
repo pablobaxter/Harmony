@@ -414,7 +414,8 @@ class HarmonyProcessApplyTest {
             "test-${Random.nextInt()}" to Array(5) { "${Random.nextInt()}" }.toSet(),
             "test-${Random.nextInt()}" to Array(5) { "${Random.nextInt()}" }.toSet(),
             "test-${Random.nextInt()}" to Array(5) { "${Random.nextInt()}" }.toSet(),
-            "test-${Random.nextInt()}" to Array(5) { "${Random.nextInt()}" }.toSet()
+            "test-${Random.nextInt()}" to Array(5) { "${Random.nextInt()}" }.toSet(),
+            "test-${Random.nextInt()}" to setOf<String?>(null)
         ))
 
         // Setup new looper
