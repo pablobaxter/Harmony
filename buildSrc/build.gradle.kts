@@ -1,5 +1,5 @@
 plugins {
-    id("org.gradle.kotlin.kotlin-dsl") version "3.1.0"
+    `kotlin-dsl`
     kotlin("jvm") version "1.7.10"
 }
 
