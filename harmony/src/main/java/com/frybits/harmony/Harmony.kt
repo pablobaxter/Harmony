@@ -225,12 +225,7 @@ private class HarmonyImpl constructor(
         awaitForLoad()
         val obj = mapReentrantReadWriteLock.read { harmonyMap[key] }
         @Suppress("UNCHECKED_CAST")
-        val result = (obj as Set<String?>?)?.toMutableSet() ?: hashSetOf()
-        return if (result.size > 0) {
-            result
-        } else {
-            defValues
-        }
+        return (obj as Set<String?>?)?.toMutableSet() ?: defValues
     }
 
     override fun contains(key: String?): Boolean {
