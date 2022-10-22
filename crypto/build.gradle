@@ -1,6 +1,7 @@
 apply plugin: 'frybits-library'
 
 android {
+    namespace 'com.frybits.harmony.secure'
     defaultConfig {
         minSdk crypto_minSdk_version
     }

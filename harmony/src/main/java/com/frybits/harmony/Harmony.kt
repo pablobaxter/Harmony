@@ -225,12 +225,7 @@ private class HarmonyImpl constructor(
         awaitForLoad()
         val obj = mapReentrantReadWriteLock.read { harmonyMap[key] }
         @Suppress("UNCHECKED_CAST")
-        val result = (obj as Set<String?>?)?.toMutableSet() ?: hashSetOf()
-        return if (result.size > 0) {
-            result
-        } else {
-            defValues
-        }
+        return (obj as Set<String?>?)?.toMutableSet() ?: defValues
     }
 
     override fun contains(key: String?): Boolean {
@@ -635,12 +630,14 @@ private class HarmonyImpl constructor(
                     FileOutputStream(harmonyTransactionsFile, true).use { outputStream ->
                         val bufferedOutputStream = outputStream.buffered()
                         // Transaction batching to improve cross-process replication
-                        repeat(transactionMaxBatchCount) {
-                            val peekedTransaction = transactionQueue.peek() ?: return@use
-                            peekedTransaction.commitTransactionToOutputStream(bufferedOutputStream)
-                            bufferedOutputStream.flush()
-                            transactionQueue.remove(peekedTransaction)
+                        run transactionQueue@ {
+                            repeat(transactionMaxBatchCount) {
+                                val peekedTransaction = transactionQueue.peek() ?: return@transactionQueue
+                                peekedTransaction.commitTransactionToOutputStream(bufferedOutputStream)
+                                transactionQueue.remove(peekedTransaction)
+                            }
                         }
+                        bufferedOutputStream.flush()
                         // Write all changes to the physical storage
                         outputStream.sync()
                     }

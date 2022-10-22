@@ -112,6 +112,11 @@ jobs:
             ./gradlew :harmony:publishToMavenLocal
             ./gradlew :crypto:assembleRelease
 
+      - persist_to_workspace:
+          root: ~/repo
+          paths:
+            - .
+
   Android-Harmony-Upload:
     docker:
       - image: cimg/android:2022.09.1
@@ -125,6 +130,8 @@ jobs:
 
     steps:
       - checkout
+      - attach_workspace:
+          at: ~/repo
       - run:
           name: Upload Harmony Library
           command: |
@@ -144,6 +151,8 @@ jobs:
 
     steps:
       - checkout
+      - attach_workspace:
+          at: ~/repo
       - run:
           name: Upload Harmony Crypto
           command: |

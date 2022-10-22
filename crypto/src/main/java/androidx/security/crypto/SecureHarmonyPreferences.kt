@@ -150,12 +150,7 @@ private class SecureHarmonyPreferencesImpl(
     override fun getStringSet(key: String?, defValues: MutableSet<String>?): MutableSet<String>? {
         val obj = getDecryptedObject(key)
         @Suppress("UNCHECKED_CAST")
-        val result = (obj as Set<String>?)?.toMutableSet() ?: hashSetOf()
-        return if (result.size > 0) {
-            result
-        } else {
-            defValues
-        }
+        return (obj as Set<String>?)?.toMutableSet() ?: defValues
     }
 
     override fun getInt(key: String?, defValue: Int): Int {
