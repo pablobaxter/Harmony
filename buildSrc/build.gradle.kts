@@ -12,8 +12,8 @@ repositories {
 dependencies {
     implementation(gradleApi())
     implementation(gradleKotlinDsl())
-    implementation("com.android.tools.build:gradle:7.2.2")
-    implementation("com.android.tools.build:gradle-api:7.2.2")
+    implementation("com.android.tools.build:gradle:7.3.1")
+    implementation("com.android.tools.build:gradle-api:7.3.1")
     implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:1.7.10")
     implementation("org.jetbrains.dokka:dokka-gradle-plugin:1.7.10")
     implementation("androidx.navigation:navigation-safe-args-gradle-plugin:2.5.2")

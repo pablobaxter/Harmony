@@ -1,6 +1,7 @@
 apply plugin: 'frybits-application'
 
 android {
+    namespace 'com.frybits.harmony.app'
     defaultConfig {
         applicationId "com.frybits.harmony.app"
         targetSdk targetSdk_version

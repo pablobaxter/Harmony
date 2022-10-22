@@ -1,6 +1,7 @@
 apply plugin: 'frybits-test'
 
 android {
+    namespace 'com.frybits.harmony.test'
     targetProjectPath ":app"
 
     defaultConfig {
