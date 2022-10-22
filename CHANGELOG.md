@@ -1,5 +1,10 @@
 ## Change Log
 
+### Version 1.2.2 & Harmony-Crypto Version 0.1.1 / 2022-10-22
+- Fix bug where transaction file metadata was not being written right away
+- Don't create unnecessary hash set if no string set is found for given key
+- Update annotation library
+
 ### Version 1.2.1 / 2022-09-17
 - Fixes crash with putting a string set with a `null` item [#46](https://github.com/pablobaxter/Harmony/issues/46)
 
