@@ -9,8 +9,7 @@ jobs:
 
   Android-Harmony-Test:
     docker:
-      - image: cimg/android:2023.02
-      - image: cimg/openjdk:17.0.5
+      - image: soaboz/android-jdk-17:0.0.1
 
     environment:
       # Configure the JVM and Gradle to avoid OOM errors
@@ -98,8 +97,7 @@ jobs:
 
   Android-Harmony-Build:
     docker:
-      - image: cimg/android:2023.02
-      - image: cimg/openjdk:17.0.5
+      - image: soaboz/android-jdk-17:0.0.1
 
     environment:
       # Configure the JVM and Gradle to avoid OOM errors
@@ -125,8 +123,7 @@ jobs:
 
   Android-Harmony-Upload:
     docker:
-      - image: cimg/android:2023.02
-      - image: cimg/openjdk:17.0.5
+      - image: soaboz/android-jdk-17:0.0.1
 
     environment:
       # Configure the JVM and Gradle to avoid OOM errors
@@ -147,8 +144,7 @@ jobs:
 
   Android-Crypto-Upload:
     docker:
-      - image: cimg/android:2023.02
-      - image: cimg/openjdk:17.0.5
+      - image: soaboz/android-jdk-17:0.0.1
 
     environment:
       # Configure the JVM and Gradle to avoid OOM errors
