@@ -1,23 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.frybits.harmony.test">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <application>
+        <!--suppress AndroidDomInspection -->
         <service
             android:name=".AlternateProcessService"
             android:process=":alternate" />
+        <!--suppress AndroidDomInspection -->
         <service
             android:name=".MassInputService"
             android:process=":alternate" />
+        <!--suppress AndroidDomInspection -->
         <service
             android:name=".SharedFileLockService"
             android:process=":alternate" />
+        <!--suppress AndroidDomInspection -->
         <service
             android:name=".LockedFileLockService"
             android:process=":alternate" />
+        <!--suppress AndroidDomInspection -->
         <service
             android:name=".ClearDataApplyService"
             android:process=":alternate" />
+        <!--suppress AndroidDomInspection -->
         <service
             android:name=".ClearDataCommitService"
             android:process=":alternate" />

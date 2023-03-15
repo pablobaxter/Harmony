@@ -22,6 +22,10 @@ jobs:
       - checkout
       - *decode_android_key
       - run:
+          name: Check build health
+          command: |
+            ./gradlew buildHealth
+      - run:
           name: Build dummy app apk and test apk
           command: |
             ./gradlew :app:assembleDebug

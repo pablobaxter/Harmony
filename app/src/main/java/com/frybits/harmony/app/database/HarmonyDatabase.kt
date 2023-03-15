@@ -23,7 +23,11 @@ import androidx.room.TypeConverters
  * https://github.com/pablobaxter/Harmony
  */
 
-@Database(entities = [TestSuiteEntity::class, TestEntity::class, TestDataEntity::class], version = 1)
+@Database(
+    entities = [TestSuiteEntity::class, TestEntity::class, TestDataEntity::class],
+    version = 1,
+    exportSchema = false
+)
 @TypeConverters(TestConverters::class)
 abstract class HarmonyDatabase : RoomDatabase() {
     abstract fun getTestDao(): TestDao

@@ -72,6 +72,7 @@ abstract class TestDao {
     @Delete
     abstract suspend fun delete(testDataList: List<TestDataEntity>)
 
+    @Transaction
     @Query("SELECT * FROM testsuiteentity")
     abstract suspend fun getAllTestWithData(): List<TestSuiteDataRelation>
 }
