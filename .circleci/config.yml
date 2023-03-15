@@ -9,7 +9,7 @@ jobs:
 
   Android-Harmony-Test:
     docker:
-      - image: cimg/android:2022.09.1
+      - image: cimg/android:2023.02
 
     environment:
       # Configure the JVM and Gradle to avoid OOM errors
@@ -97,7 +97,7 @@ jobs:
 
   Android-Harmony-Build:
     docker:
-      - image: cimg/android:2022.09.1
+      - image: cimg/android:2023.02
 
     environment:
       # Configure the JVM and Gradle to avoid OOM errors
@@ -123,7 +123,7 @@ jobs:
 
   Android-Harmony-Upload:
     docker:
-      - image: cimg/android:2022.09.1
+      - image: cimg/android:2023.02
 
     environment:
       # Configure the JVM and Gradle to avoid OOM errors
@@ -144,7 +144,7 @@ jobs:
 
   Android-Crypto-Upload:
     docker:
-      - image: cimg/android:2022.09.1
+      - image: cimg/android:2023.02
 
     environment:
       # Configure the JVM and Gradle to avoid OOM errors
