@@ -138,7 +138,7 @@ jobs:
       - run:
           name: Upload Harmony Library
           command: |
-            ./gradlew publishAllPublicationsToMavenCentral --no-configuration-cache
+            ./gradlew publishAllPublicationsToMavenCentralRepository --no-parallel --no-configuration-cache --stacktrace
 
 workflows:
   version: 2
