@@ -121,7 +121,7 @@ class EncryptedHarmonyTest {
     @Test
     fun testOnPreferenceChangeListener() {
         val harmonyPrefs = sharedPreferences
-        val keyCompletableDeferred = CompletableDeferred<String>()
+        val keyCompletableDeferred = CompletableDeferred<String?>()
         val onPreferenceChanListener =
             SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences, key ->
                 assertTrue { sharedPreferences === harmonyPrefs }

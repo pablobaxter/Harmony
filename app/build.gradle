@@ -4,8 +4,7 @@ android {
     namespace 'com.frybits.harmony.app'
     defaultConfig {
         applicationId "com.frybits.harmony.app"
-        targetSdk targetSdk_version
-        minSdk crypto_minSdk_version
+        minSdk = 23
         versionCode 1
         versionName "1.0"
     }
@@ -13,27 +12,28 @@ android {
 
 dependencies {
     implementation project (':crypto')
-    implementation 'com.tencent:mmkv-static:1.2.8'
     implementation files('libs/tray-0.12.0.aar')
 
+    implementation libs.mmkv
+
     // Kotlin
-    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlin_coroutine_version"
-    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$kotlin_coroutine_version"
+    implementation libs.kotlin.stdlib
+    implementation libs.kotlinx.coroutines.core
+    implementation libs.kotlinx.coroutines.android
 
     // Android
-    implementation "androidx.appcompat:appcompat:$appcompat_version"
-    implementation "androidx.core:core-ktx:$corektx_version"
-    implementation "com.google.android.material:material:$material_version"
-    implementation "androidx.lifecycle:lifecycle-runtime-ktx:$lifecycle_scope_version"
-    implementation "androidx.navigation:navigation-fragment-ktx:$nav_version"
-    implementation "androidx.navigation:navigation-ui-ktx:$nav_version"
-    implementation "androidx.constraintlayout:constraintlayout:$constraint_version"
-    implementation "com.google.dagger:hilt-android:$hilt_version"
-    kapt "com.google.dagger:hilt-compiler:$hilt_version"
-    implementation "androidx.room:room-ktx:$room_version"
-    kapt "androidx.room:room-compiler:$room_version"
+    implementation libs.androidx.appcompat
+    implementation libs.androidx.core.ktx
+    implementation libs.google.material
+    implementation libs.androidx.lifecycle.runtime.ktx
+    implementation libs.androidx.navigation.fragment.ktx
+    implementation libs.androidx.navigation.ui.ktx
+    implementation libs.androidx.constraintlayout
+    implementation libs.google.dagger.hilt.android
+    ksp libs.google.dagger.hilt.compiler
+    implementation libs.androidx.room.ktx
+    ksp libs.androidx.room.compiler
 
     // Test
-    implementation "org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version"
+    implementation libs.kotlin.test.junit
 }

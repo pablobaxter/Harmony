@@ -9,7 +9,7 @@ jobs:
 
   Android-Harmony-Test:
     docker:
-      - image: cimg/android:2022.09.1
+      - image: soaboz/android-jdk-17:0.0.1
 
     environment:
       # Configure the JVM and Gradle to avoid OOM errors
@@ -21,6 +21,10 @@ jobs:
     steps:
       - checkout
       - *decode_android_key
+      - run:
+          name: Check build health
+          command: |
+            ./gradlew buildHealth
       - run:
           name: Build dummy app apk and test apk
           command: |
@@ -93,7 +97,7 @@ jobs:
 
   Android-Harmony-Build:
     docker:
-      - image: cimg/android:2022.09.1
+      - image: soaboz/android-jdk-17:0.0.1
 
     environment:
       # Configure the JVM and Gradle to avoid OOM errors
@@ -108,7 +112,6 @@ jobs:
           name: Assemble Harmony
           command: |
             ./gradlew :harmony:assembleRelease
-            echo $SIGNING_SECRET | base64 -d > ~/secret.gpg
             ./gradlew :harmony:publishToMavenLocal
             ./gradlew :crypto:assembleRelease
 
@@ -119,7 +122,7 @@ jobs:
 
   Android-Harmony-Upload:
     docker:
-      - image: cimg/android:2022.09.1
+      - image: soaboz/android-jdk-17:0.0.1
 
     environment:
       # Configure the JVM and Gradle to avoid OOM errors
@@ -135,29 +138,7 @@ jobs:
       - run:
           name: Upload Harmony Library
           command: |
-            echo $SIGNING_SECRET | base64 -d > ~/secret.gpg
-            ./gradlew :harmony:publishReleasePublicationToSonatypeRepository closeAndReleaseStagingRepository
-
-  Android-Crypto-Upload:
-    docker:
-      - image: cimg/android:2022.09.1
-
-    environment:
-      # Configure the JVM and Gradle to avoid OOM errors
-      _JAVA_OPTIONS: "-Xmx3g"
-      GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2"
-
-    working_directory: ~/repo
-
-    steps:
-      - checkout
-      - attach_workspace:
-          at: ~/repo
-      - run:
-          name: Upload Harmony Crypto
-          command: |
-            echo $SIGNING_SECRET | base64 -d > ~/secret.gpg
-            ./gradlew :crypto:publishReleasePublicationToSonatypeRepository closeAndReleaseStagingRepository
+            ./gradlew publishAllPublicationsToMavenCentral --no-configuration-cache
 
 workflows:
   version: 2
@@ -177,21 +158,6 @@ workflows:
       - Android-Harmony-Upload:
           requires:
             - Harmony-Upload-Approval
-          filters:
-            branches:
-              only:
-                - main
-      - Crypto-Upload-Approval:
-          type: approval
-          requires:
-            - Android-Harmony-Upload
-          filters:
-            branches:
-              only:
-                - main
-      - Android-Crypto-Upload:
-          requires:
-            - Crypto-Upload-Approval
           filters:
             branches:
               only:

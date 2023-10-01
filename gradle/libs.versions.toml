@@ -1,0 +1,98 @@
+[versions]
+# Kotlin
+kotlin = "1.9.10"
+kotlin-coroutines = "1.7.3"
+dokka = "1.9.0"
+
+# Android
+android-build-gradle = "8.1.1"
+
+# Androidx
+androidx-navigation = "2.7.3"
+androidx-appcompat = "1.6.1"
+androidx-core = "1.12.0"
+androidx-test-core = "1.5.0"
+androidx-lifecycle = "2.6.2"
+androidx-constraintlayout = "2.1.4"
+androidx-room = "2.5.2"
+androidx-annotation = "1.7.0"
+androidx-crypto = "1.0.0"
+androidx-test-ext = "1.1.5"
+androidx-test-rules = "1.5.0"
+androidx-test-runner = "1.5.2"
+androidx-espresso-core = "3.5.1"
+androidx-espresso-remote = "3.5.1"
+androidx-test-orchestrator = "1.4.2"
+ksp = "1.9.10-1.0.13"
+
+# Google
+google-material = "1.9.0"
+google-tink = "1.7.0"
+
+# Dependency Injection
+hilt = "2.48"
+
+# Alternate multi-process
+mmkv = "1.2.15"
+
+dependency-analysis = "1.24.0"
+vanniktech = "0.25.3"
+
+[libraries]
+## Build libraries
+android-build-gradle = { module = "com.android.tools.build:gradle", version.ref = "android-build-gradle" }
+android-build-gradle-api = { module = "com.android.tools.build:gradle-api", version.ref = "android-build-gradle" }
+kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
+kotlin-dokka-plugin = { module = "org.jetbrains.dokka:dokka-gradle-plugin", version.ref = "dokka" }
+androidx-navigation-safeargs-plugin = { module = "androidx.navigation:navigation-safe-args-gradle-plugin", version.ref = "androidx-navigation" }
+hilt-plugin = { module = "com.google.dagger:hilt-android-gradle-plugin", version.ref = "hilt" }
+kotlin-ksp = { module = "com.google.devtools.ksp:symbol-processing-gradle-plugin", version.ref = "ksp" }
+## Publishing
+vanniktech = { module = "com.vanniktech:gradle-maven-publish-plugin", version.ref = "vanniktech" }
+
+## Project libraries
+
+# Alternate multi-process
+mmkv = { module = "com.tencent:mmkv-static", version.ref = "mmkv" }
+
+# Kotlin
+kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlin" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlin-coroutines" }
+kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlin-coroutines" }
+
+# Androidx
+androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "androidx-appcompat" }
+androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidx-core" }
+androidx-lifecycle-runtime-ktx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "androidx-lifecycle" }
+androidx-navigation-fragment-ktx = { module = "androidx.navigation:navigation-fragment-ktx", version.ref = "androidx-navigation" }
+androidx-navigation-ui-ktx = { module = "androidx.navigation:navigation-ui-ktx", version.ref = "androidx-navigation" }
+androidx-constraintlayout = { module = "androidx.constraintlayout:constraintlayout", version.ref = "androidx-constraintlayout" }
+androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "androidx-room" }
+androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "androidx-room" }
+androidx-annotation = { module = "androidx.annotation:annotation", version.ref = "androidx-annotation" }
+androidx-security-crypto = { module = "androidx.security:security-crypto", version.ref = "androidx-crypto" }
+
+# Google
+google-material = { module = "com.google.android.material:material", version.ref = "google-material" }
+google-crypto-tink-android = { module = "com.google.crypto.tink:tink-android", version.ref = "google-tink" }
+
+# Dependency Injection
+google-dagger-hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
+google-dagger-hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hilt" }
+
+# Testing
+androidx-test-junit-ktx = { module = "androidx.test.ext:junit-ktx", version.ref = "androidx-test-ext" }
+androidx-test-rules = { module = "androidx.test:rules", version.ref = "androidx-test-rules" }
+androidx-test-runner = { module = "androidx.test:runner", version.ref = "androidx-test-runner" }
+androidx-test-espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "androidx-espresso-core" }
+androidx-test-espresso-remote = { module = "androidx.test.espresso:espresso-remote", version.ref = "androidx-espresso-remote" }
+androidx-test-orchestrator = { module = "androidx.test:orchestrator", version.ref = "androidx-test-orchestrator" }
+
+kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
+kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
+
+[bundles]
+android-build = ["android-build-gradle", "android-build-gradle-api"]
+
+[plugins]
+dependency-analysis = { id = "com.autonomousapps.dependency-analysis", version.ref = "dependency-analysis" }

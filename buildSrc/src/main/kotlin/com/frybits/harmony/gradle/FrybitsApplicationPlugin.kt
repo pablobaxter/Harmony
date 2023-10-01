@@ -3,12 +3,12 @@ package com.frybits.harmony.gradle
 import androidx.navigation.safeargs.gradle.SafeArgsKotlinPlugin
 import com.android.build.api.dsl.ApplicationExtension
 import com.android.build.gradle.AppPlugin
+import com.google.devtools.ksp.gradle.KspGradleSubplugin
 import dagger.hilt.android.plugin.HiltGradlePlugin
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.apply
 import org.gradle.kotlin.dsl.configure
-import org.jetbrains.kotlin.gradle.internal.Kapt3GradleSubplugin
 import org.jetbrains.kotlin.gradle.internal.ParcelizeSubplugin
 import org.jetbrains.kotlin.gradle.plugin.KotlinAndroidPluginWrapper
 
@@ -47,13 +47,16 @@ private fun Project.applyAppPlugins() {
     apply<KotlinAndroidPluginWrapper>()
     apply<ParcelizeSubplugin>()
     apply<SafeArgsKotlinPlugin>()
-    apply<Kapt3GradleSubplugin>()
+    apply<KspGradleSubplugin>()
     apply<HiltGradlePlugin>()
 }
 
-@Suppress("UnstableApiUsage")
 private fun ApplicationExtension.configureAndroidApplication() {
     configureCommonAndroid()
+
+    defaultConfig {
+        targetSdk = 33
+    }
 
     buildTypes {
         maybeCreate("release").apply {

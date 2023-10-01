@@ -1,5 +1,13 @@
 ## Change Log
 
+### Version 1.2.4 / 2023-09-30
+- Migrate to use vanniktech for publishing
+- Update compileSdk to 34
+- Updated several libraries
+- Converted to using version catalog
+- Bring in dependency analysis tool (https://github.com/autonomousapps/dependency-analysis-android-gradle-plugin)
+- Made fixes per dependency analysis
+
 ### Version 1.2.2 & Harmony-Crypto Version 0.1.1 / 2022-10-22
 - Fix bug where transaction file metadata was not being written right away
 - Don't create unnecessary hash set if no string set is found for given key

@@ -1214,7 +1214,7 @@ private const val HARMONY_PREFS_FOLDER = "harmony_prefs"
 
 private fun Context.harmonyPrefsFolder() = File(filesDir, HARMONY_PREFS_FOLDER).apply { if (!exists()) mkdirs() }
 
-private val posixRegex = "[^-_.A-Za-z0-9]".toRegex()
+private val posixRegex = "[^-_.A-Za-z\\d]".toRegex()
 private const val LOG_TAG = "Harmony"
 
 private const val PREFS_DATA = "prefs.data"

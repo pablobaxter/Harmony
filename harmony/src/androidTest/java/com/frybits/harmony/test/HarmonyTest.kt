@@ -143,7 +143,7 @@ class HarmonyTest {
         // Context of the app under test.
         val appContext = ApplicationProvider.getApplicationContext<Context>()
         val harmonyPrefs = appContext.getHarmonySharedPreferences(PREFS)
-        val keyCompletableDeferred = CompletableDeferred<String>()
+        val keyCompletableDeferred = CompletableDeferred<String?>()
         val onPreferenceChanListener =
             SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences, key ->
                 assertTrue { sharedPreferences === harmonyPrefs }
@@ -170,7 +170,7 @@ class HarmonyTest {
         // Context of the app under test.
         val appContext = ApplicationProvider.getApplicationContext<Context>()
         val harmonyPrefs = appContext.getHarmonySharedPreferences(PREFS)
-        val keyCompletableDeferred = CompletableDeferred<String>()
+        val keyCompletableDeferred = CompletableDeferred<String?>()
         val onPreferenChanListener =
             SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences, key ->
                 assertTrue { sharedPreferences === harmonyPrefs }

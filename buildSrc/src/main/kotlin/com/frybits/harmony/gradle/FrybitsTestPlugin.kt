@@ -23,7 +23,6 @@ private fun Project.applyTestPlugins() {
     apply<KotlinAndroidPluginWrapper>()
 }
 
-@Suppress("UnstableApiUsage")
 private fun TestExtension.configureAndroidTest() {
     configureCommonAndroid()
 }

@@ -1,22 +1,23 @@
 apply plugin: 'frybits-library'
 
 android.namespace 'com.frybits.harmony'
+android.testNamespace 'com.frybits.harmony.test'
 
 dependencies {
     // Kotlin
-    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-    implementation "androidx.annotation:annotation:$annotation_version"
+    implementation libs.kotlin.stdlib
+    implementation libs.androidx.annotation
 
     // Test
-    androidTestImplementation "androidx.core:core-ktx:$corektx_version"
-    androidTestImplementation "org.jetbrains.kotlin:kotlin-test:$kotlin_version"
-    androidTestImplementation "org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version"
-    androidTestImplementation "androidx.test.ext:junit-ktx:$test_ext_version"
-    androidTestImplementation "androidx.test:rules:$test_rules_version"
-    androidTestImplementation "androidx.test:runner:$test_runner_version"
-    androidTestImplementation "androidx.test.espresso:espresso-core:$espresso_core_version"
-    androidTestImplementation "androidx.test.espresso:espresso-remote:$espresso_remote_version"
-    androidTestImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlin_coroutine_version"
-    androidTestImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$kotlin_coroutine_version"
-    androidTestUtil "androidx.test:orchestrator:$test_orchestrator_version"
+    androidTestImplementation libs.androidx.core.ktx
+    androidTestImplementation libs.kotlin.test
+    androidTestImplementation libs.kotlin.test.junit
+    androidTestImplementation libs.androidx.test.junit.ktx
+    androidTestImplementation libs.androidx.test.rules
+    androidTestImplementation libs.androidx.test.runner
+    androidTestImplementation libs.androidx.test.espresso.core
+    androidTestImplementation libs.androidx.test.espresso.remote
+    androidTestImplementation libs.kotlinx.coroutines.core
+    androidTestImplementation libs.kotlinx.coroutines.android
+    androidTestUtil libs.androidx.test.orchestrator
 }
