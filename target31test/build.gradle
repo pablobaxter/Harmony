@@ -5,8 +5,7 @@ android {
     targetProjectPath ":app"
 
     defaultConfig {
-        minSdk minSdk_version
-        targetSdk targetSdk_version
+        minSdk 23
     }
 }
 

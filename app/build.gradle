@@ -4,8 +4,7 @@ android {
     namespace 'com.frybits.harmony.app'
     defaultConfig {
         applicationId "com.frybits.harmony.app"
-        targetSdk targetSdk_version
-        minSdk minSdk_version
+        minSdk = 23
         versionCode 1
         versionName "1.0"
     }

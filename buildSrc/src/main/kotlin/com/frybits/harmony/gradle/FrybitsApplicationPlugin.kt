@@ -54,6 +54,10 @@ private fun Project.applyAppPlugins() {
 private fun ApplicationExtension.configureAndroidApplication() {
     configureCommonAndroid()
 
+    defaultConfig {
+        targetSdk = 33
+    }
+
     buildTypes {
         maybeCreate("release").apply {
             isMinifyEnabled = false

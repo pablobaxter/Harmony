@@ -7,7 +7,6 @@ import com.android.build.api.dsl.CommonExtension
 import com.android.build.api.dsl.DefaultConfig
 import com.android.build.api.dsl.ProductFlavor
 import org.gradle.api.JavaVersion
-import org.gradle.api.Project
 import org.gradle.api.plugins.ExtensionAware
 import org.gradle.kotlin.dsl.configure
 import org.jetbrains.kotlin.gradle.dsl.KotlinJvmOptions
@@ -30,9 +29,6 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinJvmOptions
  * Created by Pablo Baxter (Github: pablobaxter)
  * https://github.com/pablobaxter/Harmony
  */
-
-private const val CRYPTO = "crypto"
-private const val HARMONY = "harmony"
 
 @Suppress("UnstableApiUsage")
 internal fun <BuildFeaturesT : BuildFeatures, BuildTypeT : BuildType, DefaultConfigT : DefaultConfig, ProductFlavorT : ProductFlavor, AndroidResourcesT: AndroidResources>
@@ -63,29 +59,5 @@ internal fun <BuildFeaturesT : BuildFeatures, BuildTypeT : BuildType, DefaultCon
         resources {
             excludes += "META-INF/versions/9/previous-compilation-data.bin"
         }
-    }
-}
-
-internal fun Project.harmonyArtifactId(): String {
-    return when (name) {
-        CRYPTO -> "harmony-crypto"
-        HARMONY -> "harmony"
-        else -> throw IllegalArgumentException("Unknown project $name")
-    }
-}
-
-internal fun Project.harmonyPomName(): String {
-    return when (name) {
-        CRYPTO -> "Harmony Crypto"
-        HARMONY -> "Harmony"
-        else -> throw IllegalArgumentException("Unknown project $name")
-    }
-}
-
-internal fun Project.harmonyDescription(): String {
-    return when (name) {
-        CRYPTO -> "A process-safe Encrypted SharedPreferences implementation"
-        HARMONY -> "A process-safe SharedPreferences implementation"
-        else -> throw IllegalArgumentException("Unknown project $name")
     }
 }

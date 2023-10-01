@@ -35,8 +35,8 @@ hilt = "2.48"
 # Alternate multi-process
 mmkv = "1.2.15"
 
-publish-plugin = "1.1.0"
 dependency-analysis = "1.24.0"
+vanniktech = "0.25.3"
 
 [libraries]
 ## Build libraries
@@ -47,6 +47,8 @@ kotlin-dokka-plugin = { module = "org.jetbrains.dokka:dokka-gradle-plugin", vers
 androidx-navigation-safeargs-plugin = { module = "androidx.navigation:navigation-safe-args-gradle-plugin", version.ref = "androidx-navigation" }
 hilt-plugin = { module = "com.google.dagger:hilt-android-gradle-plugin", version.ref = "hilt" }
 kotlin-ksp = { module = "com.google.devtools.ksp:symbol-processing-gradle-plugin", version.ref = "ksp" }
+## Publishing
+vanniktech = { module = "com.vanniktech:gradle-maven-publish-plugin", version.ref = "vanniktech" }
 
 ## Project libraries
 
@@ -93,5 +95,4 @@ kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version
 android-build = ["android-build-gradle", "android-build-gradle-api"]
 
 [plugins]
-gradle-nexus-publish = { id = "io.github.gradle-nexus.publish-plugin", version.ref = "publish-plugin" }
 dependency-analysis = { id = "com.autonomousapps.dependency-analysis", version.ref = "dependency-analysis" }

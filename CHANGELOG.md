@@ -1,6 +1,7 @@
 ## Change Log
 
-### Version 1.2.3 & Harmony-Crypto Version 0.1.2 / TBD
+### Version 1.2.4 / 2023-09-30
+- Migrate to use vanniktech for publishing
 - Update compileSdk to 34
 - Updated several libraries
 - Converted to using version catalog

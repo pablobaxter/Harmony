@@ -3,7 +3,7 @@ apply plugin: 'frybits-library'
 android {
     namespace 'com.frybits.harmony.secure'
     defaultConfig {
-        minSdk minSdk_version
+        minSdk 23
     }
 }
 

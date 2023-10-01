@@ -12,6 +12,7 @@ dependencies {
     implementation(libs.kotlin.ksp)
     implementation(libs.androidx.navigation.safeargs.plugin)
     implementation(libs.hilt.plugin)
+    implementation(libs.vanniktech)
 }
 
 gradlePlugin {
