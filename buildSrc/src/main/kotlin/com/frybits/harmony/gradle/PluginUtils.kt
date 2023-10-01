@@ -1,5 +1,6 @@
 package com.frybits.harmony.gradle
 
+import com.android.build.api.dsl.AndroidResources
 import com.android.build.api.dsl.BuildFeatures
 import com.android.build.api.dsl.BuildType
 import com.android.build.api.dsl.CommonExtension
@@ -34,9 +35,9 @@ private const val CRYPTO = "crypto"
 private const val HARMONY = "harmony"
 
 @Suppress("UnstableApiUsage")
-internal fun <BuildFeaturesT : BuildFeatures, BuildTypeT : BuildType, DefaultConfigT : DefaultConfig, ProductFlavorT : ProductFlavor>
-        CommonExtension<BuildFeaturesT, BuildTypeT, DefaultConfigT, ProductFlavorT>.configureCommonAndroid() {
-    compileSdk = 33
+internal fun <BuildFeaturesT : BuildFeatures, BuildTypeT : BuildType, DefaultConfigT : DefaultConfig, ProductFlavorT : ProductFlavor, AndroidResourcesT: AndroidResources>
+        CommonExtension<BuildFeaturesT, BuildTypeT, DefaultConfigT, ProductFlavorT, AndroidResourcesT>.configureCommonAndroid() {
+    compileSdk = 34
 
     defaultConfig {
         minSdk = 17
@@ -58,7 +59,7 @@ internal fun <BuildFeaturesT : BuildFeatures, BuildTypeT : BuildType, DefaultCon
         jvmTarget = "17"
     }
 
-    packagingOptions {
+    packaging {
         resources {
             excludes += "META-INF/versions/9/previous-compilation-data.bin"
         }

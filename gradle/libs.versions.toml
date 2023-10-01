@@ -1,20 +1,21 @@
 [versions]
 # Kotlin
-kotlin = "1.8.10"
-kotlin-coroutines = "1.7.0-Beta"
-dokka = "1.8.10"
+kotlin = "1.9.10"
+kotlin-coroutines = "1.7.3"
+dokka = "1.9.0"
 
 # Android
-android-build-gradle = "7.4.2"
+android-build-gradle = "8.1.1"
 
 # Androidx
-androidx-navigation = "2.5.3"
+androidx-navigation = "2.7.3"
 androidx-appcompat = "1.6.1"
-androidx-core = "1.9.0"
-androidx-lifecycle = "2.6.0"
+androidx-core = "1.12.0"
+androidx-test-core = "1.5.0"
+androidx-lifecycle = "2.6.2"
 androidx-constraintlayout = "2.1.4"
-androidx-room = "2.5.0"
-androidx-annotation = "1.6.0"
+androidx-room = "2.5.2"
+androidx-annotation = "1.7.0"
 androidx-crypto = "1.0.0"
 androidx-test-ext = "1.1.5"
 androidx-test-rules = "1.5.0"
@@ -22,19 +23,20 @@ androidx-test-runner = "1.5.2"
 androidx-espresso-core = "3.5.1"
 androidx-espresso-remote = "3.5.1"
 androidx-test-orchestrator = "1.4.2"
+ksp = "1.9.10-1.0.13"
 
 # Google
-google-material = "1.8.0"
+google-material = "1.9.0"
 google-tink = "1.7.0"
 
 # Dependency Injection
-hilt = "2.43.2"
+hilt = "2.48"
 
 # Alternate multi-process
 mmkv = "1.2.15"
 
 publish-plugin = "1.1.0"
-dependency-analysis = "1.19.0"
+dependency-analysis = "1.24.0"
 
 [libraries]
 ## Build libraries
@@ -44,6 +46,7 @@ kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", v
 kotlin-dokka-plugin = { module = "org.jetbrains.dokka:dokka-gradle-plugin", version.ref = "dokka" }
 androidx-navigation-safeargs-plugin = { module = "androidx.navigation:navigation-safe-args-gradle-plugin", version.ref = "androidx-navigation" }
 hilt-plugin = { module = "com.google.dagger:hilt-android-gradle-plugin", version.ref = "hilt" }
+kotlin-ksp = { module = "com.google.devtools.ksp:symbol-processing-gradle-plugin", version.ref = "ksp" }
 
 ## Project libraries
 

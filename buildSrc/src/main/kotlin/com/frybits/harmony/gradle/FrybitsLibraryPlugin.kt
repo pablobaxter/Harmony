@@ -91,7 +91,7 @@ private fun Project.configureDokka() {
         moduleName.set(this@configureDokka.name.capitalize())
         dokkaSourceSets.maybeCreate("main").apply {
             noAndroidSdkLink.set(false)
-            outputDirectory.set(File("${buildDir}/dokka"))
+            outputDirectory.set(layout.buildDirectory.get().file("dokka").asFile)
             reportUndocumented.set(true)
             platform.set(Platform.jvm)
             sourceRoots.setFrom(File("src/main"))
@@ -109,7 +109,7 @@ private fun Project.configureDokka() {
     afterEvaluate {
         tasks.named<Jar>("javaDocReleaseJar") {
             dependsOn(dokka)
-            from("$buildDir/dokka")
+            from(layout.buildDirectory.get().file("dokka"))
             archiveClassifier.set(DocsType.JAVADOC)
         }
         

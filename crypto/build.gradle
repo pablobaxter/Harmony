@@ -17,18 +17,18 @@ dependencies {
 
     // Security
     api libs.androidx.security.crypto
-    implementation libs.google.crypto.tink.android
+    api libs.google.crypto.tink.android
 
     // Test
     androidTestImplementation libs.androidx.core.ktx
     androidTestImplementation libs.kotlin.test
-    androidTestImplementation libs.kotlin.test.junit
+    androidTestRuntimeOnly libs.kotlin.test.junit
     androidTestImplementation libs.androidx.test.junit.ktx
     androidTestImplementation libs.androidx.test.rules
     androidTestImplementation libs.androidx.test.runner
     androidTestImplementation libs.androidx.test.espresso.core
     androidTestImplementation libs.androidx.test.espresso.remote
     androidTestImplementation libs.kotlinx.coroutines.core
-    androidTestImplementation libs.kotlinx.coroutines.android
+    androidTestRuntimeOnly libs.kotlinx.coroutines.android
     androidTestUtil libs.androidx.test.orchestrator
 }

@@ -31,9 +31,9 @@ dependencies {
     implementation libs.androidx.navigation.ui.ktx
     implementation libs.androidx.constraintlayout
     implementation libs.google.dagger.hilt.android
-    kapt libs.google.dagger.hilt.compiler
+    ksp libs.google.dagger.hilt.compiler
     implementation libs.androidx.room.ktx
-    kapt libs.androidx.room.compiler
+    ksp libs.androidx.room.compiler
 
     // Test
     implementation libs.kotlin.test.junit

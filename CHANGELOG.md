@@ -1,6 +1,7 @@
 ## Change Log
 
 ### Version 1.2.3 & Harmony-Crypto Version 0.1.2 / TBD
+- Update compileSdk to 34
 - Updated several libraries
 - Converted to using version catalog
 - Bring in dependency analysis tool (https://github.com/autonomousapps/dependency-analysis-android-gradle-plugin)
