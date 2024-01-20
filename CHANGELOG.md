@@ -1,5 +1,12 @@
 ## Change Log
 
+### Unreleased
+- Upgraded several dependencies
+- Upgraded to AGP 8.2.1
+- Upgraded to Kotlin 1.9.22
+- Upgraded to Gradle 8.5
+- MinSDK is now 23
+
 ### Version 1.2.4 / 2023-09-30
 - Migrate to use vanniktech for publishing
 - Update compileSdk to 34

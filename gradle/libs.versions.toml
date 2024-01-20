@@ -1,21 +1,20 @@
 [versions]
 # Kotlin
-kotlin = "1.9.10"
+kotlin = "1.9.22"
 kotlin-coroutines = "1.7.3"
 dokka = "1.9.0"
 
 # Android
-android-build-gradle = "8.1.1"
+android-build-gradle = "8.2.1"
 
 # Androidx
-androidx-navigation = "2.7.3"
+androidx-navigation = "2.7.6"
 androidx-appcompat = "1.6.1"
 androidx-core = "1.12.0"
-androidx-test-core = "1.5.0"
-androidx-lifecycle = "2.6.2"
+androidx-lifecycle = "2.7.0"
 androidx-constraintlayout = "2.1.4"
-androidx-room = "2.5.2"
-androidx-annotation = "1.7.0"
+androidx-room = "2.6.1"
+androidx-annotation = "1.7.1"
 androidx-crypto = "1.0.0"
 androidx-test-ext = "1.1.5"
 androidx-test-rules = "1.5.0"
@@ -23,10 +22,10 @@ androidx-test-runner = "1.5.2"
 androidx-espresso-core = "3.5.1"
 androidx-espresso-remote = "3.5.1"
 androidx-test-orchestrator = "1.4.2"
-ksp = "1.9.10-1.0.13"
+ksp = "1.9.22-1.0.17"
 
 # Google
-google-material = "1.9.0"
+google-material = "1.11.0"
 google-tink = "1.7.0"
 
 # Dependency Injection
@@ -35,8 +34,8 @@ hilt = "2.48"
 # Alternate multi-process
 mmkv = "1.2.15"
 
-dependency-analysis = "1.24.0"
-vanniktech = "0.25.3"
+dependency-analysis = "1.28.0"
+vanniktech = "0.26.0"
 
 [libraries]
 ## Build libraries
