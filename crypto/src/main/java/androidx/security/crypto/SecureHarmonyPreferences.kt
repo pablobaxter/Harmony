@@ -5,7 +5,7 @@ package androidx.security.crypto
 
 import android.content.Context
 import android.content.SharedPreferences
-import android.util.ArraySet
+import androidx.collection.ArraySet
 import com.frybits.harmony.OnHarmonySharedPreferenceChangedListener
 import com.frybits.harmony.getHarmonySharedPreferences
 import com.google.crypto.tink.Aead

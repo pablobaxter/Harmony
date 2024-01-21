@@ -10,9 +10,9 @@ import org.jetbrains.kotlin.gradle.plugin.KotlinAndroidPluginWrapper
 
 class FrybitsTestPlugin : Plugin<Project> {
 
-    override fun apply(target: Project) {
-        target.applyTestPlugins()
-        target.configure<TestExtension> {
+    override fun apply(target: Project) = target.run {
+        applyTestPlugins()
+        configure<TestExtension> {
             configureAndroidTest()
         }
     }

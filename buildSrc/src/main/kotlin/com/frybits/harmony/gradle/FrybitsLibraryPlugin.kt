@@ -17,6 +17,7 @@ import org.jetbrains.dokka.Platform
 import org.jetbrains.dokka.gradle.DokkaPlugin
 import org.jetbrains.dokka.gradle.DokkaTask
 import org.jetbrains.kotlin.gradle.plugin.KotlinAndroidPluginWrapper
+import org.jetbrains.kotlinx.serialization.gradle.SerializationGradleSubplugin
 import java.io.File
 import java.util.Locale
 
@@ -41,20 +42,21 @@ import java.util.Locale
 
 class FrybitsLibraryPlugin : Plugin<Project> {
 
-    override fun apply(target: Project) {
-        target.applyLibraryPlugins()
+    override fun apply(target: Project) = target.run {
+        applyLibraryPlugins()
 
-        target.configure<LibraryExtension> {
+        configure<LibraryExtension> {
             configureAndroidLibrary()
         }
 
-        target.configureDokka()
+        configureDokka()
     }
 }
 
 private fun Project.applyLibraryPlugins() {
     apply<LibraryPlugin>()
     apply<KotlinAndroidPluginWrapper>()
+    apply<SerializationGradleSubplugin>()
     apply<DokkaPlugin>()
     apply<MavenPublishPlugin>()
 }

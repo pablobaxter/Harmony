@@ -17,6 +17,7 @@ import com.frybits.harmony.internal._HarmonyException
 import com.frybits.harmony.internal._InternalHarmonyLog
 import com.frybits.harmony.internal.putHarmony
 import com.frybits.harmony.internal.readHarmony
+import kotlinx.serialization.SerializationException
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.File
@@ -38,7 +39,6 @@ import java.util.zip.CheckedInputStream
 import java.util.zip.CheckedOutputStream
 import kotlin.concurrent.read
 import kotlin.concurrent.write
-import org.json.JSONException
 
 /*
  *  Copyright 2020 Pablo Baxter
@@ -285,11 +285,11 @@ private class HarmonyImpl constructor(
         } catch (e: IllegalStateException) {
             _InternalHarmonyLog.e(LOG_TAG, "IllegalStateException while reading data file", e)
             null to emptyMap()
-        } catch (e: JSONException) {
-            _InternalHarmonyLog.e(LOG_TAG, "JSONException while reading data file", e)
-            null to emptyMap()
         } catch (e: IOException) {
             _InternalHarmonyLog.e(LOG_TAG, "IOException occurred while reading json", e)
+            null to emptyMap()
+        } catch (e: SerializationException) {
+            _InternalHarmonyLog.e(LOG_TAG, "Unable to parse json string", e)
             null to emptyMap()
         }
     }
@@ -858,7 +858,6 @@ private class HarmonyImpl constructor(
                 val keysModified = if (notifyListeners) arrayListOf<String?>() else null
                 val listeners = if (notifyListeners) listenerMap.toSafeSet() else null
 
-                @Suppress("BlockingMethodInNonBlockingContext")
                 val transaction = synchronized(this@HarmonyEditor) {
                     val transaction = harmonyTransaction
                     transaction.memoryCommitTime = SystemClock.elapsedRealtimeNanos() // The current time this "apply()" was called

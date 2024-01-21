@@ -9,6 +9,7 @@ dependencies {
     implementation(libs.bundles.android.build)
     implementation(libs.kotlin.gradle.plugin)
     implementation(libs.kotlin.dokka.plugin)
+    implementation(libs.kotlin.serialization.plugin)
     implementation(libs.kotlin.ksp)
     implementation(libs.androidx.navigation.safeargs.plugin)
     implementation(libs.hilt.plugin)

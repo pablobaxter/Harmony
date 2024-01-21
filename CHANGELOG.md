@@ -6,6 +6,8 @@
 - Upgraded to Kotlin 1.9.22
 - Upgraded to Gradle 8.5
 - MinSDK is now 23
+- Rewrite of JSON reading/writing
+- Use library version rather than OS APIs (ex. `androidx.collection.ArraySet` vs `android.util.ArraySet`)
 
 ### Version 1.2.4 / 2023-09-30
 - Migrate to use vanniktech for publishing
