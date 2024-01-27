@@ -1,6 +1,6 @@
 ## Change Log
 
-### Unreleased
+### Version 1.2.5 / 2024-01-27
 - Upgraded several dependencies
 - Upgraded to AGP 8.2.1
 - Upgraded to Kotlin 1.9.22
