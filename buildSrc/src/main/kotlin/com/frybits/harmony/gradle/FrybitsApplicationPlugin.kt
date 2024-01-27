@@ -33,10 +33,10 @@ import org.jetbrains.kotlin.gradle.plugin.KotlinAndroidPluginWrapper
 
 class FrybitsApplicationPlugin: Plugin<Project> {
 
-    override fun apply(target: Project) {
-        target.applyAppPlugins()
+    override fun apply(target: Project) = target.run {
+        applyAppPlugins()
 
-        target.configure<ApplicationExtension> {
+        configure<ApplicationExtension> {
             configureAndroidApplication()
         }
     }

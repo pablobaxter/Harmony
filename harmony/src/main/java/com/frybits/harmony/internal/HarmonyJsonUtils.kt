@@ -3,9 +3,24 @@
 
 package com.frybits.harmony.internal
 
-import android.util.JsonReader
-import android.util.JsonToken
-import android.util.JsonWriter
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.add
+import kotlinx.serialization.json.addJsonObject
+import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.float
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.long
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
+import kotlinx.serialization.json.putJsonObject
 import java.io.IOException
 import java.io.Reader
 import java.io.Writer
@@ -46,141 +61,123 @@ private const val BOOLEAN = "boolean"
 private const val STRING = "string"
 private const val SET = "set"
 
+private val json = Json {
+    prettyPrint = false
+    isLenient = false
+}
+
 @JvmSynthetic
-@Throws(IOException::class)
-internal fun <T : Reader> T.readHarmony(): Pair<String?, HashMap<String?, Any?>> {
-    var prefsName: String? = null
-    var currName: String? = null
-    val map = hashMapOf<String?, Any?>()
+@Throws(IOException::class, SerializationException::class)
+internal fun <T : Reader> T.readHarmony(): Pair<String?, Map<String?, Any?>> {
+    val harmonyPrefs = json.parseToJsonElement(readText()).jsonObject
 
-    JsonReader(this).apply {
-        if (this.peek() == JsonToken.END_DOCUMENT) return prefsName to map
+    // Get the metaData object
+    val metaData = harmonyPrefs[METADATA]?.jsonObject
 
-        beginObject()
-        while (hasNext()) {
-            when (peek()) {
-                JsonToken.NAME -> currName = nextName()
-                JsonToken.BEGIN_OBJECT -> {
-                    if (currName == METADATA) {
-                        beginObject()
-                        val n = nextName()
-                        if (n == NAME_KEY) {
-                            prefsName = nextString()
-                        }
-                        endObject()
-                    } else {
-                        skipValue()
-                    }
-                }
-                JsonToken.BEGIN_ARRAY -> {
-                    if (currName == DATA) {
-                        beginArray()
-                        while (hasNext()) {
-                            beginObject()
-                            var type: String? = null
-                            var key: String? = null
-                            while (hasNext()) {
-                                when (nextName()) {
-                                    TYPE -> type = nextString()
-                                    KEY -> key = if (peek() == JsonToken.NULL) {
-                                        nextNull()
-                                        null
-                                    } else {
-                                        nextString()
-                                    }
-                                    VALUE -> {
-                                        when (type) {
-                                            INT -> map[key] = nextInt()
-                                            LONG -> map[key] = nextLong()
-                                            FLOAT -> map[key] = nextDouble().toFloat()
-                                            BOOLEAN -> map[key] = nextBoolean()
-                                            STRING -> map[key] = nextString()
-                                            SET -> {
-                                                val stringSet = mutableSetOf<String>()
-                                                beginArray()
-                                                while (hasNext()) {
-                                                    stringSet.add(nextString())
-                                                }
-                                                endArray()
-                                                map[key] = stringSet
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            endObject()
-                        }
-                        endArray()
-                    } else {
-                        skipValue()
-                    }
-                }
-                else -> skipValue()
+    // Get the prefs name
+    val prefsName = metaData?.get(NAME_KEY)?.jsonPrimitive?.contentOrNull
+
+    // Get data array that contains preferences
+    // Return empty map if data array is not found
+    val dataArray: JsonArray = harmonyPrefs[DATA]?.jsonArray ?: return prefsName to hashMapOf()
+
+    // Create preferences data map from Json structure
+    return prefsName to dataArray.asSequence().filterIsInstance<JsonObject>()
+        .mapNotNull { jsonObject ->
+            // Type is necessary. Early exit if no type is found.
+            val type = jsonObject[TYPE]?.jsonPrimitive?.content ?: return@mapNotNull null
+
+            // If key is not found, early exit. This is not the same as if the key is null.
+            val keyPrimitive = jsonObject[KEY]?.jsonPrimitive ?: return@mapNotNull null
+
+            // Null keys are allowed. See https://github.com/pablobaxter/Harmony/issues/29
+            val key = keyPrimitive.contentOrNull
+
+            // Null values are equivalent to the preference being removed.
+            // See https://developer.android.com/reference/android/content/SharedPreferences.Editor
+            val valueObject = jsonObject[VALUE] ?: return@mapNotNull null
+
+            // Properly cast values
+            return@mapNotNull key to when (type) {
+                INT -> valueObject.jsonPrimitive.int
+                LONG -> valueObject.jsonPrimitive.long
+                FLOAT -> valueObject.jsonPrimitive.float
+                BOOLEAN -> valueObject.jsonPrimitive.boolean
+                STRING -> valueObject.jsonPrimitive.content
+                SET -> valueObject.jsonArray.mapTo(hashSetOf()) { it.jsonPrimitive.contentOrNull }
+                else -> return@mapNotNull null
             }
-        }
-        endObject()
-    }
-
-    return prefsName to map
+        }.toMap()
 }
 
 @JvmSynthetic
 internal fun <T : Writer> T.putHarmony(prefsName: String, data: Map<String?, Any?>): T {
-    JsonWriter(this).apply {
-        beginObject()
+    val json = buildJsonObject {
 
-        name(METADATA)
-        beginObject()
-        name(NAME_KEY).value(prefsName)
-        endObject()
+        // Still not used, but left for future use
+        putJsonObject(METADATA) {
+            put(NAME_KEY, prefsName)
+        }
 
-        name(DATA)
-        beginArray()
-        data.forEach { (key, value) ->
-            beginObject()
-            when (value) {
-                is Int -> {
-                    name(TYPE).value(INT)
-                    name(KEY).value(key)
-                    name(VALUE).value(value)
-                }
-                is Long -> {
-                    name(TYPE).value(LONG)
-                    name(KEY).value(key)
-                    name(VALUE).value(value)
-                }
-                is Float -> {
-                    name(TYPE).value(FLOAT)
-                    name(KEY).value(key)
-                    name(VALUE).value(value)
-                }
-                is Boolean -> {
-                    name(TYPE).value(BOOLEAN)
-                    name(KEY).value(key)
-                    name(VALUE).value(value)
-                }
-                is String -> {
-                    name(TYPE).value(STRING)
-                    name(KEY).value(key)
-                    name(VALUE).value(value)
-                }
-                is Set<*> -> {
-                    name(TYPE).value(SET)
-                    name(KEY).value(key)
-                    name(VALUE)
-                    beginArray()
-                    @Suppress("UNCHECKED_CAST")
-                    (value as Set<String>).forEach {
-                        value(it)
+        putJsonArray(DATA) {
+            data.forEach { (k, v) ->
+                // Only add a json object if expected type is found. Ignore all other types.
+                when (v) {
+                    is Int -> {
+                        addJsonObject {
+                            put(TYPE, INT)
+                            put(KEY, k)
+                            put(VALUE, v)
+                        }
                     }
-                    endArray()
+
+                    is Long -> {
+                        addJsonObject {
+                            put(TYPE, LONG)
+                            put(KEY, k)
+                            put(VALUE, v)
+                        }
+                    }
+
+                    is Float -> {
+                        addJsonObject {
+                            put(TYPE, FLOAT)
+                            put(KEY, k)
+                            put(VALUE, v)
+                        }
+                    }
+
+                    is Boolean -> {
+                        addJsonObject {
+                            put(TYPE, BOOLEAN)
+                            put(KEY, k)
+                            put(VALUE, v)
+                        }
+                    }
+
+                    is String -> {
+                        addJsonObject {
+                            put(TYPE, STRING)
+                            put(KEY, k)
+                            put(VALUE, v)
+                        }
+                    }
+
+                    is Set<*> -> {
+                        // Ignore values that aren't String
+                        addJsonObject {
+                            put(TYPE, SET)
+                            put(KEY, k)
+                            putJsonArray(VALUE) {
+                                @Suppress("UNCHECKED_CAST")
+                                (v as Set<String>).forEach(::add)
+                            }
+                        }
+                    }
                 }
             }
-            endObject()
         }
-        endArray()
-
-        endObject()
     }
+    write(json.toString())
     return this
 }

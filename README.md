@@ -2,7 +2,7 @@
 
 [![CircleCI](https://circleci.com/gh/pablobaxter/Harmony/tree/main.svg?style=shield)](https://circleci.com/gh/pablobaxter/Harmony/tree/main)
 [![GitHub](https://img.shields.io/github/license/pablobaxter/harmony)](https://github.com/pablobaxter/Harmony/blob/main/LICENSE)
-[![Maven Central](https://img.shields.io/maven-central/v/com.frybits.harmony/harmony?label=Harmony)](https://search.maven.org/artifact/com.frybits.harmony/harmony/1.2.4/aar) [![Harmony API](https://img.shields.io/badge/API-17%2B-brightgreen.svg?style=flat&label=Harmony%20API)](https://android-arsenal.com/api?level=17) [![Maven Central](https://img.shields.io/maven-central/v/com.frybits.harmony/harmony-crypto?label=Harmony-Crypto)](https://search.maven.org/artifact/com.frybits.harmony/harmony-crypto/1.2.4/aar) [![Crypto API](https://img.shields.io/badge/API-23%2B-purple.svg?style=flat&label=Crypto%20API)](https://android-arsenal.com/api?level=23)
+[![Maven Central](https://img.shields.io/maven-central/v/com.frybits.harmony/harmony?label=Harmony)](https://search.maven.org/artifact/com.frybits.harmony/harmony/1.2.5/aar) [![Harmony API](https://img.shields.io/badge/API-23%2B-brightgreen.svg?style=flat&label=Harmony%20API)](https://android-arsenal.com/api?level=23) [![Maven Central](https://img.shields.io/maven-central/v/com.frybits.harmony/harmony-crypto?label=Harmony-Crypto)](https://search.maven.org/artifact/com.frybits.harmony/harmony-crypto/1.2.5/aar) [![Crypto API](https://img.shields.io/badge/API-23%2B-purple.svg?style=flat&label=Crypto%20API)](https://android-arsenal.com/api?level=23)
 
 Working on multiprocess Android apps is a complex undertaking. One of the biggest challenges is managing shared data between the multiple processes. Most solutions rely on one process to be available for another to read the data, which can be quite slow and could potentially lead to ANRs.
 
@@ -15,14 +15,14 @@ Harmony is a thread-safe, process-safe, full [`SharedPreferences`](https://devel
 - [`OnSharedPreferenceChangeListener`](https://developer.android.com/reference/android/content/SharedPreferences.OnSharedPreferenceChangeListener) emits changes made by other processes
 - Uses no native code (NDK) or any IPC classes such as [`ContentProvider`](https://developer.android.com/reference/android/content/ContentProvider), [`Service`](https://developer.android.com/reference/android/app/Service), [`BroadcastReceiver`](https://developer.android.com/reference/android/content/BroadcastReceiver), or [AIDL](https://developer.android.com/guide/components/aidl)
 - Built-in failed-write recovery similar to the default [`SharedPreferences`](https://developer.android.com/reference/android/content/SharedPreferences)
-- Supports Android API 17+ (Crypto Android API 23+)
+- Supports Android API 23+
 
 ## Download
-The latest release is available on [Maven Central](https://search.maven.org/artifact/com.frybits.harmony/harmony/1.2.4/aar).
+The latest release is available on [Maven Central](https://search.maven.org/artifact/com.frybits.harmony/harmony/1.2.5/aar).
 ### Gradle
 ```
-implementation 'com.frybits.harmony:harmony:1.2.4'
-// implementation 'com.frybits.harmony:harmony-crypto:1.2.4' // For Encrypted SharedPreferences
+implementation 'com.frybits.harmony:harmony:1.2.5'
+// implementation 'com.frybits.harmony:harmony-crypto:1.2.5' // For Encrypted SharedPreferences
 ```
 
 ## Usage
@@ -80,27 +80,27 @@ Tests were broken into two separate categories:
 Logic for tests can been seen in the [`TestRunner.kt`](app/src/main/java/com/frybits/harmony/app/test/TestRunner.kt) file.
 
 **Notes** 
-- All tests were performed on a Samsung Galaxy S9 (SM-G960U) running Android 10
+- All tests were performed on a Google Pixel 6 Pro running Android 14
 - Times are for single item operation.
 
 #### Asynchronous Tests
 
-|Library                                             |Read (avg)|Write (avg) |IPC (avg) <sup>1</sup> |
-|----------------------------------------------------|----------|------------|-----------------------|
-|SharedPreferences                                   |0.0006 ms |0.066 ms    |N/A                    |
-|Harmony                                             |0.0008 ms |0.024 ms    |102.018 ms             |
-|[MMKV](https://github.com/Tencent/MMKV) <sup>2</sup>|0.009 ms  |0.051 ms    |93.628 ms <sup>3</sup> |
-|[Tray](https://github.com/GCX-HCI/tray) <sup>2</sup>|2.895 ms  |8.225 ms    |1.928 s                |
+|Library                                             | Read (avg) | Write (avg) | IPC (avg) <sup>1</sup>  |
+|----------------------------------------------------|------------|-------------|-------------------------|
+|SharedPreferences                                   | 0.0004 ms  | 0.029ms     | N/A                     |
+|Harmony                                             | 0.001 ms   | 0.026 ms    | 113.417 ms              |
+|[MMKV](https://github.com/Tencent/MMKV) <sup>2</sup>| 0.012 ms   | 0.051 ms    | 152.887 ms <sup>3</sup> |
+|[Tray](https://github.com/GCX-HCI/tray) <sup>2</sup>| 1.501 ms   | 1.917 ms    | 1.294 s                 |
 
 
 #### Synchronous Tests
 
-|Library                                             |Read (avg)|Write (avg) |IPC (avg) <sup>1</sup> |
-|----------------------------------------------------|----------|------------|-----------------------|
-|SharedPreferences                                   |0.001 ms  |9.214 ms    |N/A                    |
-|Harmony                                             |0.003 ms  |4.626 ms    |13.579 ms              |
-|[MMKV](https://github.com/Tencent/MMKV) <sup>2</sup>|0.010 ms  |0.061 ms    |86.100 ms <sup>3</sup> |
-|[Tray](https://github.com/GCX-HCI/tray) <sup>2</sup>|2.805 ms  |8.168 ms    |1.773 s                |
+|Library                                             | Read (avg) | Write (avg) | IPC (avg) <sup>1</sup>  |
+|----------------------------------------------------|------------|-------------|-------------------------|
+|SharedPreferences                                   | 0.0002 ms  | 0.429 ms    | N/A                     |
+|Harmony                                             | 0.002 ms   | 6.466 ms    | 11.692 ms               |
+|[MMKV](https://github.com/Tencent/MMKV) <sup>2</sup>| 0.013 ms   | 0.046 ms    | 168.328 ms <sup>3</sup> |
+|[Tray](https://github.com/GCX-HCI/tray) <sup>2</sup>| 1.589 ms   | 1.956 ms    | 1.384 s                 |
 
 <sup>1</sup> IPC is the time it took for the item to be available in a secondary process. SharedPreferences doesn't support IPC.
 
