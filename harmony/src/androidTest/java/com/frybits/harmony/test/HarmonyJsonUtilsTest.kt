@@ -73,6 +73,11 @@ private const val MIXED_JSON = """
                 "type": "int",
                 "key": "count",
                 "value": 3
+            },
+            {
+                "type": "set",
+                "key": "someCollection",
+                "value": ["ball","train","5"]
             }
         ]
     }
@@ -81,7 +86,8 @@ private val MIXED_MAP = mapOf<String?, Any?>(
     "blah" to "bar",
     "isSomething" to true,
     "time" to 4530349853809348080L,
-    "count" to 3
+    "count" to 3,
+    "someCollection" to setOf("ball", "train", "5")
 )
 
 private const val NULL_NAME = "null"
@@ -115,6 +121,11 @@ private const val NULL_JSON = """
                 "type": "string",
                 "key": null,
                 "value": "this is null"
+            },
+            {
+                "type": "set",
+                "key": "foobar",
+                "value": ["1","abc","orange"]
             }
         ]
     }
@@ -124,7 +135,8 @@ private val NULL_MAP = mapOf<String?, Any?>(
     "isSomething" to true,
     "time" to 4530349853809348080L,
     "count" to 3,
-    null to "this is null"
+    null to "this is null",
+    "foobar" to setOf("1", "abc", "orange")
 )
 
 @RunWith(AndroidJUnit4::class)
