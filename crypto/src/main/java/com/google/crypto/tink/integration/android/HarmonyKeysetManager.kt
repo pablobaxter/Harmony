@@ -1,10 +1,12 @@
 package com.google.crypto.tink.integration.android
 
 import android.content.Context
-import android.os.Build
 import android.util.Log
-import androidx.annotation.ChecksSdkIntAtLeast
 import androidx.annotation.GuardedBy
+import com.frybits.harmony.secure.HarmonyKeysetReader
+import com.frybits.harmony.secure.HarmonyKeysetWriter
+import com.frybits.harmony.secure.keysetFile
+import com.frybits.harmony.secure.keysetFileLock
 import com.google.crypto.tink.Aead
 import com.google.crypto.tink.CleartextKeysetHandle
 import com.google.crypto.tink.KeyTemplate
@@ -12,7 +14,6 @@ import com.google.crypto.tink.KeysetHandle
 import com.google.crypto.tink.KeysetManager
 import com.google.crypto.tink.KeysetReader
 import com.google.crypto.tink.KeysetWriter
-import com.google.crypto.tink.proto.OutputPrefixType
 import com.google.crypto.tink.shaded.protobuf.InvalidProtocolBufferException
 import java.io.FileNotFoundException
 import java.io.IOException
@@ -27,73 +28,8 @@ import java.security.ProviderException
  * Warning
  *
  * This class reads and writes to a file, thus is best not to run on the UI thread.
- *
- * Usage
- *
- * <pre>
- *
- * // One-time operations, should be done when the application is starting up.
- * // Instead of repeatedly instantiating these crypto objects, instantiate them once and save for
- * // later use.
- * HarmonyKeysetManager manager = HarmonyKeysetManager.Builder()
- * .withSharedPref(getApplicationContext(), "my_pref_file_name")
- * .withKeyTemplate(AesGcmHkfStreamingKeyManager.aes128GcmHkdf4KBTemplate())
- * .build();
- * StreamingAead streamingAead = manager.getKeysetHandle().getPrimitive(StreamingAead.class);
- *
- * </pre>
- *
- * This will read a keyset stored in the `my_pref_file_name` preferences folder. The preference file name cannot be null.
- *
- * If a keyset is found, but it is invalid, an [IOException] is thrown. The most common
- * cause is when you decrypted a keyset with a wrong master key. In this case, an [InvalidProtocolBufferException] would be thrown. This is an irrecoverable error. You'd have
- * to delete the keyset file in Harmony Shared Preferences folder and all existing data encrypted with it.
- * If a keyset is not found, and a [KeyTemplate] is set with [HarmonyKeysetManager.Builder.withKeyTemplate], a fresh
- * keyset is generated and is written to the `harmony.keyset` file.
- *
- * Key rotation
- *
- * The resulting manager supports all operations supported by [KeysetManager]. For example
- * to rotate the keyset, you can do:
- *
- * manager.rotate(AesGcmHkfStreamingKeyManager.aes128GcmHkdf1MBTemplate());
- *
- * All operations that manipulate the keyset would automatically persist the new keyset to
- * permanent storage.
- *
- * Opportunistic keyset encryption with Android Keystore
- *
- * **Warning:** because Android Keystore is unreliable, we strongly recommend disabling it by not
- * setting any master key URI.
- *
- * If a master key URI is set with [HarmonyKeysetManager.Builder.withMasterKeyUri], the
- * keyset may be encrypted with a key generated and stored in [Android Keystore](https://developer.android.com/training/articles/keystore.html).
- *
- * Android Keystore is only available on Android M or newer. Since it has been found that Android
- * Keystore is unreliable on certain devices. Tink runs a self-test to detect such problems and
- * disables Android Keystore accordingly, even if a master key URI is set. You can check whether
- * Android Keystore is in use with [.isUsingKeystore].
- *
- * When Android Keystore is disabled or otherwise unavailable, keysets will be stored in
- * cleartext. This is not as bad as it sounds because keysets remain inaccessible to any other apps
- * running on the same device. Moreover, as of July 2020, most active Android devices support either
- * full-disk encryption or file-based encryption, which provide strong security protection against
- * key theft even from attackers with physical access to the device. Android Keystore is only useful
- * when you want to [require user authentication for key use](https://developer.android.com/training/articles/keystore#UserAuthentication), which should be done if and only if you're absolutely sure that
- * Android Keystore is working properly on your target devices.
- *
- * The master key URI must start with `android-keystore://`. The remaining of the URI is
- * used as a key ID when calling Android Keystore. If the master key doesn't exist, a fresh one is
- * generated. If the master key already exists but is unusable, a [KeyStoreException] is
- * thrown.
- *
- * This class is thread-safe.
- *
  */
-@Suppress("unused")
-class HarmonyKeysetManager private constructor(builder: Builder) {
-    private val writer: KeysetWriter = builder.writer
-    private val masterKey: Aead? = builder.masterKey
+internal class HarmonyKeysetManager private constructor(builder: Builder) {
 
     @GuardedBy("this")
     private var keysetManager: KeysetManager = builder.keysetManager
@@ -119,7 +55,7 @@ class HarmonyKeysetManager private constructor(builder: Builder) {
         lateinit var keysetManager: KeysetManager
 
         /** Reads and writes the keyset from harmony shared preferences directory.  */
-        fun withSharedPref(context: Context, type: String, prefFileName: String): Builder {
+        fun withHarmony(context: Context, type: String, prefFileName: String): Builder {
             val keysetFile = context.keysetFile(prefFileName, type)
             val keysetFileLock = context.keysetFileLock(prefFileName, type)
             reader = HarmonyKeysetReader(keysetFile, keysetFileLock)
@@ -133,44 +69,16 @@ class HarmonyKeysetManager private constructor(builder: Builder) {
          *
          * Only master keys stored in Android Keystore is supported. The URI must start with `android-keystore://`.
          */
-        fun withMasterKeyUri(_masterKeyUri: String): Builder {
-            require(_masterKeyUri.startsWith(AndroidKeystoreKmsClient.PREFIX)) { "key URI must start with " + AndroidKeystoreKmsClient.PREFIX }
+        fun withMasterKeyUri(masterKeyUri: String): Builder {
+            require(masterKeyUri.startsWith(AndroidKeystoreKmsClient.PREFIX)) { "key URI must start with " + AndroidKeystoreKmsClient.PREFIX }
             require(useKeystore) { "cannot call withMasterKeyUri() after calling doNotUseKeystore()" }
-            masterKeyUri = _masterKeyUri
-            return this
-        }
-
-        /**
-         * If the keyset is not found or valid, generates a new one using `val`.
-         *
-         */
-        @Deprecated(
-            """This method takes a KeyTemplate proto, which is an internal implementation
-          detail. Please use the withKeyTemplate method that takes a {@link KeyTemplate} POJO."""
-        )
-        fun withKeyTemplate(_keyTemplate: com.google.crypto.tink.proto.KeyTemplate): Builder {
-            keyTemplate = KeyTemplate.create(_keyTemplate.typeUrl, _keyTemplate.value.toByteArray(), fromProto(_keyTemplate.outputPrefixType))
+            this.masterKeyUri = masterKeyUri
             return this
         }
 
         /** If the keyset is not found or valid, generates a new one using keyTemplate.  */
-        fun withKeyTemplate(_keyTemplate: KeyTemplate?): Builder {
-            keyTemplate = _keyTemplate
-            return this
-        }
-
-        /**
-         * Does not use Android Keystore which might not work well in some phones.
-         *
-         *
-         * **Warning:** When Android Keystore is disabled, keys are stored in cleartext. This
-         * should be safe because they are stored in private preferences.
-         *
-         */
-        @Deprecated("Android Keystore can be disabled by not setting a master key URI.")
-        fun doNotUseKeystore(): Builder {
-            masterKeyUri = null
-            useKeystore = false
+        fun withKeyTemplate(keyTemplate: KeyTemplate?): Builder {
+            this.keyTemplate = keyTemplate
             return this
         }
 
@@ -191,10 +99,6 @@ class HarmonyKeysetManager private constructor(builder: Builder) {
         }
 
         private fun readOrGenerateNewMasterKey(): Aead? {
-            if (!isAtLeastM) {
-                Log.w(TAG, "Android Keystore requires at least Android M")
-                return null
-            }
             val client: AndroidKeystoreKmsClient = if (keyStore != null) {
                 AndroidKeystoreKmsClient.Builder().setKeyStore(keyStore).build()
             } else {
@@ -282,168 +186,14 @@ class HarmonyKeysetManager private constructor(builder: Builder) {
         }
     }
 
+
     /** @return a [KeysetHandle] of the managed keyset
      */
     @get:Synchronized
     val keysetHandle: KeysetHandle
         get() = keysetManager.keysetHandle
 
-    /**
-     * Generates and adds a fresh key generated using `keyTemplate`, and sets the new key as the
-     * primary key.
-     *
-     * @throws GeneralSecurityException if cannot find any [com.google.crypto.tink.KeyManager] that can handle `keyTemplate`
-     */
-    @Deprecated(
-        """Please use {@link #add}. This method adds a new key and immediately promotes it to
-        primary. However, when you do keyset rotation, you almost never want to make the new key
-        primary, because old binaries don't know the new key yet."""
-    )
-    @Synchronized
-    fun rotate(keyTemplate: com.google.crypto.tink.proto.KeyTemplate?): HarmonyKeysetManager {
-        @Suppress("DEPRECATION")
-        keysetManager = keysetManager.rotate(keyTemplate)
-        write(keysetManager)
-        return this
-    }
-
-    /**
-     * Generates and adds a fresh key generated using `keyTemplate`.
-     *
-     * @throws GeneralSecurityException if cannot find any [com.google.crypto.tink.KeyManager] that can handle `keyTemplate`
-     */
-    @GuardedBy("this")
-    @Deprecated(
-        """This method takes a KeyTemplate proto, which is an internal implementation detail.
-        Please use the add method that takes a {@link KeyTemplate} POJO."""
-    )
-    @Synchronized
-    fun add(keyTemplate: com.google.crypto.tink.proto.KeyTemplate?): HarmonyKeysetManager {
-        @Suppress("DEPRECATION")
-        keysetManager = keysetManager.add(keyTemplate)
-        write(keysetManager)
-        return this
-    }
-
-    /**
-     * Generates and adds a fresh key generated using `keyTemplate`.
-     *
-     * @throws GeneralSecurityException if cannot find any [com.google.crypto.tink.KeyManager] that can handle `keyTemplate`
-     */
-    @GuardedBy("this")
-    @Synchronized
-    fun add(keyTemplate: KeyTemplate?): HarmonyKeysetManager {
-        keysetManager = keysetManager.add(keyTemplate)
-        write(keysetManager)
-        return this
-    }
-
-    /**
-     * Sets the key with `keyId` as primary.
-     *
-     * @throws GeneralSecurityException if the key is not found or not enabled
-     */
-    @Synchronized
-    fun setPrimary(keyId: Int): HarmonyKeysetManager {
-        keysetManager = keysetManager.setPrimary(keyId)
-        write(keysetManager)
-        return this
-    }
-
-    /**
-     * Sets the key with `keyId` as primary.
-     *
-     * @throws GeneralSecurityException if the key is not found or not enabled
-     */
-    @Deprecated("use {@link setPrimary}", ReplaceWith("setPrimary(keyId)"))
-    @Synchronized
-    fun promote(keyId: Int): HarmonyKeysetManager {
-        return setPrimary(keyId)
-    }
-
-    /**
-     * Enables the key with `keyId`.
-     *
-     * @throws GeneralSecurityException if the key is not found
-     */
-    @Synchronized
-    fun enable(keyId: Int): HarmonyKeysetManager {
-        keysetManager = keysetManager.enable(keyId)
-        write(keysetManager)
-        return this
-    }
-
-    /**
-     * Disables the key with `keyId`.
-     *
-     * @throws GeneralSecurityException if the key is not found or it is the primary key
-     */
-    @Synchronized
-    fun disable(keyId: Int): HarmonyKeysetManager {
-        keysetManager = keysetManager.disable(keyId)
-        write(keysetManager)
-        return this
-    }
-
-    /**
-     * Deletes the key with `keyId`.
-     *
-     * @throws GeneralSecurityException if the key is not found or it is the primary key
-     */
-    @Synchronized
-    fun delete(keyId: Int): HarmonyKeysetManager {
-        keysetManager = keysetManager.delete(keyId)
-        write(keysetManager)
-        return this
-    }
-
-    /**
-     * Destroys the key material associated with the `keyId`.
-     *
-     * @throws GeneralSecurityException if the key is not found or it is the primary key
-     */
-    @Synchronized
-    fun destroy(keyId: Int): HarmonyKeysetManager {
-        keysetManager = keysetManager.destroy(keyId)
-        write(keysetManager)
-        return this
-    }
-
-    /** Returns whether Android Keystore is being used to wrap Tink keysets.  */
-    @get:Synchronized
-    val isUsingKeystore: Boolean
-        get() = shouldUseKeystore()
-
-    private fun write(manager: KeysetManager) {
-        try {
-            if (shouldUseKeystore()) {
-                manager.keysetHandle.write(writer, masterKey)
-            } else {
-                CleartextKeysetHandle.write(manager.keysetHandle, writer)
-            }
-        } catch (e: IOException) {
-            throw GeneralSecurityException(e)
-        }
-    }
-
-    @ChecksSdkIntAtLeast(api = Build.VERSION_CODES.M)
-    private fun shouldUseKeystore(): Boolean {
-        return masterKey != null && isAtLeastM
-    }
-
     companion object {
         private val TAG = HarmonyKeysetManager::class.java.simpleName
-        private fun fromProto(outputPrefixType: OutputPrefixType): KeyTemplate.OutputPrefixType {
-            return when (outputPrefixType) {
-                OutputPrefixType.TINK -> KeyTemplate.OutputPrefixType.TINK
-                OutputPrefixType.LEGACY -> KeyTemplate.OutputPrefixType.LEGACY
-                OutputPrefixType.RAW -> KeyTemplate.OutputPrefixType.RAW
-                OutputPrefixType.CRUNCHY -> KeyTemplate.OutputPrefixType.CRUNCHY
-                else -> throw IllegalArgumentException("Unknown output prefix type")
-            }
-        }
-
-        @ChecksSdkIntAtLeast(api = Build.VERSION_CODES.M)
-        private val isAtLeastM: Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
     }
 }

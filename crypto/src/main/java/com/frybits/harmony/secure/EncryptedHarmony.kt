@@ -39,7 +39,6 @@ import androidx.security.crypto.SecureHarmonyPreferences
  *  val sharedPreferences = context.getEncryptedHarmonySharedPreferences(
  *      "secret_shared_prefs",
  *      masterKeyAlias,
- *      context,
  *      EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
  *      EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
  *  )

@@ -1,5 +1,11 @@
 ## Change Log
 
+### Version 1.2.6 / 2024-02-06
+- Fixes bug where Harmony Crypto `SharedPreferences.contains()` returns true even though the value is false [#56](https://github.com/pablobaxter/Harmony/issues/56)
+- Fixes bug in Harmony Crypto where `Editor.remove()` was not removing values
+- Refactors internal code for Harmony Crypto
+- Removes unnecessary check in Harmony
+
 ### Version 1.2.5 / 2024-01-27
 - Upgraded several dependencies
 - Upgraded to AGP 8.2.1
