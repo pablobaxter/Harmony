@@ -1,5 +1,13 @@
 ## Change Log
 
+### Unreleased
+- Fixes bug where Harmony Crypto `SharedPreferences.contains()` returns true even though the value is false [#56](https://github.com/pablobaxter/Harmony/issues/56)
+- Fixes bug in Harmony Crypto where `Editor.remove()` was not removing values
+- Fixes bug in Harmony Crypto where `null` values could not be set for String set
+  - **NOTE**: This change will cause previously `null` keys for `getStringSet()` to return a non-empty set in Harmony Crypto
+- Refactors internal code for Harmony Crypto
+- Removes unnecessary check in Harmony
+
 ### Version 1.2.5 / 2024-01-27
 - Upgraded several dependencies
 - Upgraded to AGP 8.2.1

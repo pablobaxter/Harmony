@@ -44,6 +44,7 @@ import kotlin.text.Charsets.UTF_8
 internal const val KEY_KEYSET = "KEY_KEYSET"
 internal const val VALUE_KEYSET = "VALUE_KEYSET"
 private const val NULL_VALUE = "__NULL__"
+private val EMPTY_BYTE_ARRAY = byteArrayOf()
 
 private class SecureHarmonyPreferencesImpl(
     private val fileName: String,
@@ -57,34 +58,41 @@ private class SecureHarmonyPreferencesImpl(
     private inner class SecureEditor(private val editor: SharedPreferences.Editor) : SharedPreferences.Editor by editor {
 
         override fun putString(key: String?, value: String?): SharedPreferences.Editor {
-            val mutableValue: String = value ?: NULL_VALUE
-            val stringBytes = mutableValue.toByteArray(UTF_8)
-            val stringByteLength = stringBytes.size
-            val buffer = ByteBuffer.allocate(Int.SIZE_BYTES + Int.SIZE_BYTES + stringByteLength)
-            buffer.putInt(EncryptedType.STRING)
-            buffer.putInt(stringByteLength)
-            buffer.put(stringBytes)
-            putEncryptedObject(key, buffer.array())
+            val stringBytes = value?.toByteArray(UTF_8) ?: EMPTY_BYTE_ARRAY
+            if (stringBytes.isEmpty()) {
+                putEncryptedObject(key, EMPTY_BYTE_ARRAY)
+            } else {
+                val stringByteLength = stringBytes.size
+                val buffer = ByteBuffer.allocate(Int.SIZE_BYTES + Int.SIZE_BYTES + stringByteLength)
+                buffer.putInt(EncryptedType.STRING)
+                buffer.putInt(stringByteLength)
+                buffer.put(stringBytes)
+                putEncryptedObject(key, buffer.array())
+            }
             return this
         }
 
-        override fun putStringSet(key: String?, values: MutableSet<String>?): SharedPreferences.Editor {
-            val mutableValues = values ?: setOf(NULL_VALUE)
-            val byteValues = arrayListOf<ByteArray>()
-            var totalBytes = mutableValues.size * Int.SIZE_BYTES
-            mutableValues.forEach { strValue ->
-                val byteValue = strValue.toByteArray(UTF_8)
-                byteValues.add(byteValue)
-                totalBytes += byteValue.size
+        override fun putStringSet(key: String?, values: MutableSet<String?>?): SharedPreferences.Editor {
+            if (values == null) {
+                putEncryptedObject(key, EMPTY_BYTE_ARRAY)
+            } else {
+                val byteValues = arrayListOf<ByteArray>()
+                var totalBytes = values.size * Int.SIZE_BYTES
+                values.forEach { strValue ->
+                    val v = strValue ?: NULL_VALUE
+                    val byteValue = v.toByteArray(UTF_8)
+                    byteValues.add(byteValue)
+                    totalBytes += byteValue.size
+                }
+                totalBytes += Int.SIZE_BYTES
+                val buffer = ByteBuffer.allocate(totalBytes)
+                buffer.putInt(EncryptedType.STRING_SET)
+                byteValues.forEach { bytes ->
+                    buffer.putInt(bytes.size)
+                    buffer.put(bytes)
+                }
+                putEncryptedObject(key, buffer.array())
             }
-            totalBytes += Int.SIZE_BYTES
-            val buffer = ByteBuffer.allocate(totalBytes)
-            buffer.putInt(EncryptedType.STRING_SET)
-            byteValues.forEach { bytes ->
-                buffer.putInt(bytes.size)
-                buffer.put(bytes)
-            }
-            putEncryptedObject(key, buffer.array())
             return this
         }
 
@@ -118,6 +126,10 @@ private class SecureHarmonyPreferencesImpl(
             buffer.put(if (value) 1.toByte() else 0.toByte())
             putEncryptedObject(key, buffer.array())
             return this
+        }
+
+        override fun remove(key: String?): SharedPreferences.Editor {
+            return editor.remove(encryptKey(key ?: NULL_VALUE))
         }
 
         private fun putEncryptedObject(key: String?, value: ByteArray) {
@@ -239,19 +251,20 @@ private class SecureHarmonyPreferencesImpl(
                     EncryptedType.FLOAT -> return buffer.float
                     EncryptedType.BOOLEAN -> return buffer.get() != 0.toByte()
                     EncryptedType.STRING_SET -> {
-                        val stringSet = ArraySet<String>()
+                        val stringSet = ArraySet<String?>()
                         while (buffer.hasRemaining()) {
                             val subStringLength = buffer.int
                             val subStringSlice = buffer.slice()
                             subStringSlice.limit(subStringLength)
                             buffer.position(buffer.position() + subStringLength)
-                            stringSet.add(UTF_8.decode(subStringSlice).toString())
+                            val s = UTF_8.decode(subStringSlice).toString()
+                            if (s == NULL_VALUE) {
+                                stringSet.add(null)
+                            } else {
+                                stringSet.add(s)
+                            }
                         }
-                        return if (stringSet.size == 1 && stringSet.valueAt(0) == NULL_VALUE) {
-                            null
-                        } else {
-                            stringSet
-                        }
+                        return stringSet
                     }
                     else -> return null
                 }
@@ -285,8 +298,9 @@ private class SecureHarmonyPreferencesImpl(
         }
     }
 
-    private fun encryptKeyValuePair(key: String?, bytes: ByteArray): Pair<String, String> {
+    private fun encryptKeyValuePair(key: String?, bytes: ByteArray): Pair<String, String?> {
         val encryptedKey = encryptKey(key)
+        if (bytes.isEmpty()) return encryptedKey to null
         val cipherText = aead.encrypt(bytes, encryptedKey.toByteArray(UTF_8))
         return encryptedKey to Base64.encode(cipherText)
     }
@@ -324,12 +338,12 @@ internal fun SecureHarmonyPreferences(
 
     val daeadKeysetHandle: KeysetHandle = HarmonyKeysetManager.Builder()
         .withKeyTemplate(prefKeyEncryptionScheme.keyTemplate)
-        .withSharedPref(context, KEY_KEYSET, fileName)
+        .withHarmony(context, KEY_KEYSET, fileName)
         .withMasterKeyUri(MasterKeys.KEYSTORE_PATH_URI + masterKeyAlias)
         .build().keysetHandle
     val aeadKeysetHandle: KeysetHandle = HarmonyKeysetManager.Builder()
         .withKeyTemplate(prefValueEncryptionScheme.keyTemplate)
-        .withSharedPref(context, VALUE_KEYSET, fileName)
+        .withHarmony(context, VALUE_KEYSET, fileName)
         .withMasterKeyUri(MasterKeys.KEYSTORE_PATH_URI + masterKeyAlias)
         .build().keysetHandle
 

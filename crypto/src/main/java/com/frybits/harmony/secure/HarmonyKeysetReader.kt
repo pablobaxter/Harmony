@@ -1,4 +1,4 @@
-package com.google.crypto.tink.integration.android
+package com.frybits.harmony.secure
 
 import com.frybits.harmony.withFileLock
 import com.google.crypto.tink.KeysetReader
@@ -13,7 +13,7 @@ import java.io.FileNotFoundException
  *
  * Creates a [KeysetReader] that reads and hex-decodes keysets from the file passed into the constructor.
 */
-class HarmonyKeysetReader(private val keysetFile: File, private val keysetFileLock: File) : KeysetReader {
+internal class HarmonyKeysetReader(private val keysetFile: File, private val keysetFileLock: File) : KeysetReader {
 
     override fun read(): Keyset {
         return keysetFileLock.withFileLock(shared = true) {
