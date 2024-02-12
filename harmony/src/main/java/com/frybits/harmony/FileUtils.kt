@@ -1,6 +1,5 @@
 package com.frybits.harmony
 
-import android.os.Build
 import android.system.Os
 import com.frybits.harmony.internal.FILE_UTILS_LOG_TAG
 import com.frybits.harmony.internal._InternalHarmonyLog
@@ -61,9 +60,5 @@ inline fun <T> File.withFileLock(shared: Boolean = false, block: () -> T): T? {
  * Helper function for performing an fsync() on the given [FileOutputStream]
  */
 fun FileOutputStream.sync() {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-        Os.fsync(fd)
-    } else {
-        fd.sync()
-    }
+    Os.fsync(fd)
 }

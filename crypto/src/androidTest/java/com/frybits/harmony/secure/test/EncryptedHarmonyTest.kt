@@ -19,6 +19,7 @@ import org.junit.runner.RunWith
 import kotlin.random.Random
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.test.fail
@@ -349,5 +350,87 @@ class EncryptedHarmonyTest {
 
         assertNull(unencryptedPrefs.getStringSet("test", null)) // This key is encrypted, so it should return null
         assertEquals(randomStringSet, sharedPreferences.getStringSet("test", null))
+    }
+
+    @Test
+    fun testStringValueToNullContains() {
+        // Everything should be empty
+        assertFalse { sharedPreferences.contains("test") }
+
+        assertEquals(0, sharedPreferences.all.size)
+
+        val randomString = "${Random.nextInt()}"
+        sharedPreferences.edit { putString("test", randomString) }
+
+        assertTrue { sharedPreferences.contains("test") }
+        assertEquals(1, sharedPreferences.all.size)
+
+        sharedPreferences.edit { putString("test", null) }
+
+        assertFalse { sharedPreferences.contains("test") }
+    }
+
+    @Test
+    fun testStringSetValueToNullContains() {
+        // Everything should be empty
+        assertFalse { sharedPreferences.contains("test") }
+
+        assertEquals(0, sharedPreferences.all.size)
+
+        val randomString = "${Random.nextInt()}"
+        sharedPreferences.edit { putStringSet("test", setOf(randomString)) }
+
+        assertTrue { sharedPreferences.contains("test") }
+        assertEquals(1, sharedPreferences.all.size)
+
+        sharedPreferences.edit { putStringSet("test", null) }
+
+        assertFalse { sharedPreferences.contains("test") }
+    }
+
+    @Test
+    fun testStringSetStringToNull() {
+        // Everything should be empty
+        assertFalse { sharedPreferences.contains("test") }
+
+        assertEquals(0, sharedPreferences.all.size)
+
+        val randomString = "${Random.nextInt()}"
+        sharedPreferences.edit { putStringSet("test", setOf(randomString, null)) }
+
+        assertTrue { sharedPreferences.contains("test") }
+        assertEquals(1, sharedPreferences.all.size)
+
+        val actual = sharedPreferences.getStringSet("test", null)
+        assertNotNull(actual)
+
+        val expected = setOf(randomString, null)
+        assertEquals(expected, actual)
+    }
+
+    @Test
+    fun testRemove() {
+        // Everything should be empty
+        assertFalse { sharedPreferences.contains("test") }
+
+        assertEquals(0, sharedPreferences.all.size)
+
+        val randomString = "${Random.nextInt()}"
+        sharedPreferences.edit {
+            putString("test", randomString)
+            putString(null, randomString)
+        }
+
+        assertTrue { sharedPreferences.contains("test") }
+        assertTrue { sharedPreferences.contains(null) }
+        assertEquals(2, sharedPreferences.all.size)
+
+        sharedPreferences.edit { remove("test") }
+        assertFalse { sharedPreferences.contains("test") }
+        assertTrue { sharedPreferences.contains(null) }
+
+        sharedPreferences.edit { remove(null) }
+        assertFalse { sharedPreferences.contains("test") }
+        assertFalse { sharedPreferences.contains(null) }
     }
 }

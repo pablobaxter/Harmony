@@ -1,7 +1,7 @@
 @file:JvmName("_InternalCoreHarmony")
 @file:JvmMultifileClass
 
-package com.google.crypto.tink.integration.android
+package com.frybits.harmony.secure
 
 import android.content.Context
 import java.io.File
