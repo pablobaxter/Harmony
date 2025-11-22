@@ -16,7 +16,7 @@ androidx-lifecycle = "2.10.0"
 androidx-constraintlayout = "2.2.1"
 androidx-room = "2.8.4"
 androidx-annotation = "1.9.1"
-androidx-crypto = "1.1.0"
+androidx-crypto = "1.0.0"
 androidx-collection = "1.5.0"
 androidx-test-ext = "1.3.0"
 androidx-test-rules = "1.7.0"
@@ -28,7 +28,7 @@ ksp = "2.3.3"
 
 # Google
 google-material = "1.13.0"
-google-tink = "1.19.0"
+google-tink = "1.7.0"
 
 # Dependency Injection
 hilt = "2.57.2"
