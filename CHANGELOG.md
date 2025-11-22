@@ -1,5 +1,8 @@
 ## Change Log
 
+### Version 1.2.7 / 2025-11-21
+- Version rolled for Google Play SDK Verification
+
 ### Version 1.2.6 / 2024-02-10
 - Fixes bug where Harmony Crypto `SharedPreferences.contains()` returns true even though the value is false [#56](https://github.com/pablobaxter/Harmony/issues/56)
 - Fixes bug in Harmony Crypto where `Editor.remove()` was not removing values

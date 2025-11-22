@@ -138,6 +138,8 @@ jobs:
       - run:
           name: Upload Harmony Library
           command: |
+            mkdir -p ./harmony/src/main/resources/META-INF/com/frybits/harmony/harmony
+            echo "token=${HARMONY_GOOGLE_SDK_VERIFICATION_TOKEN}" > ./harmony/src/main/resources/META-INF/com/frybits/harmony/harmony/verification.properties
             ./gradlew publishAllPublicationsToMavenCentralRepository --no-parallel --no-configuration-cache --stacktrace
 
 workflows:
