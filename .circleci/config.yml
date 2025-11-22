@@ -9,12 +9,7 @@ jobs:
 
   Android-Harmony-Test:
     docker:
-      - image: soaboz/android-jdk-17:0.0.1
-
-    environment:
-      # Configure the JVM and Gradle to avoid OOM errors
-      _JAVA_OPTIONS: "-Xmx3g"
-      GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2"
+      - image: cimg/android:2025.11
 
     working_directory: ~/repo
 
@@ -66,7 +61,7 @@ jobs:
               --test ${HOME}/repo/crypto/build/outputs/apk/androidTest/debug/crypto-debug-androidTest.apk \
               --results-bucket cloud-test-${GOOGLE_PROJECT_ID} \
               --results-dir crypto-${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM} \
-              --device model=Pixel2,version=29 \
+              --device model=redfin,version=29 \
               --no-performance-metrics \
               --no-record-video \
               --use-orchestrator
@@ -80,7 +75,7 @@ jobs:
               --test ${HOME}/repo/target31test/build/outputs/apk/debug/target31test-debug.apk \
               --results-bucket cloud-test-${GOOGLE_PROJECT_ID} \
               --results-dir target31test-${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM} \
-              --device model=Pixel2,version=29 \
+              --device model=redfin,version=29 \
               --no-performance-metrics \
               --no-record-video \
               --use-orchestrator
@@ -89,20 +84,15 @@ jobs:
           name: Install gsutil dependency and copy test results data
           command: |
             sudo gsutil -m cp -r -U `sudo gsutil ls gs://cloud-test-${GOOGLE_PROJECT_ID}/harmony-${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM}/redfin-30-en-portrait/test_result_1.xml | tail -1` ${HOME}/temp_results/test_result_1_harmony.xml | true
-            sudo gsutil -m cp -r -U `sudo gsutil ls gs://cloud-test-${GOOGLE_PROJECT_ID}/crypto-${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM}/Pixel2-29-en-portrait/test_result_1.xml | tail -1` ${HOME}/temp_results/test_result_1_crypto.xml | true
-            sudo gsutil -m cp -r -U `sudo gsutil ls gs://cloud-test-${GOOGLE_PROJECT_ID}/target31test-${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM}/Pixel2-29-en-portrait/test_result_1.xml | tail -1` ${HOME}/temp_results/test_result_1_target31test.xml | true
+            sudo gsutil -m cp -r -U `sudo gsutil ls gs://cloud-test-${GOOGLE_PROJECT_ID}/crypto-${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM}/redfin-29-en-portrait/test_result_1.xml | tail -1` ${HOME}/temp_results/test_result_1_crypto.xml | true
+            sudo gsutil -m cp -r -U `sudo gsutil ls gs://cloud-test-${GOOGLE_PROJECT_ID}/target31test-${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM}/redfin-29-en-portrait/test_result_1.xml | tail -1` ${HOME}/temp_results/test_result_1_target31test.xml | true
 
       - store_test_results:
           path: ~/temp_results
 
   Android-Harmony-Build:
     docker:
-      - image: soaboz/android-jdk-17:0.0.1
-
-    environment:
-      # Configure the JVM and Gradle to avoid OOM errors
-      _JAVA_OPTIONS: "-Xmx3g"
-      GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2"
+      - image: cimg/android:2025.11
 
     working_directory: ~/repo
 
@@ -122,12 +112,7 @@ jobs:
 
   Android-Harmony-Upload:
     docker:
-      - image: soaboz/android-jdk-17:0.0.1
-
-    environment:
-      # Configure the JVM and Gradle to avoid OOM errors
-      _JAVA_OPTIONS: "-Xmx3g"
-      GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2"
+      - image: cimg/android:2025.11
 
     working_directory: ~/repo
 

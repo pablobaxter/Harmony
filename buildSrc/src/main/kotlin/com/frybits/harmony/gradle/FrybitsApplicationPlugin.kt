@@ -9,6 +9,8 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.apply
 import org.gradle.kotlin.dsl.configure
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinAndroidExtension
 import org.jetbrains.kotlin.gradle.internal.ParcelizeSubplugin
 import org.jetbrains.kotlin.gradle.plugin.KotlinAndroidPluginWrapper
 
@@ -38,6 +40,12 @@ class FrybitsApplicationPlugin: Plugin<Project> {
 
         configure<ApplicationExtension> {
             configureAndroidApplication()
+        }
+
+        extensions.configure<KotlinAndroidExtension> {
+            compilerOptions {
+                jvmTarget.set(JvmTarget.JVM_17)
+            }
         }
     }
 }

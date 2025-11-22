@@ -5,11 +5,9 @@ import com.android.build.api.dsl.BuildFeatures
 import com.android.build.api.dsl.BuildType
 import com.android.build.api.dsl.CommonExtension
 import com.android.build.api.dsl.DefaultConfig
+import com.android.build.api.dsl.Installation
 import com.android.build.api.dsl.ProductFlavor
 import org.gradle.api.JavaVersion
-import org.gradle.api.plugins.ExtensionAware
-import org.gradle.kotlin.dsl.configure
-import org.jetbrains.kotlin.gradle.dsl.KotlinJvmOptions
 
 /*
  *  Copyright 2022 Pablo Baxter
@@ -30,9 +28,8 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinJvmOptions
  * https://github.com/pablobaxter/Harmony
  */
 
-@Suppress("UnstableApiUsage")
-internal fun <BuildFeaturesT : BuildFeatures, BuildTypeT : BuildType, DefaultConfigT : DefaultConfig, ProductFlavorT : ProductFlavor, AndroidResourcesT: AndroidResources>
-        CommonExtension<BuildFeaturesT, BuildTypeT, DefaultConfigT, ProductFlavorT, AndroidResourcesT>.configureCommonAndroid() {
+internal fun <BuildFeaturesT : BuildFeatures, BuildTypeT : BuildType, DefaultConfigT : DefaultConfig, ProductFlavorT : ProductFlavor, AndroidResourcesT: AndroidResources, InstallationT: Installation>
+        CommonExtension<BuildFeaturesT, BuildTypeT, DefaultConfigT, ProductFlavorT, AndroidResourcesT, InstallationT>.configureCommonAndroid() {
     compileSdk = 34
 
     defaultConfig {
@@ -49,10 +46,6 @@ internal fun <BuildFeaturesT : BuildFeatures, BuildTypeT : BuildType, DefaultCon
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    (this as? ExtensionAware)?.configure<KotlinJvmOptions> {
-        jvmTarget = "17"
     }
 
     packaging {

@@ -6,6 +6,8 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.apply
 import org.gradle.kotlin.dsl.configure
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinAndroidExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinAndroidPluginWrapper
 
 class FrybitsTestPlugin : Plugin<Project> {
@@ -14,6 +16,11 @@ class FrybitsTestPlugin : Plugin<Project> {
         applyTestPlugins()
         configure<TestExtension> {
             configureAndroidTest()
+        }
+        extensions.configure<KotlinAndroidExtension> {
+            compilerOptions {
+                jvmTarget.set(JvmTarget.JVM_17)
+            }
         }
     }
 }
