@@ -30,7 +30,7 @@ import org.gradle.api.JavaVersion
 
 internal fun <BuildFeaturesT : BuildFeatures, BuildTypeT : BuildType, DefaultConfigT : DefaultConfig, ProductFlavorT : ProductFlavor, AndroidResourcesT: AndroidResources, InstallationT: Installation>
         CommonExtension<BuildFeaturesT, BuildTypeT, DefaultConfigT, ProductFlavorT, AndroidResourcesT, InstallationT>.configureCommonAndroid() {
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 23
