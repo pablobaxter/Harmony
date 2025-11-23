@@ -89,8 +89,8 @@ jobs:
           name: Copy test results data
           command: |
             sudo gcloud storage cp gs://cloud-test-${GOOGLE_PROJECT_ID}/harmony-${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM}/redfin-30-en-portrait/test_result_1.xml ${HOME}/temp_results/test_result_1_harmony.xml
-            sudo gcloud storage cp gs://cloud-test-${GOOGLE_PROJECT_ID}/crypto-${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM}/redfin-29-en-portrait/test_result_1.xml ${HOME}/temp_results/test_result_1_crypto.xml
-            sudo gcloud storage cp gs://cloud-test-${GOOGLE_PROJECT_ID}/target31test-${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM}/redfin-29-en-portrait/test_result_1.xml ${HOME}/temp_results/test_result_1_target31test.xml
+            sudo gcloud storage cp gs://cloud-test-${GOOGLE_PROJECT_ID}/crypto-${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM}/redfin-30-en-portrait/test_result_1.xml ${HOME}/temp_results/test_result_1_crypto.xml
+            sudo gcloud storage cp gs://cloud-test-${GOOGLE_PROJECT_ID}/target31test-${CIRCLE_BRANCH}_${CIRCLE_BUILD_NUM}/redfin-30-en-portrait/test_result_1.xml ${HOME}/temp_results/test_result_1_target31test.xml
 
       - store_test_results:
           path: ~/temp_results
