@@ -98,6 +98,8 @@ jobs:
   Android-Harmony-Build:
     executor:
       name: android/android_machine
+      tag: default
+
     working_directory: ~/repo
 
     steps:
@@ -117,6 +119,8 @@ jobs:
   Android-Harmony-Upload:
     executor:
       name: android/android_machine
+      tag: default
+
     working_directory: ~/repo
 
     steps:
