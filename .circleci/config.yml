@@ -1,5 +1,8 @@
 version: 2.1
 
+orbs:
+  android: circleci/android@3.2.0
+
 decode_android_key: &decode_android_key
   run:
     name: Decode Android key store
@@ -8,8 +11,10 @@ decode_android_key: &decode_android_key
 jobs:
 
   Android-Harmony-Test:
-    docker:
-      - image: cimg/android:2025.11
+    executor:
+      name: android/android_machine
+      resource_class: large
+      tag: default
 
     working_directory: ~/repo
 
@@ -91,9 +96,6 @@ jobs:
           path: ~/temp_results
 
   Android-Harmony-Build:
-    docker:
-      - image: cimg/android:2025.11
-
     working_directory: ~/repo
 
     steps:
@@ -111,9 +113,6 @@ jobs:
             - .
 
   Android-Harmony-Upload:
-    docker:
-      - image: cimg/android:2025.11
-
     working_directory: ~/repo
 
     steps:
